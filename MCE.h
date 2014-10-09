@@ -1,0 +1,29 @@
+#ifndef MCE_H
+#define MCE_H
+
+#include <opencv2/opencv.hpp>
+
+#define SIFT_FEATURE_COUNT 800
+
+using namespace cv;
+
+class MCE
+{
+public:
+    MCE(int argc, char** argv);
+
+    void run();
+    void loadData();
+    void extractSIFT();
+    void calcFwithPoints();
+
+private:
+
+    int arguments;
+    char** paths;
+    std::vector<cv::KeyPoint> keypoints_1;
+    std::vector<cv::KeyPoint> keypoints_2;
+    Mat image_1, image_2;
+};
+
+#endif // MCE_MAIN_H
