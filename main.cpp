@@ -4,6 +4,7 @@
 
 int main(int argc, char** argv )
 {
+    freopen( "error.txt", "w", stderr );
     MCE* mce = new MCE(argc, argv);
     mce->run();
 }

@@ -2,6 +2,7 @@
 #define MCE_H
 
 #include <opencv2/opencv.hpp>
+#include <string>
 
 #define SIFT_FEATURE_COUNT 800
 
@@ -16,6 +17,8 @@ public:
     void loadData();
     void extractSIFT();
     void calcFwithPoints();
+    std::vector<Point2f>* PointsFromFile(String file);
+    void PointsToFile(std::vector<Point2f>* points, String file);
 
 private:
 

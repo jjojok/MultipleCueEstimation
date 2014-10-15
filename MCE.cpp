@@ -1,7 +1,11 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/nonfree/features2d.hpp>
+#include <iostream>
+#include <fstream>
+#include <string>
 #include "MCE.h"
+#include <cstdio>
 
 using namespace cv;
 
@@ -32,11 +36,11 @@ void MCE::loadData() {
         printf("No image data \n");
         return;
     }
-    namedWindow("Image 1", CV_WINDOW_AUTOSIZE );
-    imshow("Image 1", image_1);
+    //namedWindow("Image 1", CV_WINDOW_AUTOSIZE );
+    //imshow("Image 1", image_1);
 
-    namedWindow("Image 2", CV_WINDOW_AUTOSIZE);
-    imshow("Image 2", image_2);
+    //namedWindow("Image 2", CV_WINDOW_AUTOSIZE);
+    //imshow("Image 2", image_2);
 
     waitKey(0);
 
@@ -46,6 +50,8 @@ void MCE::loadData() {
 void MCE::extractSIFT() {
 
     //Source: http://docs.opencv.org/doc/tutorials/features2d/feature_flann_matcher/feature_flann_matcher.html
+
+    printf("EXTRACTING SURF FEATURES:\n");
 
     SurfFeatureDetector detector(SIFT_FEATURE_COUNT);
     detector.detect(image_1, keypoints_1);
@@ -106,8 +112,52 @@ void MCE::extractSIFT() {
     //-- Show detected matches
     namedWindow("SURF results", CV_WINDOW_AUTOSIZE);
     imshow( "SURF results", img_matches );
+
+
+
 }
 
 void MCE::calcFwithPoints() {
+    //Load point correspondencies
+    //Mat findFundamentalMat(InputArray points1, InputArray points2, int method=FM_RANSAC, double param1=3., double param2=0.99, OutputArray mask=noArray() )
+    //bool stereoRectifyUncalibrated(InputArray points1, InputArray points2, InputArray F, Size imgSize, OutputArray H1, OutputArray H2, double threshold=5 )
+    //compare with "real" Fundamental Matrix or calc lush point cloud?:
+    //void triangulatePoints(InputArray projMatr1, InputArray projMatr2, InputArray projPoints1, InputArray projPoints2, OutputArray points4D)¶
+}
 
+std::vector<Point2f>* MCE::PointsFromFile(String file) {
+
+    std::vector<Point2f>* points = new std::vector<Point2f>();
+    float point1, point2;
+    std::ifstream inputStream;
+    inputStream.open(file.c_str());
+    if (inputStream.is_open()) {
+        while (!inputStream.eof()) {
+
+            inputStream >> point1;
+            inputStream >> point2;
+
+            points->push_back(Point2f(point1, point2));
+        }
+    } else {
+        std::cerr << "Unable to open file: " << file;
+    }
+    inputStream.close();
+    return points;
+}
+
+void MCE::PointsToFile(std::vector<Point2f>* points, String file) {
+
+    Point2f point;
+    std::ofstream outputStream;
+    outputStream.open(file.c_str());
+    for (int i = 0; points->size(); i++) {
+            point = points->at(i);
+            outputStream << point.x;
+            outputStream << ' ';
+            outputStream << point.y;
+            outputStream << '\n';
+    }
+    outputStream.flush();
+    outputStream.close();
 }
