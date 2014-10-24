@@ -20,7 +20,7 @@ void MCE::run() {
     if (loadData() == 0) {
         extractSIFT();
 
-        Fpt = calcFwithPoints();
+        Fpt = calcFfromPoints();
 
         std::cout << "Fpt = " << std::endl << Fpt << std::endl;
 
@@ -151,30 +151,33 @@ void MCE::extractSIFT() {
 
 }
 
-Mat MCE::calcFwithPoints() {
+Mat MCE::calcFfromPoints() {
     std::cout << "Calc Fpt..." << std::endl;
     return findFundamentalMat(x1, x2, FM_RANSAC, 2., 0.999, noArray());
 }
 
-std::vector<Point2f>* MCE::PointsFromFile(String file) {
+Mat MCE::MatFromFile(String file, int cols) {
 
-    std::vector<Point2f>* points = new std::vector<Point2f>();
-    float point1, point2;
+    Mat matrix();
     std::ifstream inputStream;
+    float x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
-        while (!inputStream.eof()) {
-
-            inputStream >> point1;
-            inputStream >> point2;
-
-            points->push_back(Point2f(point1, point2));
+        //while (!inputStream.eof()) {
+        while(stream >> x) {
+            matrix.push_back(x);
         }
+        matrix = matrix.reshape(1, cols);
+        inputStream.close();
     } else {
         std::cerr << "Unable to open file: " << file;
     }
-    inputStream.close();
-    return points;
+
+    return matrix;
+}
+
+std::vector<Mat> decomposeFtoK(Mat F) {
+
 }
 
 void MCE::PointsToFile(std::vector<Point2f>* points, String file) {

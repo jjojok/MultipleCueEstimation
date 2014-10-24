@@ -16,8 +16,8 @@ public:
     void run();
     int loadData();
     void extractSIFT();
-    Mat calcFwithPoints();
-    std::vector<Point2f>* PointsFromFile(String file);
+    Mat calcFfromPoints();
+    Mat PointsFromFile(String file, int cols);
     void PointsToFile(std::vector<Point2f>* points, String file);
 
 private:
