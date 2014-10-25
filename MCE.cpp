@@ -177,7 +177,11 @@ Mat MCE::MatFromFile(String file, int cols) {
 }
 
 std::vector<Mat> decomposeFtoK(Mat F) {
-
+    SVD svd();
+    Mat U, S, V;
+    svd.compute(F, U, S, V);
+    Mat e = U.col(3);
+    P = [-vgg_contreps(e)*F e];
 }
 
 void MCE::PointsToFile(std::vector<Point2f>* points, String file) {

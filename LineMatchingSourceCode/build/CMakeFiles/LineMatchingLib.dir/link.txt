@@ -1,0 +1,2 @@
+/usr/bin/ar cr libLineMatchingLib.a  CMakeFiles/LineMatchingLib.dir/PairwiseLineMatching.cpp.o CMakeFiles/LineMatchingLib.dir/LineDescriptor.cpp.o CMakeFiles/LineMatchingLib.dir/EDLineDetector.cpp.o
+/usr/bin/ranlib libLineMatchingLib.a
