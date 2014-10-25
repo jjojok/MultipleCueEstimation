@@ -29,7 +29,7 @@ LineDescriptor::LineDescriptor()
 		edLineVec_[i] = new EDLineDetector;
 	}
 	numOfBand_   = 9;//9 is a good value.
-	widthOfBand_ = 7;//widthOfBand_%3 must equal to 0; 7 is a good value.
+    widthOfBand_ = 9;//widthOfBand_%3 must equal to 0; 7 is a good value.
 	gaussCoefL_.resize(widthOfBand_*3);
 	double u = (widthOfBand_*3-1)/2;
 	double sigma = (widthOfBand_*2+1)/2;// (widthOfBand_*2+1)/2;

@@ -43,9 +43,12 @@ using namespace std;
 void PairwiseLineMatching::LineMatching(ScaleLines &linesInLeft,ScaleLines &linesInRight,
 		std::vector<unsigned int> &matchResult)
 {
-	//compute the global rotation angle of image pair;
+	//compute the global rotation angle of image pair
+	std::cout << "Compute the global rotation angle of image pair" << std::endl;
 	globalRotationAngle_ = GlobalRotationOfImagePair_(linesInLeft,linesInRight);
+	std::cout << "Build adjacency matrix" << std::endl;
 	BuildAdjacencyMatrix_(linesInLeft,linesInRight);
+	std::cout << "Matching result from principal eigenvector" << std::endl;
 	MatchingResultFromPrincipalEigenvector_(linesInLeft,linesInRight,matchResult);
 }
 
@@ -312,7 +315,7 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft,ScaleLi
 	for(unsigned int j=0; j<dim; j++){//column
 		idLeft1  = nodesList_[j].leftLineID;
 		idRight1 = nodesList_[j].rightLineID;
-		for(unsigned int i=j+1; i<dim; i++){//row
+        for(unsigned int i=j+1; i<dim; i++){//row
 			idLeft2  = nodesList_[i].leftLineID;
 			idRight2 = nodesList_[i].rightLineID;
 			if((idLeft1==idLeft2)||(idRight1==idRight2)){

@@ -91,6 +91,8 @@ int main(int argc, char** argv)
 	IplImage      *cvLeftColorImage = NULL;
 	IplImage      *cvRightColorImage = NULL;
 
+	std::cout << "BIAS OpenCW Bridge" << std::endl;
+
 	BIAS::ImageConvert::BIAS2ipl(leftImage,cvLeftImage);
 	BIAS::ImageConvert::BIAS2ipl(rightImage,cvRightImage);
 	CvSize imgSize = cvGetSize(cvLeftImage);
@@ -100,10 +102,11 @@ int main(int argc, char** argv)
 	cvCvtColor( cvLeftImage, cvLeftColorImage,  CV_GRAY2RGB );
 	cvCvtColor( cvRightImage,cvRightColorImage, CV_GRAY2RGB );
 
-
+	
   ///////////####################################################################
   ///////////####################################################################
 	//extract lines, compute their descriptors and match lines
+	std::cout << "Extract lines, compute their descriptors and match lines" << std::endl;	
 	LineDescriptor lineDesc;
 	PairwiseLineMatching lineMatch;
 
@@ -113,9 +116,14 @@ int main(int argc, char** argv)
 
 	BIAS::TimeMeasure timer;
 	timer.Start();
-
+	
 	lineDesc.GetLineDescriptor(leftImage,linesInLeft);
 	lineDesc.GetLineDescriptor(rightImage,linesInRight);
+
+    std::cout << "Get line discriptors, left: "<< linesInLeft.size() << "; right: " << linesInRight.size() << std::endl;
+
+    std::cout << "Line matching" << std::endl;
+
 	lineMatch.LineMatching(linesInLeft,linesInRight,matchResult);
 	timer.Stop();
 	timer.Print();
@@ -124,6 +132,8 @@ int main(int argc, char** argv)
   ///////////####################################################################
   ///////////####################################################################
 	//draw  extracted lines into images
+	std::cout << "Draw  extracted lines into images" << std::endl;
+	
 	CvPoint startPoint;
 	CvPoint endPoint;
 	CvPoint point;
