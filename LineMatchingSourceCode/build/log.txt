@@ -1,8 +1,0 @@
-BIAS OpenCW Bridge
-Extract lines, compute their descriptors and match lines
-Get line discriptors, left: 540; right: 656
-Line matching
-Compute the global rotation angle of image pair
-minimal histgram distance = 0.191101, Approximate global rotation angle = 0
-Build adjacency matrix
-the number of possible matched line pair = 76378

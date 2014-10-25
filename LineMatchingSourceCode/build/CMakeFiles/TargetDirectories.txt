@@ -1,2 +1,0 @@
-/home/johannes/MultipleCueEstimation/LineMatchingSourceCode/build/CMakeFiles/LineMatchingLib.dir
-/home/johannes/MultipleCueEstimation/LineMatchingSourceCode/build/CMakeFiles/TestLineMatchingAlgorithm.dir
