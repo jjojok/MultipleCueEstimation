@@ -28,11 +28,11 @@ EDLineDetector::EDLineDetector()
 	//	cout<<"Call EDLineDetector constructor function"<<endl;
 	//set parameters for line segment detection
 	ksize_ = 5;
-	sigma_ = 1.0;
+	sigma_ = 2.0;			//1.0
 	gradienThreshold_ = 25;
 	anchorThreshold_  = 2;//8
 	scanIntervals_    = 2;//2
-	minLineLen_       = 15;
+	minLineLen_       = 25;		//15
 	lineFitErrThreshold_ = 1.4;
 	InitEDLine_();
 }

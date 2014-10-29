@@ -1,17 +1,30 @@
-project(MultipleCueEstimation)
-cmake_minimum_required(VERSION 2.8)
-set (OpenCV_DIR $ENV{OPENCV_DIR})
-set (Eigen_DIR $ENV{EIGEN_DIR})
-set (BIAS_DIR $ENV{BIAS_ROOT_DIR})
+PROJECT(MultipleCueEstimation)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+SET(OpenCV_DIR $ENV{OPENCV_DIR})
+SET(Eigen_DIR $ENV{EIGEN_DIR})
+SET(BIAS_DIR $ENV{BIAS_ROOT_DIR})
 
-#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/LBD_Descriptor)
-#include(${CMAKE_CURRENT_SOURCE_DIR}/LBD_Descriptor/CMakeLists.txt)
+FIND_PACKAGE(OpenCV REQUIRED)
+FIND_PACKAGE(BIAS REQUIRED)
+
+SET(BUILD_SHARED_LIBS ON)
+SET(CMAKE_BUILD_TYPE Release)
+
+INCLUDE_DIRECTORIES(/LineMatchingSourceCode)
+INCLUDE_DIRECTORIES(${BIAS_INCLUDE_DIR})
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BIAS_CXX_FLAGS}")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  ${BIAS_C_FLAGS}")
+
+INCLUDE(${BIAS_USE_FILE})
+LINK_DIRECTORIES( ${BIAS_LINK_DIRECTORIES})
 
 MESSAGE(OpenCV: ${OpenCV_DIR})
 MESSAGE(Eigen: ${Eigen_DIR})
 MESSAGE(BIAS: ${BIAS_DIR})
 
-find_package( OpenCV REQUIRED )
-add_executable( MultipleCueEstimation main.cpp MCE.cpp MCE.h)
-target_link_libraries( MultipleCueEstimation ${OpenCV_LIBS} )
+#MESSAGE(STATUS ${BIAS_LIBRARIES})
+
+ADD_EXECUTABLE( MultipleCueEstimation main.cpp MCE.cpp MCE.h)
+TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} ${BIAS_LIBRARIES} ${CMAKE_SOURCE_DIR}/LineMatchingSourceCode/build/libLineMatching.so)
 

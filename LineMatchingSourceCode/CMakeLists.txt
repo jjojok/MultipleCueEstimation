@@ -10,15 +10,17 @@ if(COMMAND cmake_policy)
   cmake_policy(SET CMP0003 NEW)
 endif(COMMAND cmake_policy)
 
-SET(BUILD_SHARED_LIBS OFF)	#was ON
+SET(BUILD_SHARED_LIBS ON)	#was ON
+SET(CMAKE_BUILD_TYPE Release)
 
 ## where are user-specific cmake modules
 SET(CMAKE_MODULE_PATH $ENV{CMAKE_MODULE_PATH})
 SET(BIAS_DIR $ENV{BIAS_ROOT_DIR})
 #set (ARPACK_DIR $ENV{OPENCV_DIR})
 
-
 OPTION(USE_BIAS ON)
+
+SET(USE_BIAS ON)
 
 IF(USE_BIAS)
 FIND_PACKAGE(BIAS)
@@ -31,35 +33,39 @@ ENDIF(USE_BIAS)
 
 
 IF(USE_BIAS)
-INCLUDE_DIRECTORIES(${BIAS_INCLUDE_DIR} ${BIAS_INCLUDE_DIR}/BIAS ${WXWIDGETS_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${BIAS_INCLUDE_DIR})
 LINK_DIRECTORIES( ${BIAS_LINK_DIRECTORIES})
+MESSAGE(Bias inc dir: ${BIAS_INCLUDE_DIR})
+MESSAGE(Bias link dir: ${BIAS_INCLUDE_DIR})
 ENDIF(USE_BIAS)
   
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BIAS_CXX_FLAGS}")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  ${BIAS_C_FLAGS}")
 
 # source files of library "LineMatchingLib" to be created
-SET(LineMatchingLib_SRCS
+SET(LineMatching_SRCS
     PairwiseLineMatching.cpp
     LineDescriptor.cpp
     EDLineDetector.cpp
+    LineMatcher.cpp
 )
 # header files to be installed
-SET(LineMatchingLib_HEADER
+SET(LineMatching_HEADER
     PairwiseLineMatching.hh
     LineDescriptor.hh
     EDLineDetector.hh
     LineStructure.hh
+    LineMatcher.hh
 )
 
 
-ADD_LIBRARY(LineMatchingLib
-            ${LineMatchingLib_SRCS}
-            ${LineMatchingLib_HEADER})
-TARGET_LINK_LIBRARIES(LineMatchingLib /usr/lib/libarpack++.so /usr/lib/libarpack.so.2.0.0 /usr/lib/libsuperlu.so.3.0.0 ${BIAS_LIBRARIES} ${OpenCV_LIBS}) #/data1/lz/LilianTests/ARPACKLAB/SuperLU/libsuperlu.so
+ADD_LIBRARY(LineMatching
+            ${LineMatching_SRCS}
+            ${LineMatching_HEADER})
+TARGET_LINK_LIBRARIES(LineMatching /usr/lib/libarpack++.so /usr/lib/libarpack.so.2.0.0 /usr/lib/libsuperlu.so.3.0.0 ${BIAS_LIBRARIES} ${OpenCV_LIBS}) #/data1/lz/LilianTests/ARPACKLAB/SuperLU/libsuperlu.so
 
 
 ADD_EXECUTABLE(TestLineMatchingAlgorithm TestLineMatchingAlgorithm.cpp)
-TARGET_LINK_LIBRARIES(TestLineMatchingAlgorithm   LineMatchingLib)
+TARGET_LINK_LIBRARIES(TestLineMatchingAlgorithm   LineMatching)
 
 

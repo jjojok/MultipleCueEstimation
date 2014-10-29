@@ -1,24 +1,20 @@
-#include <stdio.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/nonfree/features2d.hpp>
-#include <iostream>
-#include <fstream>
-#include <string>
 #include "MCE.h"
-#include <cstdio>
 
 using namespace cv;
 
 MCE::MCE(int argc, char** argv)
 {
     this->arguments = argc;
-    this->paths = argv;
+    this->path_img1 = argv[1];
+    this->path_img2 = argv[2];
+    this->lineCorrespondencies = new std::vector<CvPoint>();
 }
 
 void MCE::run() {
     Mat Fpt;       //Fundamental matric from point correspondencies
     if (loadData() == 0) {
         extractSIFT();
+        extractLines();
 
         Fpt = calcFfromPoints();
 
@@ -53,21 +49,37 @@ int MCE::loadData() {
         return -1;
     }
 
-    image_1 = imread(paths[1], CV_LOAD_IMAGE_GRAYSCALE);
-    image_2 = imread(paths[2], CV_LOAD_IMAGE_GRAYSCALE);
+    image_1 = imread(path_img1, CV_LOAD_IMAGE_GRAYSCALE);
+    image_2 = imread(path_img2, CV_LOAD_IMAGE_GRAYSCALE);
 
     if ( !image_1.data || !image_2.data )
     {
         printf("No image data \n");
         return -1;
     }
-    namedWindow("Image 1", CV_WINDOW_AUTOSIZE );
-    imshow("Image 1", image_1);
+    namedWindow("First original image", CV_WINDOW_AUTOSIZE );
+    imshow("First original image", image_1);
 
-    namedWindow("Image 2", CV_WINDOW_AUTOSIZE);
-    imshow("Image 2", image_2);
+    namedWindow("Second original image", CV_WINDOW_AUTOSIZE);
+    imshow("Second original image", image_2);
 
     return 0;
+}
+
+void MCE::extractLines() {
+    LineMatcher lm;
+    std::cout << "Extracting line correspondencies..." << std::endl;
+    int corresp = lm.match(path_img1, path_img2, lineCorrespondencies);     //TODO: Funktioniert aus irgendwelchen gründen nicht -.-
+    std::cout << "Found " << corresp << " line correspondencies " << std::endl;
+
+    namedWindow("Image 1 lines", CV_WINDOW_AUTOSIZE );
+    imshow("Image 1 lines", imread("LinesInImage1.png", CV_LOAD_IMAGE_COLOR));
+
+    namedWindow("Image 2 lines", CV_WINDOW_AUTOSIZE );
+    imshow("Image 2 lines", imread("LinesInImage2.png", CV_LOAD_IMAGE_COLOR));
+
+    namedWindow("Line matches", CV_WINDOW_AUTOSIZE );
+    imshow("Line matches", imread("LBDSG.png", CV_LOAD_IMAGE_COLOR));
 }
 
 void MCE::extractSIFT() {
@@ -156,15 +168,15 @@ Mat MCE::calcFfromPoints() {
     return findFundamentalMat(x1, x2, FM_RANSAC, 2., 0.999, noArray());
 }
 
-Mat MCE::MatFromFile(String file, int cols) {
+Mat MCE::MatFromFile(std::string file, int cols) {
 
-    Mat matrix();
+    Mat matrix;
     std::ifstream inputStream;
     float x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
         //while (!inputStream.eof()) {
-        while(stream >> x) {
+        while(inputStream >> x) {
             matrix.push_back(x);
         }
         matrix = matrix.reshape(1, cols);
@@ -177,14 +189,14 @@ Mat MCE::MatFromFile(String file, int cols) {
 }
 
 std::vector<Mat> decomposeFtoK(Mat F) {
-    SVD svd();
-    Mat U, S, V;
-    svd.compute(F, U, S, V);
-    Mat e = U.col(3);
-    P = [-vgg_contreps(e)*F e];
+//    SVD svd();
+//    Mat U, S, V;
+//    svd.compute(F, U, S, V);
+//    Mat e = U.col(3);
+//    P = [-vgg_contreps(e)*F e];
 }
 
-void MCE::PointsToFile(std::vector<Point2f>* points, String file) {
+void MCE::PointsToFile(std::vector<Point2f>* points, std::string file) {
 
     Point2f point;
     std::ofstream outputStream;

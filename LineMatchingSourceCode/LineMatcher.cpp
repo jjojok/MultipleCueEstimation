@@ -4,49 +4,29 @@
  *  Created on: Feb 23, 2012
  *      Author: lz
  */
-#include <Base/Image/ImageIO.hh>
-#include <Base/Image/ImageConvert.hh>
-#include <Base/Math/Vector2.hh>
-#include <Base/Math/Vector3.hh>
-#include <Base/Math/Matrix3x3.hh>
-#include <Base/Debug/TimeMeasure.hh>
-#include <Utils/Param.hh>
-#include <bias_config.h>
-#ifndef BIAS_HAVE_OPENCV
-#  error You need to enable OPENCV to compile this file. Please reconfigure MIP with USE_OPENCV (jw)
-#endif
-#include <Base/Common/W32Compat.hh>
-#include <math.h>
-#include <time.h>
-#include <fstream>
-#include <cv.h>
-#include <highgui.h>
-
-#include "LineDescriptor.hh"
-#include "PairwiseLineMatching.hh"
+#include "LineMatcher.hh"
 
 using namespace BIAS;
 using namespace std;
 
-
-void usage(int argc, char** argv){
-	cout<<"Usage: "<<argv[0]<<"  image1.png"<<"  image2.png"<<endl;
+LineMatcher::LineMatcher()
+{
+	
 }
 
+std::vector<CvPoint>* LineMatcher::getCorrespondencies() {
+	return m_matches;
+}
 
-
-int main(int argc, char** argv)
+int LineMatcher::match(char* image1, char* image2, std::vector<CvPoint>* matches)
 {
-	int ret = -1;
-	if(argc<3){
-		usage(argc,argv);
-		return ret;
-	}
+	cout<<"Entered LineMatcher::match" <<endl;
+	m_matches = matches;
   //load first image from file
-	std::string imageName1(argv[1]);
+	std::string imageName1(image1);
 	BIAS::Image<unsigned char> imageUC;
 	if(BIAS::ImageIO::Load(imageName1,imageUC) != 0){
-		cout<<"Cann't read the input image: "<< argv[1] <<endl;
+		cout<<"Cann't read the input image: "<< image1 <<endl;
 		return -1;
 	}
   //convert the input image into gray image
@@ -58,9 +38,9 @@ int main(int argc, char** argv)
 	}
 
   //load second image from file
-	std::string imageName2(argv[2]);
+	std::string imageName2(image2);
 	if(BIAS::ImageIO::Load(imageName2,imageUC) != 0){
-		cout<<"Cann't read the input image: "<< argv[2] <<endl;
+		cout<<"Cann't read the input image: "<< image2 <<endl;
 		return -1;
 	}
   //convert the input image into gray image
@@ -71,25 +51,33 @@ int main(int argc, char** argv)
 		rightImage = imageUC;
 	}
 
-
 	unsigned int imageWidth  = leftImage.GetWidth();
 	unsigned int imageHeight = leftImage.GetHeight();
 
-	if((0==rightImage.GetWidth())||(0==rightImage.GetHeight())
-			||(imageWidth==0)||(imageHeight==0)){
-				cout<<"One of the image is empty!"<<endl;
-				return 0;
+	cout<<"Loaded two images (" << imageWidth <<"x" << imageHeight << ") and (" << rightImage.GetWidth() << "x" << rightImage.GetHeight() << ")" <<endl;
+
+	if((0==rightImage.GetWidth())||(0==rightImage.GetHeight())||(imageWidth==0)||(imageHeight==0))
+	{
+		cout<<"One of the image is empty!"<<endl;
+		return -1;
 	}
+
+	cout<<"Images OK!" <<endl;
+
 	srand((unsigned)time(0));
 	int lowest=100, highest=255;
 	int range=(highest-lowest)+1;
 	unsigned int r, g, b; //the color of lines
+
+	cout<<"Rand" <<endl;
 
 	//initial variables
 	IplImage      *cvLeftImage = NULL;
 	IplImage      *cvRightImage = NULL;
 	IplImage      *cvLeftColorImage = NULL;
 	IplImage      *cvRightColorImage = NULL;
+
+	std::cout << "BIAS OpenCW Bridge" << std::endl;
 
 	BIAS::ImageConvert::BIAS2ipl(leftImage,cvLeftImage);
 	BIAS::ImageConvert::BIAS2ipl(rightImage,cvRightImage);
@@ -100,10 +88,11 @@ int main(int argc, char** argv)
 	cvCvtColor( cvLeftImage, cvLeftColorImage,  CV_GRAY2RGB );
 	cvCvtColor( cvRightImage,cvRightColorImage, CV_GRAY2RGB );
 
+  ///////////####################################################################
+  ///////////####################################################################
 
-  ///////////####################################################################
-  ///////////####################################################################
 	//extract lines, compute their descriptors and match lines
+	std::cout << "Extract lines, compute their descriptors and match lines" << std::endl;	
 	LineDescriptor lineDesc;
 	PairwiseLineMatching lineMatch;
 
@@ -113,9 +102,14 @@ int main(int argc, char** argv)
 
 	BIAS::TimeMeasure timer;
 	timer.Start();
-
+	
 	lineDesc.GetLineDescriptor(leftImage,linesInLeft);
 	lineDesc.GetLineDescriptor(rightImage,linesInRight);
+
+    std::cout << "Get line discriptors, left: "<< linesInLeft.size() << "; right: " << linesInRight.size() << std::endl;
+
+    std::cout << "Line matching" << std::endl;
+
 	lineMatch.LineMatching(linesInLeft,linesInRight,matchResult);
 	timer.Stop();
 	timer.Print();
@@ -124,6 +118,8 @@ int main(int argc, char** argv)
   ///////////####################################################################
   ///////////####################################################################
 	//draw  extracted lines into images
+	std::cout << "Draw  extracted lines into images" << std::endl;
+	
 	CvPoint startPoint;
 	CvPoint endPoint;
 	CvPoint point;
@@ -177,6 +173,7 @@ int main(int argc, char** argv)
 	int lowest1=0, highest1=255;
 	int range1=(highest1-lowest1)+1;
 	std::vector<unsigned int> r1(matchResult.size()/2), g1(matchResult.size()/2), b1(matchResult.size()/2); //the color of lines
+	//matches = new vector<CvPoint>();
 	for(unsigned int pair=0; pair<matchResult.size()/2;pair++){
 		r1[pair] = lowest1+int(rand()%range1);
 		g1[pair] = lowest1+int(rand()%range1);
@@ -189,9 +186,13 @@ int main(int argc, char** argv)
 		lineIDRight= matchResult[2*pair+1];
 		startPoint = cvPoint(int(linesInLeft[lineIDLeft][0].startPointX),int(linesInLeft[lineIDLeft][0].startPointY));
 		endPoint   = cvPoint(int(linesInLeft[lineIDLeft][0].endPointX),  int(linesInLeft[lineIDLeft][0].endPointY));
+		matches->push_back(startPoint);
+		matches->push_back(endPoint);
 		cvLine( cvLeftColorImage,startPoint,endPoint,CV_RGB(r1[pair],g1[pair],b1[pair]),4, CV_AA);
 		startPoint = cvPoint(int(linesInRight[lineIDRight][0].startPointX),int(linesInRight[lineIDRight][0].startPointY));
 		endPoint   = cvPoint(int(linesInRight[lineIDRight][0].endPointX),  int(linesInRight[lineIDRight][0].endPointY));
+		matches->push_back(startPoint);
+		matches->push_back(endPoint);
 		cvLine( cvRightColorImage,startPoint,endPoint,CV_RGB(r1[pair],g1[pair],b1[pair]),4, CV_AA);
 	}
 
@@ -204,7 +205,7 @@ int main(int argc, char** argv)
 	cvSetImageROI(cvResultColorImage1, cvRect(imageWidth, 0, imageWidth*2-1, imageHeight-1));
 	cvResize(cvRightColorImage, cvResultColorImage1);
 	cvResetImageROI(cvResultColorImage1);
-  cvCopy(cvResultColorImage1,cvResultColorImage2);
+  	cvCopy(cvResultColorImage1,cvResultColorImage2);
 	for(unsigned int pair=0; pair<matchResult.size()/2;pair++){
 		lineIDLeft = matchResult[2*pair];
 		lineIDRight= matchResult[2*pair+1];
@@ -223,6 +224,7 @@ int main(int argc, char** argv)
 	cvReleaseImage(&cvLeftColorImage);
 	cvReleaseImage(&cvRightColorImage);
 	cout<<"number of total matches = "<<matchResult.size()/2<<endl;
-  ///////////####################################################################
-  ///////////####################################################################
+	return matchResult.size()/2;
 }
+  ///////////####################################################################
+  ///////////####################################################################

@@ -14,12 +14,12 @@ using namespace std;
 
 #define Inf       1e10 //Infinity
 //the resolution scale of theta histogram, used when compute angle histogram of lines in the image
-#define ResolutionScale  20  //10 degree
+#define ResolutionScale  10  //20 degree
 /*The following two thresholds are used to decide whether the estimated global rotation is acceptable.
  *Some image pairs don't have a stable global rotation angle, e.g. the image pair of the wide baseline
  *non planar scene. */
-#define AcceptableAngleHistogramDifference 0.49
-#define AcceptableLengthVectorDifference   0.4
+#define AcceptableAngleHistogramDifference 0.3		//0.49
+#define AcceptableLengthVectorDifference   0.3		//0.4
 
 
 /*The following four thresholds are used to decide whether a line in the left and a line in the right
@@ -37,7 +37,7 @@ using namespace std;
 
 
 //this is used when get matching result from principal eigen vector
-#define WeightOfMeanEigenVec               0.1
+#define WeightOfMeanEigenVec               0.3		//0.1
 
 
 void PairwiseLineMatching::LineMatching(ScaleLines &linesInLeft,ScaleLines &linesInRight,
