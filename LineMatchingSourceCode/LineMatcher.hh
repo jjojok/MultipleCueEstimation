@@ -24,7 +24,7 @@ class LineMatcher
 public:
     	LineMatcher();
 
-	int match(char* image1, char* image2, std::vector<CvPoint>* matches);
+	int match(const char* image1,const char* image2, std::vector<CvPoint>* matches);
 
 	std::vector<CvPoint>* getCorrespondencies();
 

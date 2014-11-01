@@ -31,7 +31,8 @@ public:
 private:
 
     int arguments;
-    char *path_img1, *path_img2;
+    std::string path_img1, path_P1;
+    std::string path_img2, path_P2;
     Mat image_1, image_2;
     vector<CvPoint>* lineCorrespondencies;
     std::vector<Point2f> x1, x2;   //corresponding points in image 1 and 2

@@ -18,7 +18,7 @@ std::vector<CvPoint>* LineMatcher::getCorrespondencies() {
 	return m_matches;
 }
 
-int LineMatcher::match(char* image1, char* image2, std::vector<CvPoint>* matches)
+int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoint>* matches)
 {
 	cout<<"Entered LineMatcher::match" <<endl;
 	m_matches = matches;

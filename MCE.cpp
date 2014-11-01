@@ -5,6 +5,10 @@ using namespace cv;
 MCE::MCE(int argc, char** argv)
 {
     this->arguments = argc;
+    if (arguments == 5) {
+        this->path_P1 = argv[3];
+        this->path_P2 = argv[4];
+    }
     this->path_img1 = argv[1];
     this->path_img2 = argv[2];
     this->lineCorrespondencies = new std::vector<CvPoint>();
@@ -12,7 +16,7 @@ MCE::MCE(int argc, char** argv)
 
 void MCE::run() {
     Mat Fpt;       //Fundamental matric from point correspondencies
-    if (loadData() == 0) {
+    if (loadData()) {
         extractSIFT();
         extractLines();
 
@@ -23,19 +27,27 @@ void MCE::run() {
         Mat H1, H2;
         Mat rectified;// = Mat::zeros(Size(image_1.cols,image_1.rows), image_1.type());
 
+
         if(stereoRectifyUncalibrated(x1, x2, Fpt, Size(image_1.cols,image_1.rows), H1, H2, 5 )) {
             std::cout << "H1 = " << std::endl << H1 << std::endl;
             std::cout << "H2 = " << std::endl << H2 << std::endl;
-
-            Mat h = findHomography(x1, x2, noArray(), CV_RANSAC, 3);
 
             warpPerspective(image_1, rectified, H1, Size(image_1.cols,image_1.rows));
 
             namedWindow("Image 1 rectified", CV_WINDOW_AUTOSIZE );
             imshow("Image 1 rectified", rectified);
 
-            waitKey(0);
         }
+
+        if (arguments == 5) {   //Compare to ground truth
+            //Mat K1 = MatFromFile(path_P1);
+            //Mat K2 = MatFromFile(path_P2);
+
+
+        }
+
+        waitKey(0);
+        //Mat h = findHomography(x1, x2, noArray(), CV_RANSAC, 3);
         //compare with "real" Fundamental Matrix or calc lush point cloud?:
         //void triangulatePoints(InputArray projMatr1, InputArray projMatr2, InputArray projPoints1, InputArray projPoints2, OutputArray points4D)¶
     }
@@ -43,10 +55,9 @@ void MCE::run() {
 }
 
 int MCE::loadData() {
-    if ( arguments != 3 )
-    {
-        printf("usage: MultipleQueEstimation <Path_to_first_image> <Path_to_second_image>\n");
-        return -1;
+    if (arguments != 3 || arguments != 5) {
+        std::cout << "Usage: multiplecueestimation <path to first image> <path to second image> <optional: path to first camera matrix> <optional: path to second camera matrix>" << std::endl;
+        return 0;
     }
 
     image_1 = imread(path_img1, CV_LOAD_IMAGE_GRAYSCALE);
@@ -55,7 +66,7 @@ int MCE::loadData() {
     if ( !image_1.data || !image_2.data )
     {
         printf("No image data \n");
-        return -1;
+        return 0;
     }
     namedWindow("First original image", CV_WINDOW_AUTOSIZE );
     imshow("First original image", image_1);
@@ -63,13 +74,28 @@ int MCE::loadData() {
     namedWindow("Second original image", CV_WINDOW_AUTOSIZE);
     imshow("Second original image", image_2);
 
-    return 0;
+    return 1;
 }
 
 void MCE::extractLines() {
     LineMatcher lm;
+
+    Mat image_1_down;
+    Mat image_2_down;
+
+    std::string path_img1_down = path_img1 + "_down";
+    std::string path_img2_down = path_img2 + "_down";
+
+    //TODO: Memory leak, works only with small images (e.g. 800x600), replace with opencv if ver 3 is out
+    resize(imread(path_img1, CV_LOAD_IMAGE_COLOR), image_1_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
+    resize(imread(path_img1, CV_LOAD_IMAGE_COLOR), image_2_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
+
+    imwrite(path_img1_down, image_1_down);
+    imwrite(path_img2_down, image_2_down);
+
+
     std::cout << "Extracting line correspondencies..." << std::endl;
-    int corresp = lm.match(path_img1, path_img2, lineCorrespondencies);     //TODO: Funktioniert aus irgendwelchen gründen nicht -.-
+    int corresp = lm.match(path_img1_down.c_str(), path_img1_down.c_str(), lineCorrespondencies);
     std::cout << "Found " << corresp << " line correspondencies " << std::endl;
 
     namedWindow("Image 1 lines", CV_WINDOW_AUTOSIZE );
