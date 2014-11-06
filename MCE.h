@@ -27,6 +27,7 @@ public:
     Mat calcFfromPoints();
     Mat MatFromFile(std::string file, int cols);
     void PointsToFile(std::vector<Point2f>* points, std::string file);
+    Mat crossMatrix(Mat input);
 
 private:
 
