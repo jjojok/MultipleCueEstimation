@@ -28,6 +28,9 @@ public:
     Mat MatFromFile(std::string file, int cols);
     void PointsToFile(std::vector<Point2f>* points, std::string file);
     Mat crossMatrix(Mat input);
+    void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, int image);
+    Mat getGroundTruth();
+    void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2);
 
 private:
 

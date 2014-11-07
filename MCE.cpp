@@ -1,4 +1,5 @@
 #include "MCE.h"
+#define DEBUG false
 
 using namespace cv;
 
@@ -15,70 +16,28 @@ MCE::MCE(int argc, char** argv)
 }
 
 void MCE::run() {
-    Mat Fpt;       //Fundamental matric from point correspondencies
+    Mat Fpt, Fgt;       //Fundamental matric from point correspondencies
     if (loadData()) {
         extractSIFT();
 //        extractLines();
 
         Fpt = calcFfromPoints();
-
         std::cout << "Fpt = " << std::endl << Fpt << std::endl;
 
-//        Mat H1, H2;
-//        Mat rectified;// = Mat::zeros(Size(image_1.cols,image_1.rows), image_1.type());
 
-
-//        if(stereoRectifyUncalibrated(x1, x2, Fpt, Size(image_1.cols,image_1.rows), H1, H2, 5 )) {
-//            std::cout << "H1 = " << std::endl << H1 << std::endl;
-//            std::cout << "H2 = " << std::endl << H2 << std::endl;
-
-//            warpPerspective(image_1, rectified, H1, Size(image_1.cols,image_1.rows));
-
-//            namedWindow("Image 1 rectified", CV_WINDOW_FULLSCREEN);
-//            imshow("Image 1 rectified", rectified);
-
-//        }
 
         if (arguments == 5) {   //Compare to ground truth
-            Mat P1w = MatFromFile(path_P1, 3); //P1 in world coords
-            Mat P2w = MatFromFile(path_P2, 3); //P2 in world coords
-            Mat T1w, T2w, R1w, R2w;   //World rotation, translation
-            Mat K1, K2; //calibration matrices
-            Mat Rrel, Trel; //Relative rotation, translation
 
-//            std::cout << "P1w = " << std::endl << P1w << std::endl;
-//            std::cout << "P2w = " << std::endl << P2w << std::endl;
-
-            //Mat P1, P2; //Camera matrices, first at origin, second with relative R,T
-            //Important: Divide t by t[3] to make it homogeneous. This ‘t‘ is not the one in P = [R|t]. It is the one in P = [R | R(-t)]
-            decomposeProjectionMatrix(P1w, K1, R1w, T1w, noArray(), noArray(), noArray(), noArray() );
-            decomposeProjectionMatrix(P2w, K2, R2w, T2w, noArray(), noArray(), noArray(), noArray() );
-
-            T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
-            T1w.resize(3);
-
-            T2w = T2w/T2w.at<float>(3);      //convert to homogenius coords
-            T2w.resize(3);
-
-            T1w = R1w*(T1w);   //Turn translation vectors
-            T2w = R2w*(T2w);
-
-            Rrel = R2w*R1w.t(); //Relative rotation between cam1 and cam2
-
-//            std::cout << "R1w = " << std::endl << R1w << std::endl;
-//            std::cout << "R2w = " << std::endl << R2w << std::endl;
-
-            Trel = T2w - T1w;    //Realtive translation between cam1 and cam2
-
-//            std::cout << "Rrel = " << std::endl << Rrel << std::endl;
-//            std::cout << "Trel = " << std::endl << Trel << std::endl;
-
-            //F = K2^(-T)*Rrel*K1^(T)*(K1*R^(T)*Trel)_[x] (See Hartley, Zisserman: p. 244)
-            //Mat Fgt = K2.t().inv()*Rrel*K1.t()*crossMatrix(K1*Rrel.t()*Trel);
-            Mat Fgt = K2.t().inv()*crossMatrix(Trel)*Rrel*K1.inv(); //(See Hartley, Zisserman: p. 244)
-            //std::cout << "crossMatrix(Trel) = " << std::endl << crossMatrix(Trel) << std::endl;
+            Fgt = getGroundTruth();
             std::cout << "Fgt = " << std::endl << Fgt << std::endl;
+
+
+
         }
+
+        //rectify(x1, x2, Fgt, 2);
+
+        drawEpipolarLines(x1, x2, Fgt, image_1.clone(), image_2.clone());
 
         waitKey(0);
         //Mat h = findHomography(x1, x2, noArray(), CV_RANSAC, 3);
@@ -193,7 +152,7 @@ void MCE::extractSIFT() {
 
     for( int i = 0; i < descriptors_1.rows; i++ )
     {
-        if( matches[i].distance <= max(2*min_dist, 0.02) )
+        if( matches[i].distance <= max(2*min_dist, 0.04) )
         {
             good_matches.push_back( matches[i]);
         }
@@ -215,8 +174,6 @@ void MCE::extractSIFT() {
     std::cout << "Create point pair of matches" << std::endl;
     for( int i = 0; i < good_matches.size(); i++ )
     {
-//        std::cout << "good_matches[" << i << "].queryIdx=" << good_matches[i].queryIdx << std::endl;
-//        std::cout << "good_matches[" << i << "].trainIdx=" << good_matches[i].trainIdx << std::endl;
         x1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
         x2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
     }
@@ -273,4 +230,131 @@ Mat MCE::crossMatrix(Mat input) {    //3 Vector to cross procut matrix
     crossMat.at<float>(2,0) = -input.at<float>(1);
     crossMat.at<float>(2,1) = input.at<float>(0);
     return crossMat;
+}
+
+void MCE::rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, int image) {
+    Mat H1, H2, rectified;
+    std::string windowName;
+    if(stereoRectifyUncalibrated(p1, p2, F, Size(image_1.cols,image_1.rows), H1, H2, 0 )) {
+        if (DEBUG) {
+            std::cout << "H1 = " << std::endl << H1 << std::endl;
+            std::cout << "H2 = " << std::endl << H2 << std::endl;
+        }
+
+        if (image == 1)   {
+            warpPerspective(image_1, rectified, H1, Size(image_1.cols,image_1.rows));
+            windowName = "Image 1 rectified";
+        } else {
+            warpPerspective(image_2, rectified, H2, Size(image_1.cols,image_1.rows));
+            windowName = "Image 2 rectified";
+        }
+
+        namedWindow(windowName, CV_WINDOW_NORMAL);
+        imshow(windowName, rectified);
+    }
+}
+
+Mat MCE::getGroundTruth() {
+    Mat P1w = MatFromFile(path_P1, 3); //P1 in world coords
+    Mat P2w = MatFromFile(path_P2, 3); //P2 in world coords
+    Mat T1w, T2w, R1w, R2w;   //World rotation, translation
+    Mat K1, K2; //calibration matrices
+    Mat Rrel, Trel; //Relative rotation, translation
+
+    if (DEBUG) {
+        std::cout << "P1w = " << std::endl << P1w << std::endl;
+        std::cout << "P2w = " << std::endl << P2w << std::endl;
+    }
+
+    //Important: Divide t by t[3] to make it homogeneous. This ‘t‘ is not the one in P = [R|t]. It is the one in P = [R | R(-t)]
+    decomposeProjectionMatrix(P1w, K1, R1w, T1w, noArray(), noArray(), noArray(), noArray() );
+    decomposeProjectionMatrix(P2w, K2, R2w, T2w, noArray(), noArray(), noArray(), noArray() );
+
+    T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
+    T1w.resize(3);
+
+    T2w = T2w/T2w.at<float>(3);      //convert to homogenius coords
+    T2w.resize(3);
+
+    T1w = R1w*(-T1w);   //Turn translation vectors
+    T2w = R2w*(-T2w);
+
+std::cout << "TestF = " << std::endl << K2.t().inv()*crossMatrix(T1w)*R1w*K1.inv() << std::endl;
+
+    Rrel = R2w*R1w.t(); //Relative rotation between cam1 and cam2
+
+    if (DEBUG) {
+        std::cout << "R1w = " << std::endl << R1w << std::endl;
+        std::cout << "R2w = " << std::endl << R2w << std::endl;
+    }
+
+    Trel = T2w - T1w;    //Realtive translation between cam1 and cam2
+
+    if (DEBUG) {
+        std::cout << "Rrel = " << std::endl << Rrel << std::endl;
+        std::cout << "Trel = " << std::endl << Trel << std::endl;
+    }
+    return K2.t().inv()*crossMatrix(Trel)*Rrel*K1.inv(); //(See Hartley, Zisserman: p. 244)
+}
+
+void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2) {
+
+    //#################################################################################
+    //From: http://opencv-cookbook.googlecode.com/svn/trunk/Chapter%2009/estimateF.cpp
+    //#################################################################################
+
+    std::vector<cv::Vec3f> lines1, lines2;
+    cv::computeCorrespondEpilines(p1, 1, F, lines1);
+    for (vector<cv::Vec3f>::const_iterator it= lines1.begin();
+         it!=lines1.end(); ++it) {
+
+             cv::line(image2,cv::Point(0,-(*it)[2]/(*it)[1]),
+                             cv::Point(image2.cols,-((*it)[2]+(*it)[0]*image2.cols)/(*it)[1]),
+                             cv::Scalar(255,255,255));
+    }
+
+    cv::computeCorrespondEpilines(p2,2,F,lines2);
+    for (vector<cv::Vec3f>::const_iterator it= lines2.begin();
+         it!=lines2.end(); ++it) {
+
+             cv::line(image1,cv::Point(0,-(*it)[2]/(*it)[1]),
+                             cv::Point(image1.cols,-((*it)[2]+(*it)[0]*image1.cols)/(*it)[1]),
+                             cv::Scalar(255,255,255));
+    }
+
+    // Draw the inlier points
+//    std::vector<cv::Point2f> points1In, points2In;
+//    std::vector<cv::Point2f>::const_iterator itPts= p1.begin();
+//    std::vector<uchar>::const_iterator itIn= inliers.begin();
+//    while (itPts!=points1.end()) {
+
+//        // draw a circle at each inlier location
+//        if (*itIn) {
+//            cv::circle(image1,*itPts,3,cv::Scalar(255,255,255),2);
+//            points1In.push_back(*itPts);
+//        }
+//        ++itPts;
+//        ++itIn;
+//    }
+
+//    itPts= p2.begin();
+//    itIn= inliers.begin();
+//    while (itPts!=points2.end()) {
+
+//        // draw a circle at each inlier location
+//        if (*itIn) {
+//            cv::circle(image2,*itPts,3,cv::Scalar(255,255,255),2);
+//            points2In.push_back(*itPts);
+//        }
+//        ++itPts;
+//        ++itIn;
+//    }
+
+    // Display the images with points
+    cv::namedWindow("Right Image Epilines", CV_WINDOW_NORMAL);
+    cv::imshow("Right Image Epilines",image1);
+    cv::namedWindow("Left Image Epilines", CV_WINDOW_NORMAL);
+    cv::imshow("Left Image Epilines",image2);
+
+    //#############################################################################
 }
