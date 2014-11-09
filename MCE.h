@@ -25,12 +25,17 @@ public:
     void extractSIFT();
     void extractLines();
     Mat calcFfromPoints();
+
+    //Utility finctions:
+
     Mat MatFromFile(std::string file, int cols);
-    void PointsToFile(std::vector<Point2f>* points, std::string file);
-    Mat crossMatrix(Mat input);
-    void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, int image);
+    void PointsToFile(std::vector<Point2d>* points, std::string file);
+    Mat crossProductMatrix(Mat input);
+    void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName);
     Mat getGroundTruth();
     void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2);
+    std::string getType(Mat m);
+    Scalar averageSquaredError(Mat A, Mat B);
 
 private:
 

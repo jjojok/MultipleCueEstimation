@@ -22,7 +22,7 @@ void MCE::run() {
 //        extractLines();
 
         Fpt = calcFfromPoints();
-        std::cout << "Fpt = " << std::endl << Fpt << std::endl;
+
 
 
 
@@ -31,11 +31,13 @@ void MCE::run() {
             Fgt = getGroundTruth();
             std::cout << "Fgt = " << std::endl << Fgt << std::endl;
 
-
-
         }
 
-        //rectify(x1, x2, Fgt, 2);
+        std::cout << "Fpt = " << std::endl << Fpt << std::endl;
+        std::cout << "Average Squared Error (Fpt) = " << averageSquaredError(Fgt,Fpt) << std::endl;
+
+        rectify(x1, x2, Fgt, image_1, 1, "Image 1 rect Fgt");
+        rectify(x1, x2, Fpt, image_1, 1, "Image 1 rect Fpt");
 
         drawEpipolarLines(x1, x2, Fgt, image_1.clone(), image_2.clone());
 
@@ -61,11 +63,11 @@ int MCE::loadData() {
         printf("No image data \n");
         return 0;
     }
-    namedWindow("First original image", CV_WINDOW_NORMAL);
-    imshow("First original image", image_1);
+    namedWindow("Image 1 original", CV_WINDOW_NORMAL);
+    imshow("Image 1 original", image_1);
 
-    namedWindow("Second original image", CV_WINDOW_NORMAL);
-    imshow("Second original image", image_2);
+    namedWindow("Image 2 original", CV_WINDOW_NORMAL);
+    imshow("Image 2 original", image_2);
 
     return 1;
 }
@@ -152,7 +154,7 @@ void MCE::extractSIFT() {
 
     for( int i = 0; i < descriptors_1.rows; i++ )
     {
-        if( matches[i].distance <= max(2*min_dist, 0.04) )
+        if( matches[i].distance <= max(2*min_dist, 0.02) )
         {
             good_matches.push_back( matches[i]);
         }
@@ -182,17 +184,16 @@ void MCE::extractSIFT() {
 
 Mat MCE::calcFfromPoints() {
     std::cout << "Calc Fpt..." << std::endl;
-    return findFundamentalMat(x1, x2, FM_RANSAC, 2., 0.999, noArray());
+    return findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, noArray());
 }
 
 Mat MCE::MatFromFile(std::string file, int rows) {
 
     Mat matrix;
     std::ifstream inputStream;
-    float x;
+    double x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
-        //while (!inputStream.eof()) {
         while(inputStream >> x) {
             matrix.push_back(x);
         }
@@ -201,13 +202,12 @@ Mat MCE::MatFromFile(std::string file, int rows) {
     } else {
         std::cerr << "Unable to open file: " << file;
     }
-
     return matrix;
 }
 
-void MCE::PointsToFile(std::vector<Point2f>* points, std::string file) {
+void MCE::PointsToFile(std::vector<Point2d>* points, std::string file) {
 
-    Point2f point;
+    Point2d point;
     std::ofstream outputStream;
     outputStream.open(file.c_str());
     for (int i = 0; points->size(); i++) {
@@ -221,33 +221,29 @@ void MCE::PointsToFile(std::vector<Point2f>* points, std::string file) {
     outputStream.close();
 }
 
-Mat MCE::crossMatrix(Mat input) {    //3 Vector to cross procut matrix
+Mat MCE::crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
     Mat crossMat = Mat::zeros(3,3, input.type());
-    crossMat.at<float>(0,1) = -input.at<float>(2);
-    crossMat.at<float>(0,2) = input.at<float>(1);
-    crossMat.at<float>(1,0) = input.at<float>(2);
-    crossMat.at<float>(1,2) = -input.at<float>(0);
-    crossMat.at<float>(2,0) = -input.at<float>(1);
-    crossMat.at<float>(2,1) = input.at<float>(0);
+    crossMat.at<double>(0,1) = -input.at<double>(2);
+    crossMat.at<double>(0,2) = input.at<double>(1);
+    crossMat.at<double>(1,0) = input.at<double>(2);
+    crossMat.at<double>(1,2) = -input.at<double>(0);
+    crossMat.at<double>(2,0) = -input.at<double>(1);
+    crossMat.at<double>(2,1) = input.at<double>(0);
     return crossMat;
 }
 
-void MCE::rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, int image) {
-    Mat H1, H2, rectified;
-    std::string windowName;
-    if(stereoRectifyUncalibrated(p1, p2, F, Size(image_1.cols,image_1.rows), H1, H2, 0 )) {
+void MCE::rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName) {
+    Mat H1, H2, H, rectified;
+    if(stereoRectifyUncalibrated(p1, p2, F, Size(image.cols,image.rows), H1, H2, 0 )) {
         if (DEBUG) {
             std::cout << "H1 = " << std::endl << H1 << std::endl;
             std::cout << "H2 = " << std::endl << H2 << std::endl;
         }
 
-        if (image == 1)   {
-            warpPerspective(image_1, rectified, H1, Size(image_1.cols,image_1.rows));
-            windowName = "Image 1 rectified";
-        } else {
-            warpPerspective(image_2, rectified, H2, Size(image_1.cols,image_1.rows));
-            windowName = "Image 2 rectified";
-        }
+        if (imgNum == 1) H = H1;
+        else H = H2;
+
+        warpPerspective(image, rectified, H, Size(image.cols,image.rows));
 
         namedWindow(windowName, CV_WINDOW_NORMAL);
         imshow(windowName, rectified);
@@ -258,43 +254,64 @@ Mat MCE::getGroundTruth() {
     Mat P1w = MatFromFile(path_P1, 3); //P1 in world coords
     Mat P2w = MatFromFile(path_P2, 3); //P2 in world coords
     Mat T1w, T2w, R1w, R2w;   //World rotation, translation
-    Mat K1, K2; //calibration matrices
+    Mat K1, K2, K; //calibration matrices
     Mat Rrel, Trel; //Relative rotation, translation
 
     if (DEBUG) {
         std::cout << "P1w = " << std::endl << P1w << std::endl;
-        std::cout << "P2w = " << std::endl << P2w << std::endl;
+        //std::cout << "P2w = " << std::endl << P2w << std::endl;
     }
 
-    //Important: Divide t by t[3] to make it homogeneous. This ‘t‘ is not the one in P = [R|t]. It is the one in P = [R | R(-t)]
     decomposeProjectionMatrix(P1w, K1, R1w, T1w, noArray(), noArray(), noArray(), noArray() );
-    decomposeProjectionMatrix(P2w, K2, R2w, T2w, noArray(), noArray(), noArray(), noArray() );
+    //decomposeProjectionMatrix(P2w, K2, R2w, T2w, noArray(), noArray(), noArray(), noArray() );
 
-    T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
-    T1w.resize(3);
+    //K = (K1 + K2)/2;    //Images with same K
 
-    T2w = T2w/T2w.at<float>(3);      //convert to homogenius coords
-    T2w.resize(3);
+    T1w = T1w/T1w.at<double>(3);      //convert to homogenius coords
+    //T1w.resize(3);
 
-    T1w = R1w*(-T1w);   //Turn translation vectors
-    T2w = R2w*(-T2w);
+    //T2w = T2w/T2w.at<double>(3);      //convert to homogenius coords
+    //T2w.resize(3);
 
-std::cout << "TestF = " << std::endl << K2.t().inv()*crossMatrix(T1w)*R1w*K1.inv() << std::endl;
+//    R2w = R2w.t();      //switch rotation: world to 2. cam frame (Rc2w) to 2. cam to world frame (Rwc2)
+//    R1w = R1w.t();      //switch rotation: world to 1. cam frame (Rc1w) to 1. cam to world frame (Rwc1)
 
-    Rrel = R2w*R1w.t(); //Relative rotation between cam1 and cam2
+
 
     if (DEBUG) {
+        std::cout << "T1w = " << std::endl << T1w << std::endl;
+        //std::cout << "T2w = " << std::endl << T2w << std::endl;
+
         std::cout << "R1w = " << std::endl << R1w << std::endl;
-        std::cout << "R2w = " << std::endl << R2w << std::endl;
+        //std::cout << "R2w = " << std::endl << R2w << std::endl;
     }
 
-    Trel = T2w - T1w;    //Realtive translation between cam1 and cam2
+    //Rrel = R1w*R2w.t(); //Relative rotation between cam1 and cam2; Rc1c2 = Rwc1^T * Rwc2
 
     if (DEBUG) {
-        std::cout << "Rrel = " << std::endl << Rrel << std::endl;
+        //std::cout << "K = " << std::endl << K << std::endl;
+        //std::cout << "K2 = " << std::endl << K2 << std::endl;
+    }
+
+    //Trel = T2w - T1w;    //Realtive translation between cam1 and cam2
+
+    if (DEBUG) {
+        //std::cout << "Rrel = " << std::endl << Rrel << std::endl;
         std::cout << "Trel = " << std::endl << Trel << std::endl;
     }
-    return K2.t().inv()*crossMatrix(Trel)*Rrel*K1.inv(); //(See Hartley, Zisserman: p. 244)
+
+    Mat F = crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD);
+
+//    Mat C = (Mat_<double>(4,1) << 0, 0, 0, 1.0);
+//    Mat e = P2w*C;
+//    std::cout << "e = " << std::endl << e << std::endl;
+//    return crossMatrix(e)*P2w*P1w.inv(DECOMP_SVD);
+
+//    F = K.t().inv()*crossProductMatrix(Trel)*Rrel*K.inv();
+//    //return K.t().inv()*crossProductMatrix(Trel)*Rrel*K.inv();
+//    //return K2.t().inv()*crossProductMatrix(Trel)*Rrel*K1.inv(); //(See Hartley, Zisserman: p. 244)
+//    F = K2.t().inv()*Rrel*K1.t()*crossProductMatrix(K1*Rrel.t()*Trel);
+    return F / F.at<double>(2,2);       //Set global arbitrary scale factor 1 -> easier to compare
 }
 
 void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2) {
@@ -323,8 +340,8 @@ void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Ma
     }
 
     // Draw the inlier points
-//    std::vector<cv::Point2f> points1In, points2In;
-//    std::vector<cv::Point2f>::const_iterator itPts= p1.begin();
+//    std::vector<cv::Point2d> points1In, points2In;
+//    std::vector<cv::Point2d>::const_iterator itPts= p1.begin();
 //    std::vector<uchar>::const_iterator itIn= inliers.begin();
 //    while (itPts!=points1.end()) {
 
@@ -357,4 +374,25 @@ void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Ma
     cv::imshow("Left Image Epilines",image2);
 
     //#############################################################################
+}
+
+std::string MCE::getType(Mat m) {
+    std::string type = "Type: ";
+    switch(m.type() & TYPE_MASK) {
+        case CV_8U: "CV_8U"; break;
+        case CV_8S: type+="CV_8U";  break;
+        case CV_16U: type+="CV_16U"; break;
+        case CV_16S: type+="CV_16S"; break;
+        case CV_32S: type+="CV_32S"; break;
+        case CV_32F: type+="CV_32F"; break;
+        case CV_64F: type+="CV_64F"; break;
+        default: type+="unknown"; break;
+    }
+//    type+=", depth: ";
+//    type+=(DEPTH_MASK & m.type());
+    return type;
+}
+
+Scalar MCE::averageSquaredError(Mat A, Mat B) {
+    return cv::sum((A-B).mul(A-B))/((double)(A.cols*A.rows));
 }
