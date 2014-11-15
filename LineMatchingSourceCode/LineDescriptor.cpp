@@ -142,8 +142,8 @@ int LineDescriptor::OctaveKeyLines(BIAS::Image<unsigned char> & image, ScaleLine
 		numOfFinalLine += edLineVec_[octaveCount]->lines_.numOfLines;
 #ifdef DEBUGLinesInOctaveImages
 		timer.Stop();
-		cout<<"Octave "<<octaveCount<<", line num = "<<edLineVec_[octaveCount]->lines_.numOfLines <<", Time to detect line "<<endl;
-		timer.Print();
+		//cout<<"Octave "<<octaveCount<<", line num = "<<edLineVec_[octaveCount]->lines_.numOfLines <<", Time to detect line "<<endl;
+		//timer.Print();
 		timer.Reset();
 		////////////////////////////////////
 
@@ -395,9 +395,9 @@ int LineDescriptor::OctaveKeyLines(BIAS::Image<unsigned char> & image, ScaleLine
 #ifdef DEBUGLinesInOctaveImages
 	//the following code is to show lines in ScaleLines
 	timer.Stop();
-	cout<<"number of final lines = "<<numOfFinalLine<<", number of lines in ScaleLines vector="<<lineIDInScaleLineVec
-	<<", Time to find extreme lines is "<<endl;
-	timer.Print();
+	//cout<<"number of final lines = "<<numOfFinalLine<<", number of lines in ScaleLines vector="<<lineIDInScaleLineVec
+	//<<", Time to find extreme lines is "<<endl;
+	//timer.Print();
 	timer.Reset();
 	//generate the color;
 	short *r = new short[lineIDInScaleLineVec];

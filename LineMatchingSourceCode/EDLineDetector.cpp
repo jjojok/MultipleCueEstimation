@@ -162,7 +162,7 @@ int EDLineDetector::EdgeDrawing(BIAS::Image<unsigned char> &image, EdgeChains &e
 #ifdef DEBUGEdgeDrawing
 	timer.Stop();
 	cout<<"smooth image and get dx_dy image"<<endl;
-	timer.Print();
+	//timer.Print();
 	timer.Reset();
 	timer.Start();
 #endif
@@ -203,7 +203,7 @@ int EDLineDetector::EdgeDrawing(BIAS::Image<unsigned char> &image, EdgeChains &e
 	timer.Stop();
 	cout<<"get gradient image and direction image"<<endl;
 //	BIAS::ImageIO::Save("gImg_.png",gImg_);
-	timer.Print();
+	//timer.Print();
 	timer.Reset();
 	timer.Start();
 #endif
@@ -245,7 +245,7 @@ int EDLineDetector::EdgeDrawing(BIAS::Image<unsigned char> &image, EdgeChains &e
 //	for(unsigned int i=0; i<anchorsSize; i++){
 //		cout<<"pAnchorX_ = "<<pAnchorX_[i]<<", pAnchorY_ = "<<pAnchorY_[i]<<endl;
 //	}
-	timer.Print();
+	//timer.Print();
 	timer.Reset();
 	timer.Start();
 #endif
@@ -774,7 +774,7 @@ int EDLineDetector::EdgeDrawing(BIAS::Image<unsigned char> &image, EdgeChains &e
 #ifdef DEBUGEdgeDrawing
 	timer.Stop();
 	cout<<"Edge Drawing, numofedge = "<<numOfEdges <<endl;
-	timer.Print();
+	//timer.Print();
 	timer.Reset();
 	/*Show the extracted edge cvImage in color. Each chain is in different color.*/
 	IplImage* cvColorImg = cvCreateImage(cvSize(imageWidth,imageHeight),IPL_DEPTH_8U, 3);
@@ -821,7 +821,7 @@ int EDLineDetector::EDline(BIAS::Image<unsigned char> &image, LineChains &lines,
 #ifdef DEBUGEDLine
 	timer.Stop();
 	cout<<"Time to extract edges"<<endl;
-	timer.Print();
+	//timer.Print();
 	timer.Reset();
 	timer.Start();
 #endif
@@ -1011,7 +1011,7 @@ int EDLineDetector::EDline(BIAS::Image<unsigned char> &image, LineChains &lines,
 #ifdef DEBUGEDLine
 	timer.Stop();
 	cout<<"Time to detect lines"<<endl;
-	timer.Print();
+	//timer.Print();
 	timer.Reset();
 	/*Show the extracted lines in color. Each line is in different color.*/
 	IplImage* cvColorImg = cvCreateImage(cvSize(imageWidth,imageHeight),IPL_DEPTH_8U, 3);

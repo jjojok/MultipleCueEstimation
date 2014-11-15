@@ -54,7 +54,9 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 	unsigned int imageWidth  = leftImage.GetWidth();
 	unsigned int imageHeight = leftImage.GetHeight();
 
-	cout<<"Loaded two images (" << imageWidth <<"x" << imageHeight << ") and (" << rightImage.GetWidth() << "x" << rightImage.GetHeight() << ")" <<endl;
+
+	//	cout<<"Loaded two images (" << imageWidth <<"x" << imageHeight << ") and (" << rightImage.GetWidth() << "x" << rightImage.GetHeight() << ")" <<endl;
+
 
 	if((0==rightImage.GetWidth())||(0==rightImage.GetHeight())||(imageWidth==0)||(imageHeight==0))
 	{
@@ -62,14 +64,10 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 		return -1;
 	}
 
-	cout<<"Images OK!" <<endl;
-
 	srand((unsigned)time(0));
 	int lowest=100, highest=255;
 	int range=(highest-lowest)+1;
 	unsigned int r, g, b; //the color of lines
-
-	cout<<"Rand" <<endl;
 
 	//initial variables
 	IplImage      *cvLeftImage = NULL;
@@ -77,7 +75,7 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 	IplImage      *cvLeftColorImage = NULL;
 	IplImage      *cvRightColorImage = NULL;
 
-	std::cout << "BIAS OpenCW Bridge" << std::endl;
+	// std::cout << "BIAS OpenCW Bridge" << std::endl;
 
 	BIAS::ImageConvert::BIAS2ipl(leftImage,cvLeftImage);
 	BIAS::ImageConvert::BIAS2ipl(rightImage,cvRightImage);
@@ -92,7 +90,6 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
   ///////////####################################################################
 
 	//extract lines, compute their descriptors and match lines
-	std::cout << "Extract lines, compute their descriptors and match lines" << std::endl;	
 	LineDescriptor lineDesc;
 	PairwiseLineMatching lineMatch;
 
@@ -106,19 +103,17 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 	lineDesc.GetLineDescriptor(leftImage,linesInLeft);
 	lineDesc.GetLineDescriptor(rightImage,linesInRight);
 
-    std::cout << "Get line discriptors, left: "<< linesInLeft.size() << "; right: " << linesInRight.size() << std::endl;
-
-    std::cout << "Line matching" << std::endl;
+    	std::cout << "-- First image : " << linesInLeft.size() << std::endl;
+    	std::cout << "-- Second image : " << linesInRight.size() << std::endl;
 
 	lineMatch.LineMatching(linesInLeft,linesInRight,matchResult);
 	timer.Stop();
-	timer.Print();
+	//timer.Print();
 	timer.Reset();
 
   ///////////####################################################################
   ///////////####################################################################
 	//draw  extracted lines into images
-	std::cout << "Draw  extracted lines into images" << std::endl;
 	
 	CvPoint startPoint;
 	CvPoint endPoint;
@@ -223,7 +218,6 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 	cvReleaseImage(&cvRightImage);
 	cvReleaseImage(&cvLeftColorImage);
 	cvReleaseImage(&cvRightColorImage);
-	cout<<"number of total matches = "<<matchResult.size()/2<<endl;
 	return matchResult.size()/2;
 }
   ///////////####################################################################

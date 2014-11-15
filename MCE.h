@@ -1,17 +1,34 @@
 #ifndef MCE_H
 #define MCE_H
 
-#include <opencv2/opencv.hpp>
+//SYSTEM
 #include <string>
-#include "LineMatchingSourceCode/LineMatcher.hh"
 #include <cstdio>
 #include <stdio.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/nonfree/features2d.hpp>
 #include <iostream>
 #include <fstream>
 
+//OPENCV
+#include <opencv2/opencv.hpp>
+#include <opencv2/nonfree/features2d.hpp>
+#include <opencv2/opencv.hpp>
+
+//BIAS
+#include <bias_config.h>
+#include <FeatureDetector/ConstantRegionDetector.hh>
+#include <FeatureDetector/LinearRegionDetector.hh>
+#include <FeatureDetector/BlobDetectorDOM.hh>
+#include <Base/ImageUtils/ImageDraw.hh>
+#include <Base/Image/ImageConvert.hh>
+#include <Base/Image/ImageIO.hh>
+#include <Base/Image/WrapBias2Ipl.hh>
+
+//OTHER
+#include "LineMatchingSourceCode/LineMatcher.hh"
+
 #define SIFT_FEATURE_COUNT 800
+#define LOG_DEBUG false
+#define VISUAL_DEBUG true
 
 using namespace cv;
 
@@ -22,9 +39,15 @@ public:
 
     void run();
     int loadData();
-    void extractSIFT();
+    void extractPoints();
     void extractLines();
+    void extractPlanes();
     Mat calcFfromPoints();
+    Mat calcFfromLines();
+    Mat calcFfromPlanes();
+    Mat calcFfromConics();
+    Mat calcFfromCurves();
+    Mat refineF();
 
     //Utility finctions:
 
@@ -43,6 +66,7 @@ private:
     std::string path_img1, path_P1;
     std::string path_img2, path_P2;
     Mat image_1, image_2;
+    Mat image_1_color, image_2_color;
     vector<CvPoint>* lineCorrespondencies;
     std::vector<Point2f> x1, x2;   //corresponding points in image 1 and 2
 };

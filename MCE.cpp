@@ -1,5 +1,4 @@
 #include "MCE.h"
-#define DEBUG false
 
 using namespace cv;
 
@@ -18,8 +17,9 @@ MCE::MCE(int argc, char** argv)
 void MCE::run() {
     Mat Fpt, Fgt;       //Fundamental matric from point correspondencies
     if (loadData()) {
-        extractSIFT();
-//        extractLines();
+        //extractPoints();
+        //extractLines();
+        extractPlanes();
 
         Fpt = calcFfromPoints();
 
@@ -58,16 +58,23 @@ int MCE::loadData() {
     image_1 = imread(path_img1, CV_LOAD_IMAGE_GRAYSCALE);
     image_2 = imread(path_img2, CV_LOAD_IMAGE_GRAYSCALE);
 
-    if ( !image_1.data || !image_2.data )
+    image_1_color = imread(path_img1, CV_LOAD_IMAGE_COLOR);
+    image_2_color = imread(path_img2, CV_LOAD_IMAGE_COLOR);
+
+    if ( !image_1.data || !image_2.data || !image_1_color.data || !image_2_color.data )
     {
         printf("No image data \n");
         return 0;
     }
-    namedWindow("Image 1 original", CV_WINDOW_NORMAL);
-    imshow("Image 1 original", image_1);
 
-    namedWindow("Image 2 original", CV_WINDOW_NORMAL);
-    imshow("Image 2 original", image_2);
+    if(VISUAL_DEBUG) {
+        namedWindow("Image 1 original", CV_WINDOW_NORMAL);
+        imshow("Image 1 original", image_1);
+
+        namedWindow("Image 2 original", CV_WINDOW_NORMAL);
+        imshow("Image 2 original", image_2);
+
+    }
 
     return 1;
 }
@@ -82,32 +89,255 @@ void MCE::extractLines() {
     std::string path_img2_down = path_img2 + "_down";
 
     //TODO: Memory leak, works only with small images (e.g. 800x600), replace with opencv if ver 3 is out
-    resize(imread(path_img1, CV_LOAD_IMAGE_COLOR), image_1_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
-    resize(imread(path_img1, CV_LOAD_IMAGE_COLOR), image_2_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
+    resize(image_1_color, image_1_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
+    resize(image_2_color, image_2_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
 
     imwrite(path_img1_down, image_1_down);
     imwrite(path_img2_down, image_2_down);
 
 
-    std::cout << "Extracting line correspondencies..." << std::endl;
+    std::cout << "EXTRACTING LINES:" << std::endl;
     int corresp = lm.match(path_img1_down.c_str(), path_img1_down.c_str(), lineCorrespondencies);       //TODO image scales to 25% -> multiply line coords by 4
-    std::cout << "Found " << corresp << " line correspondencies " << std::endl;
+    std::cout << "-- Number of matches: " << corresp << std::endl;
 
-    namedWindow("Image 1 lines", CV_WINDOW_AUTOSIZE);
-    imshow("Image 1 lines", imread("LinesInImage1.png", CV_LOAD_IMAGE_COLOR));
+    if(VISUAL_DEBUG) {
 
-    namedWindow("Image 2 lines", CV_WINDOW_AUTOSIZE);
-    imshow("Image 2 lines", imread("LinesInImage2.png", CV_LOAD_IMAGE_COLOR));
+        namedWindow("Image 1 lines", CV_WINDOW_AUTOSIZE);
+        imshow("Image 1 lines", imread("LinesInImage1.png", CV_LOAD_IMAGE_COLOR));
 
-    namedWindow("Line matches", CV_WINDOW_AUTOSIZE);
-    imshow("Line matches", imread("LBDSG.png", CV_LOAD_IMAGE_COLOR));
+        namedWindow("Image 2 lines", CV_WINDOW_AUTOSIZE);
+        imshow("Image 2 lines", imread("LinesInImage2.png", CV_LOAD_IMAGE_COLOR));
+
+        namedWindow("Line matches", CV_WINDOW_AUTOSIZE);
+        imshow("Line matches", imread("LBDSG.png", CV_LOAD_IMAGE_COLOR));
+
+    }
+
+    std::cout << std::endl;
 }
 
-void MCE::extractSIFT() {
+void MCE::extractPlanes() {
+//    MserFeatureDetector mser();
+    std::vector<cv::KeyPoint> keypoints_1;
+    std::vector<cv::KeyPoint> keypoints_2;
+
+    std::vector< std::vector<Point> > contours_1;
+    std::vector< std::vector<Point> > contours_2;
+    vector<Vec4i> hierarchy_1;
+    vector<Vec4i> hierarchy_2;
+    std::cout << "EXTRACTING PLANES:" << std::endl;
+//    mser.detect(image_1, keypoints_1);
+
+    RNG rng;
+
+    cv::SimpleBlobDetector::Params params;
+    params.filterByArea = true;
+    params.filterByCircularity= false;
+    params.filterByColor = false;
+    params.filterByConvexity = false;
+    params.filterByInertia = false;
+    params.minArea = image_1.cols*image_1.rows*0.0005;
+    params.maxArea = image_1.cols*image_1.rows*0.2;
+    params.minConvexity = 0.2;
+    params.maxConvexity = 1;
+    params.minDistBetweenBlobs = 20;
+
+    SimpleBlobDetector blobs = SimpleBlobDetector(params);
+
+    blobs.detect(image_1_color, keypoints_1);
+    blobs.detect(image_2_color, keypoints_2);
+
+    if(VISUAL_DEBUG) {
+
+        Mat img_1_blobs = image_1_color.clone();
+        Mat img_2_blobs = image_2_color.clone();
+
+        for( int i = 0; i< keypoints_1.size(); i++ )
+        {
+            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+            circle(img_1_blobs, keypoints_1[i].pt, 15, color, 8);
+        }
+
+        for( int i = 0; i< keypoints_2.size(); i++ )
+        {
+            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+            circle(img_2_blobs, keypoints_2[i].pt, 15, color, 8);
+        }
+
+        namedWindow("Image 1 blobs", CV_WINDOW_NORMAL);
+        namedWindow("Image 2 blobs", CV_WINDOW_NORMAL);
+
+        imshow("Image 1 blobs", img_1_blobs);
+        imshow("Image 2 blobs", img_2_blobs);
+
+    }
+
+    //Region contours
+
+    Mat img_1_binary = Mat(image_1.cols, image_1.rows, image_1.type());
+    Mat img_2_binary;
+    Mat img_1_flood = image_1_color.clone();
+    Mat img_2_flood = image_2_color.clone();
+    Scalar upper_range = Scalar(15,15,15);
+    Scalar lower_range = Scalar(15,15,15);
+    Mat kernel_opening = Mat::ones(5,5,CV_8UC1);
+    Mat kernel_closing = Mat::ones(3,3,CV_8UC1);
+    Point center_opening = Point(kernel_opening.cols/2,kernel_opening.rows/2+1);
+    Point center_closing = Point(kernel_closing.cols/2,kernel_closing.rows/2+1);
+
+    for(int i = 0; i < keypoints_1.size(); i++) {
+        floodFill(img_1_flood, keypoints_1[i].pt, Scalar(255,255,255), 0, lower_range, upper_range, CV_FLOODFILL_FIXED_RANGE);
+    }
+    for(int i = 0; i < keypoints_2.size(); i++) {
+        floodFill(img_2_flood, keypoints_2[i].pt, Scalar(255,255,255), 0, lower_range, upper_range, CV_FLOODFILL_FIXED_RANGE);
+    }
+
+    if(VISUAL_DEBUG) {
+        namedWindow("Image 1 flooded", CV_WINDOW_NORMAL);
+        imshow("Image 1 flooded", img_1_flood);
+        namedWindow("Image 2 flooded", CV_WINDOW_NORMAL);
+        imshow("Image 2 flooded", img_2_flood);
+    }
+
+    cvtColor(img_1_flood,img_1_flood,CV_RGB2GRAY);
+    cvtColor(img_2_flood,img_2_flood,CV_RGB2GRAY);
+
+    threshold(img_1_flood, img_1_binary, 254, 255, cv::THRESH_BINARY);
+    erode(img_1_binary, img_1_binary, kernel_opening,center_opening);
+    dilate(img_1_binary, img_1_binary, kernel_opening,center_opening);
+    dilate(img_1_binary, img_1_binary, kernel_closing,center_closing);
+    erode(img_1_binary, img_1_binary, kernel_closing,center_closing);
+
+    threshold(img_2_flood, img_2_binary, 254, 255, cv::THRESH_BINARY);
+    erode(img_2_binary, img_2_binary, kernel_opening,center_opening);
+    dilate(img_2_binary, img_2_binary, kernel_opening,center_opening);
+    dilate(img_2_binary, img_2_binary, kernel_closing,center_closing);
+    erode(img_2_binary, img_2_binary, kernel_closing,center_closing);
+
+    if(VISUAL_DEBUG) {
+        namedWindow("Image 1 binary", CV_WINDOW_NORMAL);
+        imshow("Image 1 binary", img_1_binary);
+        namedWindow("Image 2 binary", CV_WINDOW_NORMAL);
+        imshow("Image 2 binary", img_2_binary);
+    }
+
+    //waitKey(0);
+
+
+
+    findContours(img_1_binary, contours_1, hierarchy_1, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+    findContours(img_2_binary, contours_2, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+
+    //std::cout << "-- First image: " << markers.size() << std::endl;
+    //std::cout << "-- Second image: " << contours_2.size() << std::endl;
+
+    if(VISUAL_DEBUG) {
+
+        Mat img_1_contours = Mat::zeros(image_1.rows, image_1.cols, image_1.type());
+        Mat img_2_contours = Mat::zeros(image_1.rows, image_1.cols, image_1.type());
+
+        for( int i = 0; i< contours_1.size(); i++ )
+        {
+            drawContours(img_1_contours, contours_1, i, Scalar(255,255,255), 2);
+        }
+
+        for( int i = 0; i< contours_2.size(); i++ )
+        {
+            drawContours(img_2_contours, contours_2, i, Scalar(255,255,255), 2);
+        }
+
+        namedWindow("Image 1 plane contours", CV_WINDOW_NORMAL);
+        namedWindow("Image 2 plane contours", CV_WINDOW_NORMAL);
+
+        imshow("Image 1 plane contours", img_1_contours);
+        imshow("Image 2 plane contours", img_2_contours);
+
+        //TODO: Match planes???!!!
+
+    }
+
+    waitKey(0);
+
+//    cv::threshold(image_1, img_1_edges, 125, 255, cv::THRESH_BINARY);
+//    cv::threshold(image_2, img_2_edges, 125, 255, cv::THRESH_BINARY);
+
+//    Canny(image_1, img_1_edges, 110, 130, 3);
+//    Canny(image_2, img_2_edges, 110, 130, 3);
+
+//    if(VISUAL_DEBUG) {
+
+//        namedWindow("Image 1 edges", CV_WINDOW_NORMAL);
+//        namedWindow("Image 2 edges", CV_WINDOW_NORMAL);
+
+//        imshow("Image 1 edges", img_1_edges);
+//        imshow("Image 2 edges", img_2_edges);
+//    }
+
+//    findContours(img_1_edges, contours_1, hierarchy_1, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+//    findContours(img_2_edges, contours_2, hierarchy_2, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+
+//    if(VISUAL_DEBUG) {
+
+//        Mat img_1_cont = image_1.clone();
+//        Mat img_2_cont = image_2.clone();
+
+//        for( int i = 0; i< contours_1.size(); i++ )
+//        {
+//            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+//            drawContours( img_1_cont, contours_1, i, color, 2, 8, hierarchy_1, 0, Point() );
+//        }
+
+//        for( int i = 0; i< contours_2.size(); i++ )
+//        {
+//            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+//            drawContours( img_2_cont, contours_2, i, color, 2, 8, hierarchy_2, 0, Point() );
+//        }
+
+//        namedWindow("Image 1 contours", CV_WINDOW_NORMAL);
+//        namedWindow("Image 2 contours", CV_WINDOW_NORMAL);
+
+//        imshow("Image 1 contours", img_1_cont);
+//        imshow("Image 2 contours", img_2_cont);
+
+//        waitKey(0);
+
+//    }
+
+//    watershed(img_1_edges, contours_1);
+//    watershed(img_2_edges, contours_2);
+
+//    Mat img_contour_1 = Mat::zeros( image_1_color.size(), CV_8UC3 );
+//    Mat img_contour_2 = Mat::zeros( image_2_color.size(), CV_8UC3 );
+
+//    for( int i = 0; i< contours_1.size(); i++ )
+//    {
+//        Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+//        drawContours( img_contour_1, contours_1, i, color, 2, 8, hierarchy_1, 0, Point() );
+//    }
+
+//    for( int i = 0; i< contours_2.size(); i++ )
+//    {
+//        Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+//        drawContours( img_contour_2, contours_2, i, color, 2, 8, hierarchy_2, 0, Point() );
+//    }
+
+      /// Show in a window
+//    namedWindow("Image 1 planes", CV_WINDOW_NORMAL);
+//    namedWindow("Image 1 planes", CV_WINDOW_NORMAL);
+
+//    imshow("Image 1 planes", img_contour_1);
+//    imshow("Image 2 planes", img_contour_2);
+
+    //std::cout << "-- Number of matches: " << good_matches.size() << std::endl;
+
+    std::cout << std::endl;
+}
+
+void MCE::extractPoints() {
 
     // ++++ Source: http://docs.opencv.org/doc/tutorials/features2d/feature_flann_matcher/feature_flann_matcher.html
 
-    std::cout << "EXTRACTING SURF FEATURES:" << std::endl;
+    std::cout << "EXTRACTING POINTS:" << std::endl;
 
     std::vector<cv::KeyPoint> keypoints_1;
     std::vector<cv::KeyPoint> keypoints_2;
@@ -116,8 +346,8 @@ void MCE::extractSIFT() {
     detector.detect(image_1, keypoints_1);
     detector.detect(image_2, keypoints_2);
 
-    std::cout << "-- Keypoints 1 : " << keypoints_1.size() << std::endl;
-    std::cout << "-- Keypoints 2 : " << keypoints_2.size() << std::endl;
+    std::cout << "-- First image: " << keypoints_1.size() << std::endl;
+    std::cout << "-- Second image: " << keypoints_2.size() << std::endl;
 
     //-- Step 2: Calculate descriptors (feature vectors)
     SurfDescriptorExtractor extractor;
@@ -141,9 +371,10 @@ void MCE::extractSIFT() {
     if( dist > max_dist ) max_dist = dist;
     }
 
-    std::cout << "-- Max dist : " << max_dist << std::endl;
-    std::cout << "-- Min dist : " << min_dist << std::endl;
-
+    if (LOG_DEBUG) {
+        std::cout << "-- Max dist : " << max_dist << std::endl;
+        std::cout << "-- Min dist : " << min_dist << std::endl;
+    }
     //-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
     //-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
     //-- small)
@@ -160,7 +391,7 @@ void MCE::extractSIFT() {
         }
     }
 
-    std::cout << "-- Number of matches : " << good_matches.size() << std::endl;
+    std::cout << "-- Number of matches: " << good_matches.size() << std::endl;
 
     //-- Draw only "good" matches
     Mat img_matches;
@@ -168,17 +399,20 @@ void MCE::extractSIFT() {
                good_matches, img_matches );
 
     //-- Show detected matches
-    namedWindow("SURF results", CV_WINDOW_NORMAL);
-    imshow( "SURF results", img_matches );
+    if(VISUAL_DEBUG) {
+        namedWindow("SURF results", CV_WINDOW_NORMAL);
+        imshow( "SURF results", img_matches );
+    }
 
     // ++++
 
-    std::cout << "Create point pair of matches" << std::endl;
     for( int i = 0; i < good_matches.size(); i++ )
     {
         x1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
         x2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
     }
+
+    std::cout << std::endl;
 
 }
 
@@ -186,6 +420,27 @@ Mat MCE::calcFfromPoints() {
     std::cout << "Calc Fpt..." << std::endl;
     return findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, noArray());
 }
+
+Mat MCE::calcFfromLines() {     // Find 2 coplanar lines in ech image & compute two homographies from them -> compute F from homographies
+
+}
+
+Mat MCE::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
+
+}
+
+Mat MCE::calcFfromConics() {    // Maybe: something with vanishing points v1*w*v2=0 (Hartley, Zissarmen p. 235ff)
+
+}
+
+Mat MCE::calcFfromCurves() {    // First derivative of corresponding curves are gradients to the epipolar lines
+
+}
+
+Mat MCE::refineF() {    //Reduce error of F AFTER computing it seperatly form different sources
+
+}
+
 
 Mat MCE::MatFromFile(std::string file, int rows) {
 
@@ -233,20 +488,22 @@ Mat MCE::crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
 }
 
 void MCE::rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName) {
-    Mat H1, H2, H, rectified;
-    if(stereoRectifyUncalibrated(p1, p2, F, Size(image.cols,image.rows), H1, H2, 0 )) {
-        if (DEBUG) {
-            std::cout << "H1 = " << std::endl << H1 << std::endl;
-            std::cout << "H2 = " << std::endl << H2 << std::endl;
+    if(VISUAL_DEBUG) {
+        Mat H1, H2, H, rectified;
+        if(stereoRectifyUncalibrated(p1, p2, F, Size(image.cols,image.rows), H1, H2, 0 )) {
+            if (LOG_DEBUG) {
+                std::cout << "H1 = " << std::endl << H1 << std::endl;
+                std::cout << "H2 = " << std::endl << H2 << std::endl;
+            }
+
+            if (imgNum == 1) H = H1;
+            else H = H2;
+
+            warpPerspective(image, rectified, H, Size(image.cols,image.rows));
+
+            namedWindow(windowName, CV_WINDOW_NORMAL);
+            imshow(windowName, rectified);
         }
-
-        if (imgNum == 1) H = H1;
-        else H = H2;
-
-        warpPerspective(image, rectified, H, Size(image.cols,image.rows));
-
-        namedWindow(windowName, CV_WINDOW_NORMAL);
-        imshow(windowName, rectified);
     }
 }
 
@@ -257,7 +514,7 @@ Mat MCE::getGroundTruth() {
     Mat K1, K2, K; //calibration matrices
     Mat Rrel, Trel; //Relative rotation, translation
 
-    if (DEBUG) {
+    if (LOG_DEBUG) {
         std::cout << "P1w = " << std::endl << P1w << std::endl;
         //std::cout << "P2w = " << std::endl << P2w << std::endl;
     }
@@ -278,7 +535,7 @@ Mat MCE::getGroundTruth() {
 
 
 
-    if (DEBUG) {
+    if (LOG_DEBUG) {
         std::cout << "T1w = " << std::endl << T1w << std::endl;
         //std::cout << "T2w = " << std::endl << T2w << std::endl;
 
@@ -288,14 +545,14 @@ Mat MCE::getGroundTruth() {
 
     //Rrel = R1w*R2w.t(); //Relative rotation between cam1 and cam2; Rc1c2 = Rwc1^T * Rwc2
 
-    if (DEBUG) {
+    if (LOG_DEBUG) {
         //std::cout << "K = " << std::endl << K << std::endl;
         //std::cout << "K2 = " << std::endl << K2 << std::endl;
     }
 
     //Trel = T2w - T1w;    //Realtive translation between cam1 and cam2
 
-    if (DEBUG) {
+    if (LOG_DEBUG) {
         //std::cout << "Rrel = " << std::endl << Rrel << std::endl;
         std::cout << "Trel = " << std::endl << Trel << std::endl;
     }

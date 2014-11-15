@@ -44,11 +44,11 @@ void PairwiseLineMatching::LineMatching(ScaleLines &linesInLeft,ScaleLines &line
 		std::vector<unsigned int> &matchResult)
 {
 	//compute the global rotation angle of image pair
-	std::cout << "Compute the global rotation angle of image pair" << std::endl;
+	//std::cout << "Compute the global rotation angle of image pair" << std::endl;
 	globalRotationAngle_ = GlobalRotationOfImagePair_(linesInLeft,linesInRight);
-	std::cout << "Build adjacency matrix" << std::endl;
+	//std::cout << "Build adjacency matrix" << std::endl;
 	BuildAdjacencyMatrix_(linesInLeft,linesInRight);
-	std::cout << "Matching result from principal eigenvector" << std::endl;
+	//std::cout << "Matching result from principal eigenvector" << std::endl;
 	MatchingResultFromPrincipalEigenvector_(linesInLeft,linesInRight,matchResult);
 }
 
@@ -157,7 +157,7 @@ double PairwiseLineMatching::GlobalRotationOfImagePair_(ScaleLines &linesInLeft,
   	rotationAngle = rotationAngle*M_PI/180;
   }
 
-  cout<<"minimal histgram distance = "<<minDif<<", Approximate global rotation angle = "<<rotationAngle<<endl;
+  //cout<<"minimal histgram distance = "<<minDif<<", Approximate global rotation angle = "<<rotationAngle<<endl;
 	return rotationAngle;
 }
 
@@ -259,7 +259,7 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft,ScaleLi
 			}
 		}//end inner loop
 	}
-	cout<<"the number of possible matched line pair = "<<nodesList_.size()<<endl;
+	//cout<<"the number of possible matched line pair = "<<nodesList_.size()<<endl;
 //	desDisMat.Save("DescriptorDis.txt");
 
 	/*Second step, build the adjacency matrix which reflect the geometric constraints between nodes.
@@ -525,7 +525,7 @@ void PairwiseLineMatching::BuildAdjacencyMatrix_(ScaleLines &linesInLeft,ScaleLi
 	ARluSymStdEig<double> dprob(2, arMatrix, "LM");// Defining what we need: the first eigenvector of arMatrix with largest magnitude.
 	// Finding eigenvalues and eigenvectors.
 	dprob.FindEigenvectors();
-	cout<<"Number of 'converged' eigenvalues  : " << dprob.ConvergedEigenvalues() <<endl;
+	//cout<<"Number of 'converged' eigenvalues  : " << dprob.ConvergedEigenvalues() <<endl;
 	//  cout<<"eigenvalue is = "<<dprob.Eigenvalue(0)<<", and "<<dprob.Eigenvalue(1)<<endl;
 	//  if(dprob.EigenvectorsFound()){
 	//  	for(unsigned int j=0; j<dim; j++){
@@ -648,6 +648,6 @@ void PairwiseLineMatching::MatchingResultFromPrincipalEigenvector_(ScaleLines &l
 		}
 	}//end while(stillLoop)
 	matchResult = matchRet1;
-	cout<<"matchRet1.size"<<matchRet1.size()<<", minOfEigenVec_= "<<minOfEigenVec_<<endl;
+	//cout<<"matchRet1.size"<<matchRet1.size()<<", minOfEigenVec_= "<<minOfEigenVec_<<endl;
 }
 
