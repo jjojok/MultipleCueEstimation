@@ -23,9 +23,6 @@ void MCE::run() {
 
         Fpt = calcFfromPoints();
 
-
-
-
         if (arguments == 5) {   //Compare to ground truth
 
             Fgt = getGroundTruth();
@@ -117,17 +114,29 @@ void MCE::extractLines() {
 }
 
 void MCE::extractPlanes() {
-//    MserFeatureDetector mser();
-    std::vector<cv::KeyPoint> keypoints_1;
-    std::vector<cv::KeyPoint> keypoints_2;
+    Vector<segmentStruct> segmentsList_1, segmentsList_2;
+    Mat segments_1, segments_2;
 
-    std::vector< std::vector<Point> > contours_1;
-    std::vector< std::vector<Point> > contours_2;
-    vector<Vec4i> hierarchy_1;
-    vector<Vec4i> hierarchy_2;
     std::cout << "EXTRACTING PLANES:" << std::endl;
-//    mser.detect(image_1, keypoints_1);
 
+    findSegments(image_1, image_1_color, "Image 1", segmentsList_1, segments_1);
+    findSegments(image_2, image_2_color, "Image 2", segmentsList_2, segments_2);
+
+    std::cout << "-- First image: " << segmentsList_1.size() << std::endl;
+    std::cout << "-- Second image: " << segmentsList_2.size() << std::endl;
+
+
+    //std::cout << "-- Number of matches: " << good_matches.size() << std::endl;
+
+    waitKey(0);
+
+}
+
+void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vector<segmentStruct> &segmentList, Mat &segments) {
+    std::vector<cv::KeyPoint> keypoints;
+    Vector<segmentStruct> segmentList_temp;
+
+    std::vector< std::vector<Point> > contours;
     RNG rng;
 
     cv::SimpleBlobDetector::Params params;
@@ -138,197 +147,127 @@ void MCE::extractPlanes() {
     params.filterByInertia = false;
     params.minArea = image_1.cols*image_1.rows*0.0005;
     params.maxArea = image_1.cols*image_1.rows*0.2;
-    params.minConvexity = 0.2;
+    params.minConvexity = 0.5;
     params.maxConvexity = 1;
     params.minDistBetweenBlobs = 20;
 
     SimpleBlobDetector blobs = SimpleBlobDetector(params);
 
-    blobs.detect(image_1_color, keypoints_1);
-    blobs.detect(image_2_color, keypoints_2);
+    blobs.detect(image_color, keypoints);
 
     if(VISUAL_DEBUG) {
 
-        Mat img_1_blobs = image_1_color.clone();
-        Mat img_2_blobs = image_2_color.clone();
+        Mat img_blobs = image_color.clone();
 
-        for( int i = 0; i< keypoints_1.size(); i++ )
+        for( int i = 0; i< keypoints.size(); i++ )
         {
             Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-            circle(img_1_blobs, keypoints_1[i].pt, 15, color, 8);
+            circle(img_blobs, keypoints[i].pt, 15, color, 8);
         }
 
-        for( int i = 0; i< keypoints_2.size(); i++ )
-        {
-            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-            circle(img_2_blobs, keypoints_2[i].pt, 15, color, 8);
-        }
-
-        namedWindow("Image 1 blobs", CV_WINDOW_NORMAL);
-        namedWindow("Image 2 blobs", CV_WINDOW_NORMAL);
-
-        imshow("Image 1 blobs", img_1_blobs);
-        imshow("Image 2 blobs", img_2_blobs);
-
+        namedWindow(image_name+" blobs", CV_WINDOW_NORMAL);
+        imshow(image_name+" blobs", img_blobs);
     }
 
-    //Region contours
-
-    Mat img_1_binary = Mat(image_1.cols, image_1.rows, image_1.type());
-    Mat img_2_binary;
-    Mat img_1_flood = image_1_color.clone();
-    Mat img_2_flood = image_2_color.clone();
+    Mat img_binary;
+    Mat img_flood = image_color.clone();
     Scalar upper_range = Scalar(15,15,15);
     Scalar lower_range = Scalar(15,15,15);
-    Mat kernel_opening = Mat::ones(5,5,CV_8UC1);
-    Mat kernel_closing = Mat::ones(3,3,CV_8UC1);
+    Mat kernel_opening = Mat::ones(7,7,CV_8UC1);
+    Mat kernel_closing = Mat::ones(5,5,CV_8UC1);
     Point center_opening = Point(kernel_opening.cols/2,kernel_opening.rows/2+1);
     Point center_closing = Point(kernel_closing.cols/2,kernel_closing.rows/2+1);
+    int minArea = image_1.cols*image_1.rows*0.0005;
 
-    for(int i = 0; i < keypoints_1.size(); i++) {
-        floodFill(img_1_flood, keypoints_1[i].pt, Scalar(255,255,255), 0, lower_range, upper_range, CV_FLOODFILL_FIXED_RANGE);
-    }
-    for(int i = 0; i < keypoints_2.size(); i++) {
-        floodFill(img_2_flood, keypoints_2[i].pt, Scalar(255,255,255), 0, lower_range, upper_range, CV_FLOODFILL_FIXED_RANGE);
+    for(int i = 0; i < keypoints.size(); i++) {
+        segmentStruct segment;
+        segment.area = floodFill(img_flood, keypoints[i].pt, Scalar(255,255,255), (Rect*)0, lower_range, upper_range, CV_FLOODFILL_FIXED_RANGE);
+        if (segment.area > minArea) {
+            segment.startpoint = keypoints[i].pt;
+            segment.contours_idx = -1;
+            segmentList_temp.push_back(segment);
+        }
     }
 
     if(VISUAL_DEBUG) {
-        namedWindow("Image 1 flooded", CV_WINDOW_NORMAL);
-        imshow("Image 1 flooded", img_1_flood);
-        namedWindow("Image 2 flooded", CV_WINDOW_NORMAL);
-        imshow("Image 2 flooded", img_2_flood);
+        namedWindow(image_name+" flooded", CV_WINDOW_NORMAL);
+        imshow(image_name+" flooded", img_flood);
     }
 
-    cvtColor(img_1_flood,img_1_flood,CV_RGB2GRAY);
-    cvtColor(img_2_flood,img_2_flood,CV_RGB2GRAY);
+    cvtColor(img_flood,img_flood,CV_RGB2GRAY);
 
-    threshold(img_1_flood, img_1_binary, 254, 255, cv::THRESH_BINARY);
-    erode(img_1_binary, img_1_binary, kernel_opening,center_opening);
-    dilate(img_1_binary, img_1_binary, kernel_opening,center_opening);
-    dilate(img_1_binary, img_1_binary, kernel_closing,center_closing);
-    erode(img_1_binary, img_1_binary, kernel_closing,center_closing);
-
-    threshold(img_2_flood, img_2_binary, 254, 255, cv::THRESH_BINARY);
-    erode(img_2_binary, img_2_binary, kernel_opening,center_opening);
-    dilate(img_2_binary, img_2_binary, kernel_opening,center_opening);
-    dilate(img_2_binary, img_2_binary, kernel_closing,center_closing);
-    erode(img_2_binary, img_2_binary, kernel_closing,center_closing);
+    threshold(img_flood, img_binary, 254, 255, cv::THRESH_BINARY);
+    erode(img_binary, img_binary, kernel_opening,center_opening);
+    dilate(img_binary, img_binary, kernel_opening,center_opening);
+    dilate(img_binary, img_binary, kernel_closing,center_closing);
+    erode(img_binary, img_binary, kernel_closing,center_closing);
 
     if(VISUAL_DEBUG) {
-        namedWindow("Image 1 binary", CV_WINDOW_NORMAL);
-        imshow("Image 1 binary", img_1_binary);
-        namedWindow("Image 2 binary", CV_WINDOW_NORMAL);
-        imshow("Image 2 binary", img_2_binary);
+        namedWindow(image_name+" binary", CV_WINDOW_NORMAL);
+        imshow(image_name+" binary", img_binary);
     }
 
-    //waitKey(0);
+    findContours(img_binary, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
 
+    for (int i = 0; i < contours.size(); i++) {
+        for (int j = 0; j < segmentList_temp.size(); j++) {
+            if(pointPolygonTest(contours[i], Point2f(segmentList_temp[j].startpoint.x, segmentList_temp[j].startpoint.y),false) >= 0) {
+                segmentStruct segment = segmentList_temp[j];
+                segment.contours_idx = i;
+                for (int k = 0; k < segmentList.size(); k++) {      //Keep only one segment per connected component
+                    if (segmentList[k].contours_idx == i) segment.contours_idx = -1;
+                }
 
-
-    findContours(img_1_binary, contours_1, hierarchy_1, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-    findContours(img_2_binary, contours_2, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-
-    //std::cout << "-- First image: " << markers.size() << std::endl;
-    //std::cout << "-- Second image: " << contours_2.size() << std::endl;
+                if(segment.contours_idx >= 0) {
+                    if (segmentList.size() == 0) segment.id = 1;
+                    else segment.id = segmentList.back().id + 1;
+                    segmentList.push_back(segment);
+                }
+            }
+        }
+    }
 
     if(VISUAL_DEBUG) {
 
-        Mat img_1_contours = Mat::zeros(image_1.rows, image_1.cols, image_1.type());
-        Mat img_2_contours = Mat::zeros(image_1.rows, image_1.cols, image_1.type());
+        Mat img_contours = Mat::zeros(image.rows, image.cols, image.type());
 
-        for( int i = 0; i< contours_1.size(); i++ )
+        for( int i = 0; i< segmentList.size(); i++ )
         {
-            drawContours(img_1_contours, contours_1, i, Scalar(255,255,255), 2);
+            drawContours(img_contours, contours, segmentList[i].contours_idx, Scalar(255,255,255), 2);
         }
 
-        for( int i = 0; i< contours_2.size(); i++ )
-        {
-            drawContours(img_2_contours, contours_2, i, Scalar(255,255,255), 2);
+        namedWindow(image_name+" plane contours", CV_WINDOW_NORMAL);
+        imshow(image_name+" plane contours", img_contours);
+
+        CvFont font;
+        cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0);
+
+        Mat img_segments = Mat(image.rows, image.cols, image_color.type());
+
+        cvtColor(img_contours, img_segments, CV_GRAY2BGR);
+
+        for (int i = 0; i< segmentList.size(); i++ ) {
+            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
+            floodFill(img_segments, segmentList[i].startpoint, color, 0, Scalar(0,0,0), Scalar(0,0,0), CV_FLOODFILL_FIXED_RANGE);
         }
 
-        namedWindow("Image 1 plane contours", CV_WINDOW_NORMAL);
-        namedWindow("Image 2 plane contours", CV_WINDOW_NORMAL);
+        char buff[10];
+        for (int i = 0; i< segmentList.size(); i++ ) {
+            circle(img_segments, segmentList[i].startpoint, 20, Scalar(255,255,255), 10);
+            std::sprintf(buff," #%i", segmentList[i].id);
+            putText(img_segments, buff, segmentList[i].startpoint, CV_FONT_HERSHEY_SIMPLEX, 3, Scalar(255, 255, 255), 10);
+        }
 
-        imshow("Image 1 plane contours", img_1_contours);
-        imshow("Image 2 plane contours", img_2_contours);
-
-        //TODO: Match planes???!!!
-
+        namedWindow(image_name+" plane segments", CV_WINDOW_NORMAL);
+        imshow(image_name+" plane segments", img_segments);
     }
 
-    waitKey(0);
+    segments = Mat::zeros(image.rows, image.cols, image.type());
 
-//    cv::threshold(image_1, img_1_edges, 125, 255, cv::THRESH_BINARY);
-//    cv::threshold(image_2, img_2_edges, 125, 255, cv::THRESH_BINARY);
-
-//    Canny(image_1, img_1_edges, 110, 130, 3);
-//    Canny(image_2, img_2_edges, 110, 130, 3);
-
-//    if(VISUAL_DEBUG) {
-
-//        namedWindow("Image 1 edges", CV_WINDOW_NORMAL);
-//        namedWindow("Image 2 edges", CV_WINDOW_NORMAL);
-
-//        imshow("Image 1 edges", img_1_edges);
-//        imshow("Image 2 edges", img_2_edges);
-//    }
-
-//    findContours(img_1_edges, contours_1, hierarchy_1, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-//    findContours(img_2_edges, contours_2, hierarchy_2, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-
-//    if(VISUAL_DEBUG) {
-
-//        Mat img_1_cont = image_1.clone();
-//        Mat img_2_cont = image_2.clone();
-
-//        for( int i = 0; i< contours_1.size(); i++ )
-//        {
-//            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-//            drawContours( img_1_cont, contours_1, i, color, 2, 8, hierarchy_1, 0, Point() );
-//        }
-
-//        for( int i = 0; i< contours_2.size(); i++ )
-//        {
-//            Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-//            drawContours( img_2_cont, contours_2, i, color, 2, 8, hierarchy_2, 0, Point() );
-//        }
-
-//        namedWindow("Image 1 contours", CV_WINDOW_NORMAL);
-//        namedWindow("Image 2 contours", CV_WINDOW_NORMAL);
-
-//        imshow("Image 1 contours", img_1_cont);
-//        imshow("Image 2 contours", img_2_cont);
-
-//        waitKey(0);
-
-//    }
-
-//    watershed(img_1_edges, contours_1);
-//    watershed(img_2_edges, contours_2);
-
-//    Mat img_contour_1 = Mat::zeros( image_1_color.size(), CV_8UC3 );
-//    Mat img_contour_2 = Mat::zeros( image_2_color.size(), CV_8UC3 );
-
-//    for( int i = 0; i< contours_1.size(); i++ )
-//    {
-//        Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-//        drawContours( img_contour_1, contours_1, i, color, 2, 8, hierarchy_1, 0, Point() );
-//    }
-
-//    for( int i = 0; i< contours_2.size(); i++ )
-//    {
-//        Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
-//        drawContours( img_contour_2, contours_2, i, color, 2, 8, hierarchy_2, 0, Point() );
-//    }
-
-      /// Show in a window
-//    namedWindow("Image 1 planes", CV_WINDOW_NORMAL);
-//    namedWindow("Image 1 planes", CV_WINDOW_NORMAL);
-
-//    imshow("Image 1 planes", img_contour_1);
-//    imshow("Image 2 planes", img_contour_2);
-
-    //std::cout << "-- Number of matches: " << good_matches.size() << std::endl;
+    for (int i = 0; i< segmentList.size(); i++ ) {
+        drawContours(segments, contours, segmentList[i].contours_idx, Scalar(255,255,255), 2);
+        floodFill(segments, segmentList[i].startpoint, segmentList[i].id, 0, Scalar(0,0,0), Scalar(0,0,0), CV_FLOODFILL_FIXED_RANGE);
+    }
 
     std::cout << std::endl;
 }

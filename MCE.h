@@ -32,6 +32,13 @@
 
 using namespace cv;
 
+struct segmentStruct {
+    int id;
+    int area;
+    Point startpoint;
+    int contours_idx;
+};
+
 class MCE
 {
 public:
@@ -51,6 +58,7 @@ public:
 
     //Utility finctions:
 
+    void findSegments(Mat image, Mat image_color, std::string image_name, Vector<segmentStruct> &segmentList, Mat &segments);
     Mat MatFromFile(std::string file, int cols);
     void PointsToFile(std::vector<Point2d>* points, std::string file);
     Mat crossProductMatrix(Mat input);
