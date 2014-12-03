@@ -5,38 +5,56 @@ using namespace cv;
 MCE::MCE(int argc, char** argv)
 {
     this->arguments = argc;
-    if (arguments == 5) {
-        this->path_P1 = argv[3];
-        this->path_P2 = argv[4];
+    if (arguments == 6) {
+        this->path_P1 = argv[4];
+        this->path_P2 = argv[5];
+        this->compareWithGroundTruth = true;
     }
     this->path_img1 = argv[1];
     this->path_img2 = argv[2];
+    this->computations = std::atoi(argv[3]);
     this->lineCorrespondencies = new std::vector<CvPoint>();
 }
 
 void MCE::run() {
     Mat Fpt, Fgt;       //Fundamental matric from point correspondencies
+    std::vector<matrixStruct> fundamentalMatrices;
     if (loadData()) {
-        //extractPoints();
-        //extractLines();
-        extractPlanes();
+        if(computations & F_FROM_POINTS) {
+            extractPoints();
+            matrixStruct ms;
+            ms.source = "points";
+            ms.F = calcFfromPoints();
+            fundamentalMatrices.push_back(ms);
+        }
+        if(computations & F_FROM_LINES) {
+            extractLines();
+            matrixStruct ms;
+            ms.source = "lines";
+            ms.F = calcFfromLines();
+            fundamentalMatrices.push_back(ms);
+        }
+        if(computations & F_FROM_PLANES) {
+            extractPlanes();
+        }
 
-        Fpt = calcFfromPoints();
-
-        if (arguments == 5) {   //Compare to ground truth
+        if (compareWithGroundTruth) {   //Compare to ground truth
 
             Fgt = getGroundTruth();
             std::cout << "Fgt = " << std::endl << Fgt << std::endl;
-
         }
 
-        std::cout << "Fpt = " << std::endl << Fpt << std::endl;
         std::cout << "Average Squared Error (Fpt) = " << averageSquaredError(Fgt,Fpt) << std::endl;
 
-        rectify(x1, x2, Fgt, image_1, 1, "Image 1 rect Fgt");
-        rectify(x1, x2, Fpt, image_1, 1, "Image 1 rect Fpt");
+        for (std::vector<matrixStruct>::iterator it = fundamentalMatrices.begin() ; it != fundamentalMatrices.end(); ++it) {
+            it->error = averageSquaredError(Fgt,it->F);
+            std::cout << "F from " << it->source << " = " << std::endl << it->F << std::endl << "Error: " << ti->error << std::endl;
+        }
 
-        drawEpipolarLines(x1, x2, Fgt, image_1.clone(), image_2.clone());
+        //rectify(x1, x2, Fgt, image_1, 1, "Image 1 rect Fgt");
+        //rectify(x1, x2, Fpt, image_1, 1, "Image 1 rect Fpt");
+
+        //drawEpipolarLines(x1, x2, Fgt, image_1.clone(), image_2.clone());
 
         waitKey(0);
         //Mat h = findHomography(x1, x2, noArray(), CV_RANSAC, 3);
@@ -47,7 +65,7 @@ void MCE::run() {
 }
 
 int MCE::loadData() {
-    if (arguments != 3 && arguments != 5) {
+    if (arguments != 4 && !compareWithGroundTruth) {
         std::cout << "Usage: MultipleCueEstimation <path to first image> <path to second image> <optional: path to first camera matrix> <optional: path to second camera matrix>" << std::endl;
         return 0;
     }

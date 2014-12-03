@@ -29,6 +29,9 @@
 #define SIFT_FEATURE_COUNT 800
 #define LOG_DEBUG false
 #define VISUAL_DEBUG true
+#define F_FROM_POINTS 1
+#define F_FROM_LINES 2
+#define F_FROM_PLANES 4
 
 using namespace cv;
 
@@ -37,6 +40,12 @@ struct segmentStruct {
     int area;
     Point startpoint;
     int contours_idx;
+};
+
+struct matrixStruct {
+    std::string source;
+    Mat F;
+    float error;
 };
 
 class MCE
@@ -73,9 +82,11 @@ private:
     int arguments;
     std::string path_img1, path_P1;
     std::string path_img2, path_P2;
+    unsigned int computations = 0;
+    bool compareWithGroundTruth = false;
     Mat image_1, image_2;
     Mat image_1_color, image_2_color;
-    vector<CvPoint>* lineCorrespondencies;
+    vector<CvPoint>* lineCorrespondencies;  //Vector of consecutive line startpoints and endpoints
     std::vector<Point2f> x1, x2;   //corresponding points in image 1 and 2
 };
 
