@@ -16,6 +16,7 @@
 #include <cv.h>
 #include <highgui.h>
 
+
 #include "LineDescriptor.hh"
 #include "PairwiseLineMatching.hh"
 
@@ -24,11 +25,10 @@ class LineMatcher
 public:
     	LineMatcher();
 
-	int match(const char* image1,const char* image2, std::vector<CvPoint>* matches);
-
-	std::vector<CvPoint>* getCorrespondencies();
+	int match(const char* image1,const char* image2, std::vector<cv::Point2f>* matches);
+	std::vector<cv::Point2f>* getCorrespondencies();
 
 private:
-	std::vector<CvPoint>* m_matches;
+	std::vector<cv::Point2f>* m_matches;
 
 };

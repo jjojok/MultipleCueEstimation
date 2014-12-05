@@ -14,13 +14,12 @@ LineMatcher::LineMatcher()
 	
 }
 
-std::vector<CvPoint>* LineMatcher::getCorrespondencies() {
+std::vector<cv::Point2f>* LineMatcher::getCorrespondencies() {
 	return m_matches;
 }
 
-int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoint>* matches)
+int LineMatcher::match(const char* image1,const char* image2, std::vector<cv::Point2f>* matches)
 {
-	cout<<"Entered LineMatcher::match" <<endl;
 	m_matches = matches;
   //load first image from file
 	std::string imageName1(image1);
@@ -98,7 +97,7 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 	std::vector<unsigned int> matchResult;
 
 	BIAS::TimeMeasure timer;
-	timer.Start();
+	//timer.Start();
 	
 	lineDesc.GetLineDescriptor(leftImage,linesInLeft);
 	lineDesc.GetLineDescriptor(rightImage,linesInRight);
@@ -107,9 +106,9 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
     	std::cout << "-- Second image : " << linesInRight.size() << std::endl;
 
 	lineMatch.LineMatching(linesInLeft,linesInRight,matchResult);
-	timer.Stop();
+	//timer.Stop();
 	//timer.Print();
-	timer.Reset();
+	//timer.Reset();
 
   ///////////####################################################################
   ///////////####################################################################
@@ -167,8 +166,9 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 	cvCvtColor( cvRightImage,cvRightColorImage, CV_GRAY2RGB );
 	int lowest1=0, highest1=255;
 	int range1=(highest1-lowest1)+1;
+	cv::Point2f startPointd, endPointd;
 	std::vector<unsigned int> r1(matchResult.size()/2), g1(matchResult.size()/2), b1(matchResult.size()/2); //the color of lines
-	//matches = new vector<CvPoint>();
+	//matches = new vector<CvPoint2D64d>();
 	for(unsigned int pair=0; pair<matchResult.size()/2;pair++){
 		r1[pair] = lowest1+int(rand()%range1);
 		g1[pair] = lowest1+int(rand()%range1);
@@ -181,13 +181,17 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 		lineIDRight= matchResult[2*pair+1];
 		startPoint = cvPoint(int(linesInLeft[lineIDLeft][0].startPointX),int(linesInLeft[lineIDLeft][0].startPointY));
 		endPoint   = cvPoint(int(linesInLeft[lineIDLeft][0].endPointX),  int(linesInLeft[lineIDLeft][0].endPointY));
-		matches->push_back(startPoint);
-		matches->push_back(endPoint);
+		startPointd = cvPoint2D32f((linesInLeft[lineIDLeft][0].startPointX),(linesInLeft[lineIDLeft][0].startPointY));
+		endPointd   = cvPoint2D32f((linesInLeft[lineIDLeft][0].endPointX),  (linesInLeft[lineIDLeft][0].endPointY));
+		matches->push_back(startPointd);
+		matches->push_back(endPointd);
 		cvLine( cvLeftColorImage,startPoint,endPoint,CV_RGB(r1[pair],g1[pair],b1[pair]),4, CV_AA);
 		startPoint = cvPoint(int(linesInRight[lineIDRight][0].startPointX),int(linesInRight[lineIDRight][0].startPointY));
 		endPoint   = cvPoint(int(linesInRight[lineIDRight][0].endPointX),  int(linesInRight[lineIDRight][0].endPointY));
-		matches->push_back(startPoint);
-		matches->push_back(endPoint);
+		startPointd = cvPoint2D32f((linesInRight[lineIDRight][0].startPointX),(linesInRight[lineIDRight][0].startPointY));
+		endPointd   = cvPoint2D32f((linesInRight[lineIDRight][0].endPointX),  (linesInRight[lineIDRight][0].endPointY));
+		matches->push_back(startPointd);
+		matches->push_back(endPointd);
 		cvLine( cvRightColorImage,startPoint,endPoint,CV_RGB(r1[pair],g1[pair],b1[pair]),4, CV_AA);
 	}
 
@@ -218,7 +222,7 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<CvPoin
 	cvReleaseImage(&cvRightImage);
 	cvReleaseImage(&cvLeftColorImage);
 	cvReleaseImage(&cvRightColorImage);
-	return matchResult.size()/2;
+	return matches->size()/4;
 }
   ///////////####################################################################
   ///////////####################################################################

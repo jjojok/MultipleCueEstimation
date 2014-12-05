@@ -2,22 +2,14 @@
 
 using namespace cv;
 
-MCE::MCE(int argc, char** argv)
+MCE::MCE()
 {
-    this->arguments = argc;
-    if (arguments == 6) {
-        this->path_P1 = argv[4];
-        this->path_P2 = argv[5];
-        this->compareWithGroundTruth = true;
-    }
-    this->path_img1 = argv[1];
-    this->path_img2 = argv[2];
-    this->computations = std::atoi(argv[3]);
-    this->lineCorrespondencies = new std::vector<CvPoint>();
+    compareWithGroundTruth = false;
+    computations = 0;
 }
 
 void MCE::run() {
-    Mat Fpt, Fgt;       //Fundamental matric from point correspondencies
+    Mat Fgt;       //Ground truth Fundamental matrix
     std::vector<matrixStruct> fundamentalMatrices;
     if (loadData()) {
         if(computations & F_FROM_POINTS) {
@@ -39,16 +31,13 @@ void MCE::run() {
         }
 
         if (compareWithGroundTruth) {   //Compare to ground truth
-
             Fgt = getGroundTruth();
             std::cout << "Fgt = " << std::endl << Fgt << std::endl;
         }
 
-        std::cout << "Average Squared Error (Fpt) = " << averageSquaredError(Fgt,Fpt) << std::endl;
-
         for (std::vector<matrixStruct>::iterator it = fundamentalMatrices.begin() ; it != fundamentalMatrices.end(); ++it) {
-            it->error = averageSquaredError(Fgt,it->F);
-            std::cout << "F from " << it->source << " = " << std::endl << it->F << std::endl << "Error: " << ti->error << std::endl;
+            it->error = averageSquaredError(Fgt,it->F)[0];
+            std::cout << "F from " << it->source << " = " << std::endl << it->F << std::endl << "Error: " << it->error << std::endl;
         }
 
         //rectify(x1, x2, Fgt, image_1, 1, "Image 1 rect Fgt");
@@ -95,7 +84,7 @@ int MCE::loadData() {
 }
 
 void MCE::extractLines() {
-    LineMatcher lm;
+    LineMatcher* lm = new LineMatcher();
 
     Mat image_1_down;
     Mat image_2_down;
@@ -103,7 +92,7 @@ void MCE::extractLines() {
     std::string path_img1_down = path_img1 + "_down";
     std::string path_img2_down = path_img2 + "_down";
 
-    //TODO: Memory leak, works only with small images (e.g. 800x600), replace with opencv if ver 3 is out
+    //TODO: works only with small images (e.g. 800x600), replace with opencv if ver 3 is out
     resize(image_1_color, image_1_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
     resize(image_2_color, image_2_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
 
@@ -111,9 +100,24 @@ void MCE::extractLines() {
     imwrite(path_img2_down, image_2_down);
 
 
+    std::vector<Point2f>* lineCorr = new std::vector<Point2f>();
+
     std::cout << "EXTRACTING LINES:" << std::endl;
-    int corresp = lm.match(path_img1_down.c_str(), path_img1_down.c_str(), lineCorrespondencies);       //TODO image scales to 25% -> multiply line coords by 4
+    int corresp = lm->match(path_img1_down.c_str(), path_img2_down.c_str(), lineCorr);       //TODO image scaled to 25% -> multiply line coords by 4; TODO: Check if image dimensions % 4 = 0, cut img if not
     std::cout << "-- Number of matches: " << corresp << std::endl;
+
+    int img_width = image_1.cols;
+    int img_height = image_1.rows;
+
+    for(int i = 0; i < lineCorr->size(); i+=4) {
+        lineCorrespStruct lc;
+        lc.line1Start = normalize(lineCorr->at(i), img_width/4, img_height/4);
+        lc.line1End = normalize(lineCorr->at(i+1), img_width/4, img_height/4);
+        lc.line2Start = normalize(lineCorr->at(i+2), img_width/4, img_height/4);
+        lc.line2End = normalize(lineCorr->at(i+3), img_width/4, img_height/4);
+
+        lineCorrespondencies.push_back(lc);
+    }
 
     if(VISUAL_DEBUG) {
 
@@ -186,7 +190,6 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
         namedWindow(image_name+" blobs", CV_WINDOW_NORMAL);
         imshow(image_name+" blobs", img_blobs);
     }
-
     Mat img_binary;
     Mat img_flood = image_color.clone();
     Scalar upper_range = Scalar(15,15,15);
@@ -213,7 +216,6 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
     }
 
     cvtColor(img_flood,img_flood,CV_RGB2GRAY);
-
     threshold(img_flood, img_binary, 254, 255, cv::THRESH_BINARY);
     erode(img_binary, img_binary, kernel_opening,center_opening);
     dilate(img_binary, img_binary, kernel_opening,center_opening);
@@ -323,9 +325,9 @@ void MCE::extractPoints() {
 
     //-- Quick calculation of max and min distances between keypoints
     for( int i = 0; i < descriptors_1.rows; i++ )
-    { double dist = matches[i].distance;
-    if( dist < min_dist ) min_dist = dist;
-    if( dist > max_dist ) max_dist = dist;
+    { float dist = matches[i].distance;
+        if( dist < min_dist ) min_dist = dist;
+        if( dist > max_dist ) max_dist = dist;
     }
 
     if (LOG_DEBUG) {
@@ -378,12 +380,37 @@ Mat MCE::calcFfromPoints() {
     return findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, noArray());
 }
 
-Mat MCE::calcFfromLines() {     // Find 2 coplanar lines in ech image & compute two homographies from them -> compute F from homographies
+Mat MCE::calcFfromLines() {     // From Paper: "Robust line matching in image pairs of scenes with dominant planes", Sagúes C., Guerrero J.J.
+    int numOfPairs = lineCorrespondencies.size();
+    int numOfPairSubsets = numOfPairs/5;
+    std::vector<lineSubsetStruct> subsets;
 
+    for(int i = 0; i < numOfPairSubsets; i++) {
+        std::vector<int> subsetsIdx;
+        Mat linEq = Mat::ones(9,8,CV_32FC1);
+        lineSubsetStruct subset;
+        for(int j = 0; j < 4; j++) {
+            int subsetIdx = 0;
+            do {        //Generate 4 uniqe random indices for line pair selection
+                subsetIdx = std::rand() % numOfPairs;
+            } while(std::find(subsetsIdx.begin(), subsetsIdx.end(), subsetIdx) != subsetsIdx.end());
+
+            subsetsIdx.push_back(subsetIdx);
+            lineCorrespStruct lc = lineCorrespondencies.at(subsetIdx);
+            subset.lineCorrespondencies.push_back(lc);
+            fillHLinEq(&linEq, lc, j);
+        }
+        if(solve(linEq, Mat::zeros(9,1,CV_32FC1), subset.Hs, DECOMP_SVD)) {
+            subsets.push_back(subset);
+        } else {
+            if(LOG_DEBUG)   std::cout << "Error subset: " << i << " no solution for lin. eq. system!" << std::endl;
+        }
+    }
+    return Mat();
 }
 
 Mat MCE::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
-
+    //findHomography with different planes
 }
 
 Mat MCE::calcFfromConics() {    // Maybe: something with vanishing points v1*w*v2=0 (Hartley, Zissarmen p. 235ff)
@@ -403,7 +430,7 @@ Mat MCE::MatFromFile(std::string file, int rows) {
 
     Mat matrix;
     std::ifstream inputStream;
-    double x;
+    float x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
         while(inputStream >> x) {
@@ -417,9 +444,9 @@ Mat MCE::MatFromFile(std::string file, int rows) {
     return matrix;
 }
 
-void MCE::PointsToFile(std::vector<Point2d>* points, std::string file) {
+void MCE::PointsToFile(std::vector<Point2f>* points, std::string file) {
 
-    Point2d point;
+    Point2f point;
     std::ofstream outputStream;
     outputStream.open(file.c_str());
     for (int i = 0; points->size(); i++) {
@@ -435,12 +462,12 @@ void MCE::PointsToFile(std::vector<Point2d>* points, std::string file) {
 
 Mat MCE::crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
     Mat crossMat = Mat::zeros(3,3, input.type());
-    crossMat.at<double>(0,1) = -input.at<double>(2);
-    crossMat.at<double>(0,2) = input.at<double>(1);
-    crossMat.at<double>(1,0) = input.at<double>(2);
-    crossMat.at<double>(1,2) = -input.at<double>(0);
-    crossMat.at<double>(2,0) = -input.at<double>(1);
-    crossMat.at<double>(2,1) = input.at<double>(0);
+    crossMat.at<float>(0,1) = -input.at<float>(2);
+    crossMat.at<float>(0,2) = input.at<float>(1);
+    crossMat.at<float>(1,0) = input.at<float>(2);
+    crossMat.at<float>(1,2) = -input.at<float>(0);
+    crossMat.at<float>(2,0) = -input.at<float>(1);
+    crossMat.at<float>(2,1) = input.at<float>(0);
     return crossMat;
 }
 
@@ -481,10 +508,10 @@ Mat MCE::getGroundTruth() {
 
     //K = (K1 + K2)/2;    //Images with same K
 
-    T1w = T1w/T1w.at<double>(3);      //convert to homogenius coords
+    T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
     //T1w.resize(3);
 
-    //T2w = T2w/T2w.at<double>(3);      //convert to homogenius coords
+    //T2w = T2w/T2w.at<float>(3);      //convert to homogenius coords
     //T2w.resize(3);
 
 //    R2w = R2w.t();      //switch rotation: world to 2. cam frame (Rc2w) to 2. cam to world frame (Rwc2)
@@ -516,7 +543,7 @@ Mat MCE::getGroundTruth() {
 
     Mat F = crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD);
 
-//    Mat C = (Mat_<double>(4,1) << 0, 0, 0, 1.0);
+//    Mat C = (Mat_<float>(4,1) << 0, 0, 0, 1.0);
 //    Mat e = P2w*C;
 //    std::cout << "e = " << std::endl << e << std::endl;
 //    return crossMatrix(e)*P2w*P1w.inv(DECOMP_SVD);
@@ -525,7 +552,7 @@ Mat MCE::getGroundTruth() {
 //    //return K.t().inv()*crossProductMatrix(Trel)*Rrel*K.inv();
 //    //return K2.t().inv()*crossProductMatrix(Trel)*Rrel*K1.inv(); //(See Hartley, Zisserman: p. 244)
 //    F = K2.t().inv()*Rrel*K1.t()*crossProductMatrix(K1*Rrel.t()*Trel);
-    return F / F.at<double>(2,2);       //Set global arbitrary scale factor 1 -> easier to compare
+    return F / F.at<float>(2,2);       //Set global arbitrary scale factor 1 -> easier to compare
 }
 
 void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2) {
@@ -554,8 +581,8 @@ void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Ma
     }
 
     // Draw the inlier points
-//    std::vector<cv::Point2d> points1In, points2In;
-//    std::vector<cv::Point2d>::const_iterator itPts= p1.begin();
+//    std::vector<cv::Point2f> points1In, points2In;
+//    std::vector<cv::Point2f>::const_iterator itPts= p1.begin();
 //    std::vector<uchar>::const_iterator itIn= inliers.begin();
 //    while (itPts!=points1.end()) {
 
@@ -610,3 +637,31 @@ std::string MCE::getType(Mat m) {
 Scalar MCE::averageSquaredError(Mat A, Mat B) {
     return cv::sum((A-B).mul(A-B))/((double)(A.cols*A.rows));
 }
+
+Point2f MCE::normalize(Point2f p, int img_width, int img_height) {
+    p.x = (p.x - img_width/2) / img_width;
+    p.y = (p.y - img_height/2) / img_height;
+    return p;
+}
+
+void MCE::fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair) {
+    float A = lc.line2Start.y - lc.line2End.y;
+    float B = lc.line2End.x - lc.line2Start.x;
+    float C = lc.line2Start.x*lc.line2End.y - lc.line2End.x*lc.line2Start.y;
+    int row = 2*numPair;
+    fillHLinEqBase(linEq, lc.line1Start, A, B, C, row);
+    fillHLinEqBase(linEq, lc.line1End, A, B, C, row + 1);
+}
+
+void MCE::fillHLinEqBase(Mat* linEq, Point2f point, float A, float B, float C, int row) {
+    linEq->at<float>(row, 0) = A*point.x;
+    linEq->at<float>(row, 1) = A*point.y;
+    linEq->at<float>(row, 2) = A;
+    linEq->at<float>(row, 3) = B*point.x;
+    linEq->at<float>(row, 4) = B*point.y;
+    linEq->at<float>(row, 5) = B;
+    linEq->at<float>(row, 6) = C*point.x;
+    linEq->at<float>(row, 7) = C*point.y;
+    linEq->at<float>(row, 8) = C;
+}
+
