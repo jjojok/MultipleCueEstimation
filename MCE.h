@@ -28,7 +28,7 @@
 
 #define SIFT_FEATURE_COUNT 800
 #define LOG_DEBUG true
-#define VISUAL_DEBUG false
+#define VISUAL_DEBUG true
 #define F_FROM_POINTS 1
 #define F_FROM_LINES 2
 #define F_FROM_PLANES 4
@@ -85,9 +85,14 @@ public:
     void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2);
     std::string getType(Mat m);
     Scalar averageSquaredError(Mat A, Mat B);
+    Scalar squaredError(Mat A, Mat B);
     Point2f normalize(Point2f p, int img_width, int img_height);
     void fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair);
     void fillHLinEqBase(Mat* linEq, Point2f point, float A, float B, float C, int row);
+    Mat calcLMedS(std::vector<lineSubsetStruct> subsets);
+    float calcMedS(Mat Hs);
+    int calcMatRank(Mat M);
+    int calcNumberOfSolutions(Mat linEq);
 
     int arguments;
     std::string path_img1, path_P1;
@@ -99,7 +104,7 @@ private:
 
     Mat image_1, image_2;
     Mat image_1_color, image_2_color;
-    std::vector<lineCorrespStruct> lineCorrespondencies;  //Vector of consecutive line startpoints and endpoints
+    std::vector<lineCorrespStruct> lineCorrespondencies;  //Vector of consecutive normalized line startpoints and endpoints
     std::vector<Point2f> x1, x2;   //corresponding points in image 1 and 2
 };
 

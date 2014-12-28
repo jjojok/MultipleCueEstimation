@@ -24,7 +24,11 @@ void MCE::run() {
             matrixStruct ms;
             ms.source = "lines";
             ms.F = calcFfromLines();
-            fundamentalMatrices.push_back(ms);
+            Mat transformed;
+            warpPerspective(image_2, transformed, ms.F, Size(image_2.cols,image_2.rows));
+            namedWindow("H21", CV_WINDOW_NORMAL);
+            imshow("H21", transformed);
+            //fundamentalMatrices.push_back(ms);
         }
         if(computations & F_FROM_PLANES) {
             extractPlanes();
@@ -44,6 +48,20 @@ void MCE::run() {
         //rectify(x1, x2, Fpt, image_1, 1, "Image 1 rect Fpt");
 
         //drawEpipolarLines(x1, x2, Fgt, image_1.clone(), image_2.clone());
+
+        Mat linEq = (Mat_<double>(3,4) << 2, -2, -1, 1, -3, 6, -2, -1, -4, 5, -3, 2);
+        //Mat linEq = (Mat_<double>(3,3) << 2, -1, -1, -3, 5, -2, -4, 7, -3);
+        Mat testvect = Mat::zeros(3,1, CV_32FC1);
+        std::cout << "Solutions = " << calcNumberOfSolutions(linEq) << std::endl;
+        Mat a = linEq.colRange(0, linEq.cols-1);
+        Mat b = -linEq.col(linEq.cols-1);
+        solve(a, b, testvect);
+
+        //SVD::solveZ(linEq, testvect);
+        //testvect = testvect.reshape(1,3);
+
+        std::cout << "linEq test " << " = " << std::endl << testvect << std::endl;
+
 
         waitKey(0);
         //Mat h = findHomography(x1, x2, noArray(), CV_RANSAC, 3);
@@ -385,9 +403,10 @@ Mat MCE::calcFfromLines() {     // From Paper: "Robust line matching in image pa
     int numOfPairSubsets = numOfPairs/5;
     std::vector<lineSubsetStruct> subsets;
 
+    //Compute H_21 from 4 line correspondencies
     for(int i = 0; i < numOfPairSubsets; i++) {
         std::vector<int> subsetsIdx;
-        Mat linEq = Mat::ones(9,8,CV_32FC1);
+        Mat linEq = Mat::ones(8,9,CV_32FC1);
         lineSubsetStruct subset;
         for(int j = 0; j < 4; j++) {
             int subsetIdx = 0;
@@ -400,13 +419,18 @@ Mat MCE::calcFfromLines() {     // From Paper: "Robust line matching in image pa
             subset.lineCorrespondencies.push_back(lc);
             fillHLinEq(&linEq, lc, j);
         }
-        if(solve(linEq, Mat::zeros(9,1,CV_32FC1), subset.Hs, DECOMP_SVD)) {
-            subsets.push_back(subset);
-        } else {
-            if(LOG_DEBUG)   std::cout << "Error subset: " << i << " no solution for lin. eq. system!" << std::endl;
-        }
+        Mat A = linEq.colRange(0, linEq.cols-1);    //TODO: ist das korrekt? :)
+        Mat x = -linEq.col(linEq.cols-1);
+        solve(A, x, subset.Hs, DECOMP_SVD);
+        //SVD::solveZ(linEq, subset.Hs);
+        subset.Hs.resize(9);
+        subset.Hs = subset.Hs.reshape(1,3);
+        subset.Hs.at<float>(2,2) = 1.0;
+        subsets.push_back(subset);
     }
-    return Mat();
+
+
+    return calcLMedS(subsets);
 }
 
 Mat MCE::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
@@ -635,7 +659,11 @@ std::string MCE::getType(Mat m) {
 }
 
 Scalar MCE::averageSquaredError(Mat A, Mat B) {
-    return cv::sum((A-B).mul(A-B))/((double)(A.cols*A.rows));
+    return squaredError(A,B)/((double)(A.cols*A.rows));
+}
+
+Scalar MCE::squaredError(Mat A, Mat B) {
+    return cv::sum((A-B).mul(A-B));
 }
 
 Point2f MCE::normalize(Point2f p, int img_width, int img_height) {
@@ -665,3 +693,69 @@ void MCE::fillHLinEqBase(Mat* linEq, Point2f point, float A, float B, float C, i
     linEq->at<float>(row, 8) = C;
 }
 
+Mat MCE::calcLMedS(std::vector<lineSubsetStruct> subsets) {
+    std::vector<lineSubsetStruct>::iterator it = subsets.begin();
+    float lMedS = calcMedS(it->Hs);
+    Mat lMedSH = it->Hs;
+    it++;
+    do {
+        lineSubsetStruct ls = *it;
+        float meds = calcMedS(ls.Hs);
+        if(meds < lMedS) {
+            lMedS = meds;
+            lMedSH = ls.Hs;
+        }
+        it++;
+    } while(it != subsets.end());
+    return lMedSH;
+}
+
+
+float MCE::calcMedS(Mat Hs) {
+    std::vector<float> dist;
+    for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
+        lineCorrespStruct lc = *it;
+        Mat p1s = Mat(lc.line1Start);
+        vconcat(p1s, Mat::ones(1,1,p1s.type()),p1s);
+        Mat p1e = Mat(lc.line1End);
+        vconcat(p1e, Mat::ones(1,1,p1e.type()),p1e);
+
+        Mat p2s = Mat(lc.line2Start);
+        vconcat(p2s, Mat::ones(1,1,p2s.type()),p2s);
+        Mat p2e = Mat(lc.line2End);
+        vconcat(p2e, Mat::ones(1,1,p2e.type()),p2e);
+
+        Mat n1 = p1s.cross(p1e);
+        Mat n2real = p2s.cross(p2e);
+        Mat n2comp = Hs.inv(DECOMP_SVD).t()*n1;
+        dist.push_back(sqrt(squaredError(n2real,n2comp)[0]));
+    }
+
+    std::sort(dist.begin(), dist.end());
+
+    return dist.at(dist.size()/2);
+}
+
+int MCE::calcMatRank(Mat M) {
+    Mat U,V,W;
+    int rank = 0, diag;
+    SVD::compute(M,U,V,W);
+    if (W.cols < W.rows) diag = W.cols;
+    else diag = W.rows;
+    for(int i = 0; i < diag; i++) {
+        if(fabs(W.at<float>(i,i)) > 10^(-10)) {
+            rank++;
+        }
+    }
+    return rank;
+}
+
+//returns: 0 = no solution, 1 = one solution, -1 = inf solutions
+int MCE::calcNumberOfSolutions(Mat linEq) {
+    Mat coefficients = linEq.colRange(0, linEq.cols-1);
+    int coeffRank = calcMatRank(coefficients);
+    int augmentedRank = calcMatRank(linEq);
+    if (augmentedRank > coeffRank) return 0;
+    if (augmentedRank == coeffRank) return 1;
+    return -1;
+}

@@ -137,6 +137,7 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<cv::Po
 //			cvPutText(cvLeftColorImage,buf,point,&font,CV_RGB(r,g,b));
 //		}
 	}
+std::cout << "-- 1 : " << linesInLeft.size() << std::endl;
 	for(unsigned int i=0; i<linesInRight.size(); i++){
 		r = lowest+int(rand()%range);
 		g = lowest+int(rand()%range);
@@ -156,6 +157,7 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<cv::Po
 	}
 	cvSaveImage("LinesInImage1.png",cvLeftColorImage);
 	cvSaveImage("LinesInImage2.png",cvRightColorImage);
+std::cout << "-- 2 : " << linesInLeft.size() << std::endl;
   ///////////####################################################################
   ///////////####################################################################
   //store the matching results of the first and second images into a single image
@@ -194,7 +196,7 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<cv::Po
 		matches->push_back(endPointd);
 		cvLine( cvRightColorImage,startPoint,endPoint,CV_RGB(r1[pair],g1[pair],b1[pair]),4, CV_AA);
 	}
-
+std::cout << "-- 3 : " << linesInLeft.size() << std::endl;
 	IplImage *cvResultColorImage1 = cvCreateImage(cvSize(imageWidth*2,imageHeight),IPL_DEPTH_8U, 3);
 	IplImage *cvResultColorImage2 = cvCreateImage(cvSize(imageWidth*2,imageHeight),IPL_DEPTH_8U, 3);
 	IplImage *cvResultColorImage = cvCreateImage(cvSize(imageWidth*2,imageHeight),IPL_DEPTH_8U, 3);
@@ -205,15 +207,22 @@ int LineMatcher::match(const char* image1,const char* image2, std::vector<cv::Po
 	cvResize(cvRightColorImage, cvResultColorImage1);
 	cvResetImageROI(cvResultColorImage1);
   	cvCopy(cvResultColorImage1,cvResultColorImage2);
+	char buff[20];
 	for(unsigned int pair=0; pair<matchResult.size()/2;pair++){
 		lineIDLeft = matchResult[2*pair];
 		lineIDRight= matchResult[2*pair+1];
 		startPoint = cvPoint(int(linesInLeft[lineIDLeft][0].startPointX),int(linesInLeft[lineIDLeft][0].startPointY));
 		endPoint   = cvPoint(int(linesInRight[lineIDRight][0].startPointX+imageWidth),int(linesInRight[lineIDRight][0].startPointY));
+		
 		cvLine( cvResultColorImage2,startPoint,endPoint,CV_RGB(r1[pair],g1[pair],b1[pair]),2, CV_AA);
+		std::sprintf(buff,"#%i", pair);
+		CvFont font2;
+		cvInitFont(&font2, CV_FONT_HERSHEY_SIMPLEX, 0.5, 0.5, 0, 2, 8);
+		//cvPutText(cvResultColorImage2, buff, startPoint, &font2, CV_RGB(r1[pair],g1[pair],b1[pair]));
+		cvPutText(cvResultColorImage2, buff, startPoint, &font2, CV_RGB(255,255,255));
 	}
+std::cout << "-- 4 : " << linesInLeft.size() << std::endl;
 	cvAddWeighted( cvResultColorImage1, 0.5, cvResultColorImage2, 0.5, 0.0, cvResultColorImage);
-
 	cvSaveImage("LBDSG.png",cvResultColorImage);
 	cvReleaseImage(&cvResultColorImage);
 	cvReleaseImage(&cvResultColorImage1);
