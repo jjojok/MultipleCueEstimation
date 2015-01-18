@@ -422,15 +422,31 @@ Mat MCE::calcFfromLines() {     // From Paper: "Robust line matching in image pa
         Mat A = linEq.colRange(0, linEq.cols-1);    //TODO: ist das korrekt? :)
         Mat x = -linEq.col(linEq.cols-1);
         solve(A, x, subset.Hs, DECOMP_SVD);
-        //SVD::solveZ(linEq, subset.Hs);
+        //SVD::solveZ(linEq, subset.Hs);            //Oder das?
         subset.Hs.resize(9);
         subset.Hs = subset.Hs.reshape(1,3);
         subset.Hs.at<float>(2,2) = 1.0;
         subsets.push_back(subset);
     }
 
+    Mat result;
+    Mat linEq2 = Mat::ones(8,9,CV_32FC1);
+    fillHLinEq(&linEq2, lineCorrespondencies.at(47), 0);
+    fillHLinEq(&linEq2, lineCorrespondencies.at(93), 1);
+    fillHLinEq(&linEq2, lineCorrespondencies.at(83), 2);
+    fillHLinEq(&linEq2, lineCorrespondencies.at(15), 3);
+    Mat A = linEq2.colRange(0, linEq2.cols-1);
+    Mat x = -linEq2.col(linEq2.cols-1);
+    solve(A, x, result, DECOMP_SVD);
+    result.resize(9);
+    result = result.reshape(1,3);
+    result.at<float>(2,2) = 1.0;
 
-    return calcLMedS(subsets);
+    std::cout << "A result " << " = " << std::endl << A << std::endl;
+    std::cout << "x result " << " = " << std::endl << x << std::endl;
+    std::cout << "linEq result " << " = " << std::endl << result << std::endl;
+    return result;
+    //return calcLMedS(subsets);
 }
 
 Mat MCE::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
@@ -667,8 +683,8 @@ Scalar MCE::squaredError(Mat A, Mat B) {
 }
 
 Point2f MCE::normalize(Point2f p, int img_width, int img_height) {
-    p.x = (p.x - img_width/2) / img_width;
-    p.y = (p.y - img_height/2) / img_height;
+    p.x = (p.x - img_width/2) / (img_width/2);
+    p.y = (p.y - img_height/2) / (img_height/2);
     return p;
 }
 
