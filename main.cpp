@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
-#include "MCE.h"
+#include "MultipleCueEstimation.h"
 
 int main(int argc, char** argv )
 {
     freopen( "error.txt", "w", stderr );
-    MCE* mce = new MCE();
+    MultipleCueEstimation* mce = new MultipleCueEstimation();
     mce->arguments = argc;
     if (mce->arguments == 6) {
         mce->path_P1 = argv[4];

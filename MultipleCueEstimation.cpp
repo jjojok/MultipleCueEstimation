@@ -1,18 +1,19 @@
-#include "MCE.h"
+#include "MultipleCueEstimation.h"
 
 using namespace cv;
 
-MCE::MCE()
+MultipleCueEstimation::MultipleCueEstimation()
 {
     compareWithGroundTruth = false;
     computations = 0;
 }
 
-void MCE::run() {
+void MultipleCueEstimation::run() {
     Mat Fgt;       //Ground truth Fundamental matrix
     std::vector<matrixStruct> fundamentalMatrices;
     if (loadData()) {
         if(computations & F_FROM_POINTS) {
+            std::cout << "Calc Fpt..." << std::endl;
             extractPoints();
             matrixStruct ms;
             ms.source = "points";
@@ -20,14 +21,14 @@ void MCE::run() {
             fundamentalMatrices.push_back(ms);
         }
         if(computations & F_FROM_LINES) {
+            std::cout << "Calc Fln..." << std::endl;
             extractLines();
             matrixStruct ms;
             ms.source = "lines";
             ms.F = calcFfromLines();
             Mat transformed;
             warpPerspective(image_2, transformed, ms.F, Size(image_2.cols,image_2.rows));
-            namedWindow("H21", CV_WINDOW_NORMAL);
-            imshow("H21", transformed);
+            showImage("H21", transformed);
             //fundamentalMatrices.push_back(ms);
         }
         if(computations & F_FROM_PLANES) {
@@ -40,7 +41,8 @@ void MCE::run() {
         }
 
         for (std::vector<matrixStruct>::iterator it = fundamentalMatrices.begin() ; it != fundamentalMatrices.end(); ++it) {
-            it->error = averageSquaredError(Fgt,it->F)[0];
+            //it->error = averageSquaredError(Fgt,it->F)[0];
+            it->error = epipolarSADError(x1, x2, it->F) - epipolarSADError(x1, x2, Fgt);
             std::cout << "F from " << it->source << " = " << std::endl << it->F << std::endl << "Error: " << it->error << std::endl;
         }
 
@@ -71,7 +73,7 @@ void MCE::run() {
 
 }
 
-int MCE::loadData() {
+int MultipleCueEstimation::loadData() {
     if (arguments != 4 && !compareWithGroundTruth) {
         std::cout << "Usage: MultipleCueEstimation <path to first image> <path to second image> <optional: path to first camera matrix> <optional: path to second camera matrix>" << std::endl;
         return 0;
@@ -90,71 +92,129 @@ int MCE::loadData() {
     }
 
     if(VISUAL_DEBUG) {
-        namedWindow("Image 1 original", CV_WINDOW_NORMAL);
-        imshow("Image 1 original", image_1);
+        showImage("Image 1 original", image_1);
 
-        namedWindow("Image 2 original", CV_WINDOW_NORMAL);
-        imshow("Image 2 original", image_2);
+        showImage("Image 2 original", image_2);
 
     }
 
     return 1;
 }
 
-void MCE::extractLines() {
-    LineMatcher* lm = new LineMatcher();
+int MultipleCueEstimation::filterLineExtractions(std::vector<cv::line_descriptor::KeyLine>* keylines) {
+    float minLinelength = image_1.cols*image_1.rows*MIN_LENGTH_FACTOR;
+    int filtered = 0;
+    std::vector<cv::line_descriptor::KeyLine>::iterator iter = keylines->begin();
+    while(iter != keylines->end()) {
+        if((*iter).lineLength < minLinelength) {
+            iter = keylines->erase(iter);
+            filtered++;
+        } else {
+            iter++;
+        }
+    }
+    std::cout << keylines->size() << std::endl;
+    return filtered;
+}
 
-    Mat image_1_down;
-    Mat image_2_down;
+void MultipleCueEstimation::filterLineMatches(cv::Mat descr1, cv::Mat descr2, std::vector<DMatch> matches) {
 
-    std::string path_img1_down = path_img1 + "_down";
-    std::string path_img2_down = path_img2 + "_down";
+}
 
-    //TODO: works only with small images (e.g. 800x600), replace with opencv if ver 3 is out
-    resize(image_1_color, image_1_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
-    resize(image_2_color, image_2_down, Size(0,0), 0.25, 0.25, INTER_NEAREST);
+void MultipleCueEstimation::extractLines() {
 
-    imwrite(path_img1_down, image_1_down);
-    imwrite(path_img2_down, image_2_down);
+    /********************************************************************
+     * From: http://docs.opencv.org/trunk/modules/line_descriptor/doc/tutorial.html
+     * ******************************************************************/
 
+    /* create binary masks */
+    cv::Mat mask1 = Mat::ones( image_1.size(), CV_8UC1 );
+    cv::Mat mask2 = Mat::ones( image_2.size(), CV_8UC1 );
 
-    std::vector<Point2f>* lineCorr = new std::vector<Point2f>();
+    /* create a pointer to a BinaryDescriptor object with default parameters */
+    Ptr<cv::line_descriptor::BinaryDescriptor> bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
 
-    std::cout << "EXTRACTING LINES:" << std::endl;
-    int corresp = lm->match(path_img1_down.c_str(), path_img2_down.c_str(), lineCorr);       //TODO image scaled to 25% -> multiply line coords by 4; TODO: Check if image dimensions % 4 = 0, cut img if not
-    std::cout << "-- Number of matches: " << corresp << std::endl;
+    Ptr<cv::line_descriptor::LSDDetector> lsd = cv::line_descriptor::LSDDetector::createLSDDetector();
+
+    /* compute lines */
+    std::vector<cv::line_descriptor::KeyLine> keylines1, keylines2;
+    //bd->detect( image_1, keylines1, mask1 );
+    //bd->detect( image_2, keylines2, mask2 );
+
+    lsd->detect( image_1, keylines1, OCTAVES, SCALING, mask1 );
+    lsd->detect( image_2, keylines2, OCTAVES, SCALING, mask2 );
+
+    if(LOG_DEBUG) {
+        std::cout << "-- First image before filter: " << keylines1.size() << std::endl;
+        std::cout << "-- Second image before filter: " << keylines2.size() << std::endl;
+    }
+
+    int filtered1 = 0;//filterLineExtractions(&keylines1);
+    int filtered2 = 0;//filterLineExtractions(&keylines2);
+
+    /* compute descriptors */
+    cv::Mat descr1, descr2;
+    bd->compute( image_1, keylines1, descr1 );
+    bd->compute( image_2, keylines2, descr2 );
+
+    std::cout << "-- First image: " << keylines1.size() << " filtered: " << filtered1 << std::endl;
+    std::cout << "-- Second image: " << keylines2.size() << " filtered: " << filtered2 << std::endl;
+
+    /* create a BinaryDescriptorMatcher object */
+    Ptr<cv::line_descriptor::BinaryDescriptorMatcher> bdm = cv::line_descriptor::BinaryDescriptorMatcher::createBinaryDescriptorMatcher();
+
+    /* require match */
+    std::vector<DMatch> matches;
+    bdm->match( descr1, descr2, matches );
+
+    std::cout << "-- Overall matches : " << matches.size() << std::endl;
+
+    /* plot matches */
+    cv::Mat outImg;
+    std::vector<char> mask( matches.size(), 1 );
+    cv::line_descriptor::drawLineMatches( image_1_color, keylines1, image_2_color, keylines2, matches, outImg, Scalar::all( -1 ), Scalar::all( -1 ), mask, cv::line_descriptor::DrawLinesMatchesFlags::DEFAULT );
+
+    /************************************************************************/
 
     int img_width = image_1.cols;
     int img_height = image_1.rows;
 
-    for(int i = 0; i < lineCorr->size(); i+=4) {
+    cv::line_descriptor::KeyLine l1, l2;
+    for (std::vector<DMatch>::const_iterator it= matches.begin(); it!=matches.end(); ++it) {
+
+        l1 = keylines1[it->queryIdx];
+        l2 = keylines2[it->trainIdx];
+
         lineCorrespStruct lc;
-        lc.line1Start = normalize(lineCorr->at(i), img_width/4, img_height/4);
-        lc.line1End = normalize(lineCorr->at(i+1), img_width/4, img_height/4);
-        lc.line2Start = normalize(lineCorr->at(i+2), img_width/4, img_height/4);
-        lc.line2End = normalize(lineCorr->at(i+3), img_width/4, img_height/4);
+        lc.line1 = l1;
+        lc.line2 = l2;
+//        lc.line1StartNormalized = normalize(lc.line1.startPointX, lc.line1.startPointY, img_width, img_height);
+//        lc.line1EndNormalized = normalize(lc.line1.endPointX, lc.line1.endPointY, img_width, img_height);
+//        lc.line2StartNormalized = normalize(lc.line2.endPointX, lc.line2.endPointY, img_width, img_height);
+//        lc.line2EndNormalized = normalize(lc.line2.endPointX, lc.line2.endPointY, img_width, img_height);
+
+        //TODO: Normalizeation?
+
+        lc.line1StartNormalized.x = lc.line1.startPointX;
+        lc.line1StartNormalized.y = lc.line1.startPointY;
+        lc.line2StartNormalized.x = lc.line2.startPointX;
+        lc.line2StartNormalized.y = lc.line2.startPointY;
+
+        lc.line1EndNormalized.x = lc.line1.endPointX;
+        lc.line1EndNormalized.y = lc.line1.endPointY;
+        lc.line2EndNormalized.x = lc.line2.endPointX;
+        lc.line2EndNormalized.y = lc.line2.endPointY;
 
         lineCorrespondencies.push_back(lc);
     }
 
-    if(VISUAL_DEBUG) {
-
-        namedWindow("Image 1 lines", CV_WINDOW_AUTOSIZE);
-        imshow("Image 1 lines", imread("LinesInImage1.png", CV_LOAD_IMAGE_COLOR));
-
-        namedWindow("Image 2 lines", CV_WINDOW_AUTOSIZE);
-        imshow("Image 2 lines", imread("LinesInImage2.png", CV_LOAD_IMAGE_COLOR));
-
-        namedWindow("Line matches", CV_WINDOW_AUTOSIZE);
-        imshow("Line matches", imread("LBDSG.png", CV_LOAD_IMAGE_COLOR));
-
-    }
+    //showImage( "Matches", outImg, WINDOW_NORMAL, 1600);
 
     std::cout << std::endl;
 }
 
-void MCE::extractPlanes() {
-    Vector<segmentStruct> segmentsList_1, segmentsList_2;
+void MultipleCueEstimation::extractPlanes() {
+    std::vector<segmentStruct> segmentsList_1, segmentsList_2;
     Mat segments_1, segments_2;
 
     std::cout << "EXTRACTING PLANES:" << std::endl;
@@ -172,9 +232,9 @@ void MCE::extractPlanes() {
 
 }
 
-void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vector<segmentStruct> &segmentList, Mat &segments) {
+void MultipleCueEstimation::findSegments(Mat image, Mat image_color, std::string image_name, std::vector<segmentStruct> &segmentList, Mat &segments) {
     std::vector<cv::KeyPoint> keypoints;
-    Vector<segmentStruct> segmentList_temp;
+    std::vector<segmentStruct> segmentList_temp;
 
     std::vector< std::vector<Point> > contours;
     RNG rng;
@@ -191,7 +251,7 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
     params.maxConvexity = 1;
     params.minDistBetweenBlobs = 20;
 
-    SimpleBlobDetector blobs = SimpleBlobDetector(params);
+    SimpleBlobDetector blobs = SimpleBlobDetector();
 
     blobs.detect(image_color, keypoints);
 
@@ -205,8 +265,7 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
             circle(img_blobs, keypoints[i].pt, 15, color, 8);
         }
 
-        namedWindow(image_name+" blobs", CV_WINDOW_NORMAL);
-        imshow(image_name+" blobs", img_blobs);
+        showImage(image_name+" blobs", img_blobs);
     }
     Mat img_binary;
     Mat img_flood = image_color.clone();
@@ -229,8 +288,7 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
     }
 
     if(VISUAL_DEBUG) {
-        namedWindow(image_name+" flooded", CV_WINDOW_NORMAL);
-        imshow(image_name+" flooded", img_flood);
+        showImage(image_name+" flooded", img_flood);
     }
 
     cvtColor(img_flood,img_flood,CV_RGB2GRAY);
@@ -241,8 +299,7 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
     erode(img_binary, img_binary, kernel_closing,center_closing);
 
     if(VISUAL_DEBUG) {
-        namedWindow(image_name+" binary", CV_WINDOW_NORMAL);
-        imshow(image_name+" binary", img_binary);
+        showImage(image_name+" binary", img_binary);
     }
 
     findContours(img_binary, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
@@ -274,8 +331,7 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
             drawContours(img_contours, contours, segmentList[i].contours_idx, Scalar(255,255,255), 2);
         }
 
-        namedWindow(image_name+" plane contours", CV_WINDOW_NORMAL);
-        imshow(image_name+" plane contours", img_contours);
+        showImage(image_name+" plane contours", img_contours);
 
         CvFont font;
         cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0);
@@ -296,8 +352,7 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
             putText(img_segments, buff, segmentList[i].startpoint, CV_FONT_HERSHEY_SIMPLEX, 3, Scalar(255, 255, 255), 10);
         }
 
-        namedWindow(image_name+" plane segments", CV_WINDOW_NORMAL);
-        imshow(image_name+" plane segments", img_segments);
+        showImage(image_name+" plane segments", img_segments);
     }
 
     segments = Mat::zeros(image.rows, image.cols, image.type());
@@ -310,29 +365,27 @@ void MCE::findSegments(Mat image, Mat image_color, std::string image_name, Vecto
     std::cout << std::endl;
 }
 
-void MCE::extractPoints() {
-
-    // ++++ Source: http://docs.opencv.org/doc/tutorials/features2d/feature_flann_matcher/feature_flann_matcher.html
-
-    std::cout << "EXTRACTING POINTS:" << std::endl;
+void MultipleCueEstimation::extractPoints() {
 
     std::vector<cv::KeyPoint> keypoints_1;
     std::vector<cv::KeyPoint> keypoints_2;
 
-    SurfFeatureDetector detector(SIFT_FEATURE_COUNT);
-    detector.detect(image_1, keypoints_1);
-    detector.detect(image_2, keypoints_2);
+    //SurfFeatureDetector detector(SIFT_FEATURE_COUNT);
+    Ptr<xfeatures2d::SURF> detector = xfeatures2d::SURF::create(SIFT_FEATURE_COUNT);
+
+    detector->detect(image_1, keypoints_1);
+    detector->detect(image_2, keypoints_2);
 
     std::cout << "-- First image: " << keypoints_1.size() << std::endl;
     std::cout << "-- Second image: " << keypoints_2.size() << std::endl;
 
     //-- Step 2: Calculate descriptors (feature vectors)
-    SurfDescriptorExtractor extractor;
+    Ptr<xfeatures2d::SurfDescriptorExtractor> extractor = xfeatures2d::SurfDescriptorExtractor::create();
 
     Mat descriptors_1, descriptors_2;
 
-    extractor.compute( image_1, keypoints_1, descriptors_1 );
-    extractor.compute( image_2, keypoints_2, descriptors_2 );
+    extractor->compute( image_1, keypoints_1, descriptors_1 );
+    extractor->compute( image_2, keypoints_2, descriptors_2 );
 
     //-- Step 3: Matching descriptor vectors using FLANN matcher
     FlannBasedMatcher matcher;
@@ -343,9 +396,9 @@ void MCE::extractPoints() {
 
     //-- Quick calculation of max and min distances between keypoints
     for( int i = 0; i < descriptors_1.rows; i++ )
-    { float dist = matches[i].distance;
-        if( dist < min_dist ) min_dist = dist;
-        if( dist > max_dist ) max_dist = dist;
+    { double dist = matches[i].distance;
+    if( dist < min_dist ) min_dist = dist;
+    if( dist > max_dist ) max_dist = dist;
     }
 
     if (LOG_DEBUG) {
@@ -372,13 +425,12 @@ void MCE::extractPoints() {
 
     //-- Draw only "good" matches
     Mat img_matches;
-    drawMatches( image_1, keypoints_1, image_2, keypoints_2,
+    drawMatches( image_1_color, keypoints_1, image_2_color, keypoints_2,
                good_matches, img_matches );
 
     //-- Show detected matches
     if(VISUAL_DEBUG) {
-        namedWindow("SURF results", CV_WINDOW_NORMAL);
-        imshow( "SURF results", img_matches );
+        showImage( "SURF results", img_matches );
     }
 
     // ++++
@@ -393,14 +445,60 @@ void MCE::extractPoints() {
 
 }
 
-Mat MCE::calcFfromPoints() {
-    std::cout << "Calc Fpt..." << std::endl;
+Mat MultipleCueEstimation::calcFfromPoints() {
     return findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, noArray());
 }
 
-Mat MCE::calcFfromLines() {     // From Paper: "Robust line matching in image pairs of scenes with dominant planes", Sagúes C., Guerrero J.J.
+Mat MultipleCueEstimation::calcFfromLines() {     // From Paper: "Robust line matching in image pairs of scenes with dominant planes", Sagúes C., Guerrero J.J.
+
+    lineCorrespondencies.erase(lineCorrespondencies.begin()+100, lineCorrespondencies.end());   //TODO: REMOVE
+
+    //TODO: Hard coded test data for castle 4 & 5:
+
+    lineCorrespStruct lc1, lc2, lc3, lc4;
+    lc1.line1StartNormalized.x = 343;
+    lc1.line1StartNormalized.y = 600;
+    lc1.line2StartNormalized.x = 311;
+    lc1.line2StartNormalized.y = 610;
+    lc1.line1EndNormalized.x = 287;
+    lc1.line1EndNormalized.y = 1217;
+    lc1.line2EndNormalized.x = 264;
+    lc1.line2EndNormalized.y = 1196;
+
+    lc2.line1StartNormalized.x = 219;
+    lc2.line1StartNormalized.y = 1318;
+    lc2.line2StartNormalized.x = 203;
+    lc2.line2StartNormalized.y = 1293;
+    lc2.line1EndNormalized.x = 1041;
+    lc2.line1EndNormalized.y = 1336;
+    lc2.line2EndNormalized.x = 984;
+    lc2.line2EndNormalized.y = 1291;
+
+    lc3.line1StartNormalized.x = 2628;
+    lc3.line1StartNormalized.y = 544;
+    lc3.line2StartNormalized.x = 2723;
+    lc3.line2StartNormalized.y = 386;
+    lc3.line1EndNormalized.x = 2752;
+    lc3.line1EndNormalized.y = 491;
+    lc3.line2EndNormalized.x = 2858;
+    lc3.line2EndNormalized.y = 317;
+
+    lc4.line1StartNormalized.x = 2641;
+    lc4.line1StartNormalized.y = 660;
+    lc4.line2StartNormalized.x = 2738;
+    lc4.line2StartNormalized.y = 513;
+    lc4.line1EndNormalized.x = 2717;
+    lc4.line1EndNormalized.y = 1358;
+    lc4.line2EndNormalized.x = 2824;
+    lc4.line2EndNormalized.y = 1278;
+
+    lineCorrespondencies.push_back(lc1);
+    lineCorrespondencies.push_back(lc2);
+    lineCorrespondencies.push_back(lc3);
+    lineCorrespondencies.push_back(lc4);
+
     int numOfPairs = lineCorrespondencies.size();
-    int numOfPairSubsets = numOfPairs/5;
+    int numOfPairSubsets = numOfPairs*NUM_OF_PAIR_SUBSETS_FACTOR;
     std::vector<lineSubsetStruct> subsets;
 
     //Compute H_21 from 4 line correspondencies
@@ -429,44 +527,68 @@ Mat MCE::calcFfromLines() {     // From Paper: "Robust line matching in image pa
         subsets.push_back(subset);
     }
 
+    return calcLMedS(subsets);
+
+    //TODO: Hard coded test data for castle 4 & 5:
+
+    /*lineCorrespStruct lc1, lc2, lc3, lc4;
+    lc1.line1StartNormalized = normalize(343, 600, image_1.cols, image_1.rows);
+    lc1.line2StartNormalized = normalize(311, 610, image_1.cols, image_1.rows);
+    lc1.line1EndNormalized = normalize(287, 1217, image_1.cols, image_1.rows);
+    lc1.line2EndNormalized = normalize(264, 1196, image_1.cols, image_1.rows);
+
+    lc2.line1StartNormalized = normalize(219, 1318, image_1.cols, image_1.rows);
+    lc2.line2StartNormalized = normalize(203, 1293, image_1.cols, image_1.rows);
+    lc2.line1EndNormalized = normalize(1041, 1336, image_1.cols, image_1.rows);
+    lc2.line2EndNormalized = normalize(984, 1291, image_1.cols, image_1.rows);
+
+    lc3.line1StartNormalized = normalize(2628, 544, image_1.cols, image_1.rows);
+    lc3.line2StartNormalized = normalize(2723, 386, image_1.cols, image_1.rows);
+    lc3.line1EndNormalized = normalize(2752, 491, image_1.cols, image_1.rows);
+    lc3.line2EndNormalized = normalize(2858, 317, image_1.cols, image_1.rows);
+
+    lc4.line1StartNormalized = normalize(2641, 660, image_1.cols, image_1.rows);
+    lc4.line2StartNormalized = normalize(2738, 513, image_1.cols, image_1.rows);
+    lc4.line1EndNormalized = normalize(2717, 1358, image_1.cols, image_1.rows);
+    lc4.line2EndNormalized = normalize(2824, 1278, image_1.cols, image_1.rows);
+
     Mat result;
     Mat linEq2 = Mat::ones(8,9,CV_32FC1);
-    fillHLinEq(&linEq2, lineCorrespondencies.at(47), 0);
-    fillHLinEq(&linEq2, lineCorrespondencies.at(93), 1);
-    fillHLinEq(&linEq2, lineCorrespondencies.at(83), 2);
-    fillHLinEq(&linEq2, lineCorrespondencies.at(15), 3);
+    fillHLinEq(&linEq2, lc1, 0);
+    fillHLinEq(&linEq2, lc2, 1);
+    fillHLinEq(&linEq2, lc3, 2);
+    fillHLinEq(&linEq2, lc4, 3);
     Mat A = linEq2.colRange(0, linEq2.cols-1);
     Mat x = -linEq2.col(linEq2.cols-1);
     solve(A, x, result, DECOMP_SVD);
     result.resize(9);
     result = result.reshape(1,3);
-    result.at<float>(2,2) = 1.0;
+    result.at<float>(2,2) = 1;
 
     std::cout << "A result " << " = " << std::endl << A << std::endl;
     std::cout << "x result " << " = " << std::endl << x << std::endl;
     std::cout << "linEq result " << " = " << std::endl << result << std::endl;
-    return result;
-    //return calcLMedS(subsets);
+    return result;*/
 }
 
-Mat MCE::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
+Mat MultipleCueEstimation::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
     //findHomography with different planes
 }
 
-Mat MCE::calcFfromConics() {    // Maybe: something with vanishing points v1*w*v2=0 (Hartley, Zissarmen p. 235ff)
+Mat MultipleCueEstimation::calcFfromConics() {    // Maybe: something with vanishing points v1*w*v2=0 (Hartley, Zissarmen p. 235ff)
 
 }
 
-Mat MCE::calcFfromCurves() {    // First derivative of corresponding curves are gradients to the epipolar lines
+Mat MultipleCueEstimation::calcFfromCurves() {    // First derivative of corresponding curves are gradients to the epipolar lines
 
 }
 
-Mat MCE::refineF() {    //Reduce error of F AFTER computing it seperatly form different sources
+Mat MultipleCueEstimation::refineF() {    //Reduce error of F AFTER computing it seperatly form different sources
 
 }
 
 
-Mat MCE::MatFromFile(std::string file, int rows) {
+Mat MultipleCueEstimation::MatFromFile(std::string file, int rows) {
 
     Mat matrix;
     std::ifstream inputStream;
@@ -484,7 +606,7 @@ Mat MCE::MatFromFile(std::string file, int rows) {
     return matrix;
 }
 
-void MCE::PointsToFile(std::vector<Point2f>* points, std::string file) {
+void MultipleCueEstimation::PointsToFile(std::vector<Point2f>* points, std::string file) {
 
     Point2f point;
     std::ofstream outputStream;
@@ -500,7 +622,7 @@ void MCE::PointsToFile(std::vector<Point2f>* points, std::string file) {
     outputStream.close();
 }
 
-Mat MCE::crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
+Mat MultipleCueEstimation::crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
     Mat crossMat = Mat::zeros(3,3, input.type());
     crossMat.at<float>(0,1) = -input.at<float>(2);
     crossMat.at<float>(0,2) = input.at<float>(1);
@@ -511,7 +633,7 @@ Mat MCE::crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
     return crossMat;
 }
 
-void MCE::rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName) {
+void MultipleCueEstimation::rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName) {
     if(VISUAL_DEBUG) {
         Mat H1, H2, H, rectified;
         if(stereoRectifyUncalibrated(p1, p2, F, Size(image.cols,image.rows), H1, H2, 0 )) {
@@ -525,13 +647,12 @@ void MCE::rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat i
 
             warpPerspective(image, rectified, H, Size(image.cols,image.rows));
 
-            namedWindow(windowName, CV_WINDOW_NORMAL);
-            imshow(windowName, rectified);
+            showImage(windowName, rectified);
         }
     }
 }
 
-Mat MCE::getGroundTruth() {
+Mat MultipleCueEstimation::getGroundTruth() {
     Mat P1w = MatFromFile(path_P1, 3); //P1 in world coords
     Mat P2w = MatFromFile(path_P2, 3); //P2 in world coords
     Mat T1w, T2w, R1w, R2w;   //World rotation, translation
@@ -595,7 +716,7 @@ Mat MCE::getGroundTruth() {
     return F / F.at<float>(2,2);       //Set global arbitrary scale factor 1 -> easier to compare
 }
 
-void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2) {
+void MultipleCueEstimation::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2) {
 
     //#################################################################################
     //From: http://opencv-cookbook.googlecode.com/svn/trunk/Chapter%2009/estimateF.cpp
@@ -603,7 +724,7 @@ void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Ma
 
     std::vector<cv::Vec3f> lines1, lines2;
     cv::computeCorrespondEpilines(p1, 1, F, lines1);
-    for (vector<cv::Vec3f>::const_iterator it= lines1.begin();
+    for (std::vector<cv::Vec3f>::const_iterator it= lines1.begin();
          it!=lines1.end(); ++it) {
 
              cv::line(image2,cv::Point(0,-(*it)[2]/(*it)[1]),
@@ -612,7 +733,7 @@ void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Ma
     }
 
     cv::computeCorrespondEpilines(p2,2,F,lines2);
-    for (vector<cv::Vec3f>::const_iterator it= lines2.begin();
+    for (std::vector<cv::Vec3f>::const_iterator it= lines2.begin();
          it!=lines2.end(); ++it) {
 
              cv::line(image1,cv::Point(0,-(*it)[2]/(*it)[1]),
@@ -649,17 +770,16 @@ void MCE::drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Ma
 //    }
 
     // Display the images with points
-    cv::namedWindow("Right Image Epilines", CV_WINDOW_NORMAL);
-    cv::imshow("Right Image Epilines",image1);
-    cv::namedWindow("Left Image Epilines", CV_WINDOW_NORMAL);
-    cv::imshow("Left Image Epilines",image2);
+
+    showImage("Right Image Epilines",image1);
+    showImage("Left Image Epilines",image2);
 
     //#############################################################################
 }
 
-std::string MCE::getType(Mat m) {
+std::string MultipleCueEstimation::getType(Mat m) {
     std::string type = "Type: ";
-    switch(m.type() & TYPE_MASK) {
+    switch(m.type() & Mat::TYPE_MASK) {
         case CV_8U: "CV_8U"; break;
         case CV_8S: type+="CV_8U";  break;
         case CV_16U: type+="CV_16U"; break;
@@ -674,42 +794,64 @@ std::string MCE::getType(Mat m) {
     return type;
 }
 
-Scalar MCE::averageSquaredError(Mat A, Mat B) {
+Scalar MultipleCueEstimation::averageSquaredError(Mat A, Mat B) {
     return squaredError(A,B)/((double)(A.cols*A.rows));
 }
 
-Scalar MCE::squaredError(Mat A, Mat B) {
+double MultipleCueEstimation::epipolarSADError(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F) {
+    double avgErr = 0;
+    std::vector<cv::Vec3f> lines1;
+    std::vector<cv::Vec3f> lines2;
+    cv::computeCorrespondEpilines(p1, 1, F, lines1);
+    cv::computeCorrespondEpilines(p2, 2, F, lines2);
+    for(int i = 0; i < p1.size(); i++) {
+        avgErr += fabs(p1.at(i).x*lines2.at(i)[0] + p1.at(i).y*lines2.at(i)[1] + lines2.at(i)[2]) + fabs(p2.at(i).x*lines1.at(i)[0] + p2.at(i).y*lines1.at(i)[1] + lines1.at(i)[2]);
+    }
+    return avgErr;
+}
+
+Scalar MultipleCueEstimation::squaredError(Mat A, Mat B) {
     return cv::sum((A-B).mul(A-B));
 }
 
-Point2f MCE::normalize(Point2f p, int img_width, int img_height) {
-    p.x = (p.x - img_width/2) / (img_width/2);
-    p.y = (p.y - img_height/2) / (img_height/2);
-    return p;
+Point2f MultipleCueEstimation::normalize(float x, float y, int img_width, int img_height) {
+    Point2f* p = new Point2f();
+    p->x = (2*x / img_width) - 1;
+    p->y = (2*y / img_height) - 1;
+    return *p;
 }
 
-void MCE::fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair) {
+/*void MultipleCueEstimation::fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair) {
     float A = lc.line2Start.y - lc.line2End.y;
     float B = lc.line2End.x - lc.line2Start.x;
     float C = lc.line2Start.x*lc.line2End.y - lc.line2End.x*lc.line2Start.y;
     int row = 2*numPair;
     fillHLinEqBase(linEq, lc.line1Start, A, B, C, row);
     fillHLinEqBase(linEq, lc.line1End, A, B, C, row + 1);
+}*/
+
+void MultipleCueEstimation::fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair) {
+    float A = lc.line2StartNormalized.y - lc.line2EndNormalized.y;
+    float B = lc.line2EndNormalized.x - lc.line2StartNormalized.x;
+    float C = lc.line1StartNormalized.x*lc.line2EndNormalized.y - lc.line2EndNormalized.x*lc.line2StartNormalized.y;
+    int row = 2*numPair;
+    fillHLinEqBase(linEq, lc.line1StartNormalized.x, lc.line1StartNormalized.y, A, B, C, row);
+    fillHLinEqBase(linEq, lc.line1EndNormalized.x, lc.line1EndNormalized.y, A, B, C, row + 1);
 }
 
-void MCE::fillHLinEqBase(Mat* linEq, Point2f point, float A, float B, float C, int row) {
-    linEq->at<float>(row, 0) = A*point.x;
-    linEq->at<float>(row, 1) = A*point.y;
+void MultipleCueEstimation::fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row) {
+    linEq->at<float>(row, 0) = A*x;
+    linEq->at<float>(row, 1) = A*y;
     linEq->at<float>(row, 2) = A;
-    linEq->at<float>(row, 3) = B*point.x;
-    linEq->at<float>(row, 4) = B*point.y;
+    linEq->at<float>(row, 3) = B*x;
+    linEq->at<float>(row, 4) = B*y;
     linEq->at<float>(row, 5) = B;
-    linEq->at<float>(row, 6) = C*point.x;
-    linEq->at<float>(row, 7) = C*point.y;
+    linEq->at<float>(row, 6) = C*x;
+    linEq->at<float>(row, 7) = C*y;
     linEq->at<float>(row, 8) = C;
 }
 
-Mat MCE::calcLMedS(std::vector<lineSubsetStruct> subsets) {
+Mat MultipleCueEstimation::calcLMedS(std::vector<lineSubsetStruct> subsets) {
     std::vector<lineSubsetStruct>::iterator it = subsets.begin();
     float lMedS = calcMedS(it->Hs);
     Mat lMedSH = it->Hs;
@@ -727,11 +869,45 @@ Mat MCE::calcLMedS(std::vector<lineSubsetStruct> subsets) {
 }
 
 
-float MCE::calcMedS(Mat Hs) {
+float MultipleCueEstimation::calcMedS(Mat Hs) {
     std::vector<float> dist;
     for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
         lineCorrespStruct lc = *it;
-        Mat p1s = Mat(lc.line1Start);
+        Mat p1s = Mat(lc.line1StartNormalized);
+        vconcat(p1s, Mat::ones(1,1,p1s.type()),p1s);
+        Mat p1e = Mat(lc.line1EndNormalized);
+        vconcat(p1e, Mat::ones(1,1,p1e.type()),p1e);
+
+        Mat p2s = Mat(lc.line2StartNormalized);
+        vconcat(p2s, Mat::ones(1,1,p2s.type()),p2s);
+        Mat p2e = Mat(lc.line2EndNormalized);
+        vconcat(p2e, Mat::ones(1,1,p2e.type()),p2e);
+
+        Mat n1 = p1s.cross(p1e);
+        Mat n2real = p2s.cross(p2e);
+        Mat n2comp = Hs.inv(DECOMP_SVD).t()*n1;
+        dist.push_back(sqrt(squaredError(n2real,n2comp)[0]));
+    }
+
+    std::sort(dist.begin(), dist.end());
+
+    return dist.at(dist.size()/2);
+}
+
+/*Mat createHomogPoint(float x, float y) {
+    Mat* m = new Mat(3, 1, CV_32FC1);
+    m->at<float>(0) = x;
+    m->at<float>(1) = y;
+    m->at<float>(2) = 1;
+    return *m;
+}
+
+float MultipleCueEstimation::calcMedS(Mat Hs) {
+    std::vector<float> dist;
+    for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
+        lineCorrespStruct lc = *it;
+        lc.line1.
+        Mat p1s = createHomogPoint(lc.line1.startPointX, lc.line1.endPointX)
         vconcat(p1s, Mat::ones(1,1,p1s.type()),p1s);
         Mat p1e = Mat(lc.line1End);
         vconcat(p1e, Mat::ones(1,1,p1e.type()),p1e);
@@ -750,9 +926,9 @@ float MCE::calcMedS(Mat Hs) {
     std::sort(dist.begin(), dist.end());
 
     return dist.at(dist.size()/2);
-}
+}*/
 
-int MCE::calcMatRank(Mat M) {
+int MultipleCueEstimation::calcMatRank(Mat M) {
     Mat U,V,W;
     int rank = 0, diag;
     SVD::compute(M,U,V,W);
@@ -767,11 +943,26 @@ int MCE::calcMatRank(Mat M) {
 }
 
 //returns: 0 = no solution, 1 = one solution, -1 = inf solutions
-int MCE::calcNumberOfSolutions(Mat linEq) {
+int MultipleCueEstimation::calcNumberOfSolutions(Mat linEq) {
     Mat coefficients = linEq.colRange(0, linEq.cols-1);
     int coeffRank = calcMatRank(coefficients);
     int augmentedRank = calcMatRank(linEq);
     if (augmentedRank > coeffRank) return 0;
     if (augmentedRank == coeffRank) return 1;
     return -1;
+}
+
+void MultipleCueEstimation::showImage(std::string name, Mat image, int type, int width, int height) {
+    float tx = 0;
+    float ty = 0;
+    Mat resized;
+    if (width > 0) tx= (float)width/image.cols; {
+        if (height > 0) ty= (float)height/image.rows;
+        else ty= tx;
+    }
+    namedWindow(name, type);
+    int method = INTER_LINEAR;
+    if(tx < 1) method = INTER_AREA;
+    resize(image, resized, Size(0,0), tx, ty, method);
+    imshow(name, resized);
 }

@@ -10,21 +10,13 @@
 
 //OPENCV
 #include <opencv2/opencv.hpp>
-#include <opencv2/nonfree/features2d.hpp>
-#include <opencv2/core.hpp>
-
-//BIAS
-#include <bias_config.h>
-#include <FeatureDetector/ConstantRegionDetector.hh>
-#include <FeatureDetector/LinearRegionDetector.hh>
-#include <FeatureDetector/BlobDetectorDOM.hh>
-#include <Base/ImageUtils/ImageDraw.hh>
-#include <Base/Image/ImageConvert.hh>
-#include <Base/Image/ImageIO.hh>
-#include <Base/Image/WrapBias2Ipl.hh>
-
-//OTHER
-#include "LineMatchingSourceCode/LineMatcher.hh"
+#include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <opencv2/opencv.hpp>
+#include <opencv2/line_descriptor.hpp>
+#include "opencv2/core/utility.hpp"
+#include <opencv2/imgproc.hpp>
+#include <opencv2/line_descriptor.hpp>
 
 #define SIFT_FEATURE_COUNT 800
 #define LOG_DEBUG true
@@ -32,6 +24,16 @@
 #define F_FROM_POINTS 1
 #define F_FROM_LINES 2
 #define F_FROM_PLANES 4
+
+//Line Matching:
+//Number of segements for image pyramid
+#define OCTAVES 2
+//Scaling factor per segement
+#define SCALING 1
+//minimal line lenght = width*height*MIN_LENGTH_FACTOR
+#define MIN_LENGTH_FACTOR 0.00001;
+//defines number of subsets which are randomly picked to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
+#define NUM_OF_PAIR_SUBSETS_FACTOR 4
 
 using namespace cv;
 
@@ -49,7 +51,8 @@ struct matrixStruct {
 };
 
 struct lineCorrespStruct {
-    Point2f line1Start, line1End, line2Start, line2End;
+    cv::line_descriptor::KeyLine line1, line2;
+    Point2f line1StartNormalized, line1EndNormalized, line2StartNormalized, line2EndNormalized;
 };
 
 struct lineSubsetStruct {
@@ -57,10 +60,10 @@ struct lineSubsetStruct {
     Mat Hs;
 };
 
-class MCE
+class MultipleCueEstimation
 {
 public:
-    MCE();
+    MultipleCueEstimation();
 
     void run();
     int loadData();
@@ -76,7 +79,7 @@ public:
 
     //Utility finctions:
 
-    void findSegments(Mat image, Mat image_color, std::string image_name, Vector<segmentStruct> &segmentList, Mat &segments);
+    void findSegments(Mat image, Mat image_color, std::string image_name, std::vector<segmentStruct> &segmentList, Mat &segments);
     Mat MatFromFile(std::string file, int cols);
     void PointsToFile(std::vector<Point2f>* points, std::string file);
     Mat crossProductMatrix(Mat input);
@@ -86,13 +89,17 @@ public:
     std::string getType(Mat m);
     Scalar averageSquaredError(Mat A, Mat B);
     Scalar squaredError(Mat A, Mat B);
-    Point2f normalize(Point2f p, int img_width, int img_height);
+    Point2f normalize(float x, float y, int img_width, int img_height);
     void fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair);
-    void fillHLinEqBase(Mat* linEq, Point2f point, float A, float B, float C, int row);
+    void fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row);
     Mat calcLMedS(std::vector<lineSubsetStruct> subsets);
     float calcMedS(Mat Hs);
     int calcMatRank(Mat M);
     int calcNumberOfSolutions(Mat linEq);
+    double epipolarSADError(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F);
+    void showImage(std::string name, Mat image, int type = WINDOW_NORMAL, int width = 800, int height = 0);
+    int filterLineExtractions(std::vector<cv::line_descriptor::KeyLine>* keylines);
+    void filterLineMatches(cv::Mat descr1, cv::Mat descr2, std::vector<DMatch> matches);
 
     int arguments;
     std::string path_img1, path_P1;
