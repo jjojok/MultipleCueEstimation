@@ -1,6 +1,9 @@
 #ifndef MCE_H
 #define MCE_H
 
+//ESTIMATORS
+#include "FEstimatorPoints.h"
+
 //SYSTEM
 #include <string>
 #include <cstdio>
@@ -12,8 +15,6 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/xfeatures2d.hpp>
-#include <opencv2/opencv.hpp>
-#include <opencv2/line_descriptor.hpp>
 #include "opencv2/core/utility.hpp"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/line_descriptor.hpp>

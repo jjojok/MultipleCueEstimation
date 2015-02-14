@@ -13,12 +13,12 @@ void MultipleCueEstimation::run() {
     std::vector<matrixStruct> fundamentalMatrices;
     if (loadData()) {
         if(computations & F_FROM_POINTS) {
-            std::cout << "Calc Fpt..." << std::endl;
-            extractPoints();
-            matrixStruct ms;
-            ms.source = "points";
-            ms.F = calcFfromPoints();
-            fundamentalMatrices.push_back(ms);
+            FEstimatorPoints* estomatorPoints = new FEstimatorPoints(image_1, image_2, image_1_color, image_2_color, "Fpt");
+            estomatorPoints->compute();
+            //matrixStruct ms;
+            //ms.source = "points";
+            //ms.F = calcFfromPoints();
+            //fundamentalMatrices.push_back(ms);
         }
         if(computations & F_FROM_LINES) {
             std::cout << "Calc Fln..." << std::endl;

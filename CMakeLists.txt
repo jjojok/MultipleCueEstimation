@@ -33,6 +33,6 @@ INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS})
 #ADD_EXECUTABLE( MultipleCueEstimation main.cpp MCE.cpp MCE.h LineMatcher.cpp LineMatcher.h)
 #TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} ${BIAS_LIBRARIES} ${CMAKE_SOURCE_DIR}/LineMatchingSourceCode/build/libLineMatching.so)
 
-ADD_EXECUTABLE( MultipleCueEstimation main.cpp MultipleCueEstimation.cpp MultipleCueEstimation.h FEstimatorPoints.cpp FEstimatorPoints.h FEstimatorLines.cpp FEstimatorLines.h FEstimatorPlanes.cpp FEstimatorPlanes.h Utility.cpp Utility.h FEstimationMethod.cpp FEstimationMethod.h)
+ADD_EXECUTABLE( MultipleCueEstimation main.cpp MultipleCueEstimation.cpp MultipleCueEstimation.h FEstimatorPoints.cpp FEstimatorPoints.h FEstimatorLines.cpp FEstimatorLines.h FEstimatorPlanes.cpp FEstimatorPlanes.h Utility.cpp Utility.h FEstimationMethod.cpp FEstimationMethod.h Statics.h)
 TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} )
 
