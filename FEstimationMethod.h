@@ -24,22 +24,26 @@ using namespace cv;
 class FEstimationMethod
 {
 public:
-    //FEstimationMethod(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);
-	double getEpipolarError(std::vector<Point2f> points1, std::vector<Point2f> points2);
-    virtual Mat compute() = 0;
-
+    virtual Mat compute();
+    FEstimationMethod();
+    ~FEstimationMethod();
+    Mat getF();
+    virtual int extractMatches();
     std::string name;
 
 protected:
     virtual void init();
-    virtual int extractMatches() = 0;
-    virtual Point2f normalize();
+    virtual Point3f normalize(Point3f p);
+    virtual Point3f normalize(float x, float y, float z = 1);
     virtual Mat denormalize();
 
 	Mat F;
     Mat normT1, normT2;
     Mat image_1_color, image_2_color, image_1, image_2;
 	double epipolarError;
+
+private:
+
 };
 
-#endif // COMPUTATION_METHOD_H
+#endif // FESTIMATION_METHOD_H

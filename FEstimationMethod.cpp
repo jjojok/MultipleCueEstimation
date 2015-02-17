@@ -1,38 +1,43 @@
 #include "FEstimationMethod.h"
 
-//FEstimationMethod::FEstimationMethod(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
-//    epipolarError = -1;
-//    image_1 = img1.clone();
-//    image_2 = img2.clone();
-//    image_1_color = img1_c.clone();
-//    image_2_color = img2_c.clone();
-//    this->name = name;
-//    std::cout << "Estimating: " << name << std::endl;
-//    init();
-//}
+FEstimationMethod::FEstimationMethod() {
 
-double FEstimationMethod::getEpipolarError(std::vector<Point2f> points1, std::vector<Point2f> points2) {
-    if(epipolarError != -1) return epipolarError;
-	if(points1.size() == 0 || points1.size() != points2.size()) return -1;
-    std::vector<cv::Vec3f> lines1;
-    std::vector<cv::Vec3f> lines2;
-    epipolarError = 0;
-    cv::computeCorrespondEpilines(points1, 1, F, lines1);
-    cv::computeCorrespondEpilines(points2, 2, F, lines2);
-    for(int i = 0; i < points1.size(); i++) {
-        epipolarError += fabs(points1.at(i).x*lines2.at(i)[0] + points1.at(i).y*lines2.at(i)[1] + lines2.at(i)[2]) + fabs(points2.at(i).x*lines1.at(i)[0] + points2.at(i).y*lines1.at(i)[1] + lines1.at(i)[2]);
-    }
-    return epipolarError;
+}
+
+FEstimationMethod::~FEstimationMethod() {
+
+}
+
+int FEstimationMethod::extractMatches() {
+
+}
+
+Mat FEstimationMethod::compute() {
+
+}
+
+Mat FEstimationMethod::getF() {
+    return F;
 }
 
 void FEstimationMethod::init() {
 
 }
 
-Point2f FEstimationMethod::normalize() {
-    //TODO
+
+Point3f FEstimationMethod::normalize(Point3f p) {
+    //return (normT1*normT2)*p;
+}
+
+Point3f FEstimationMethod::normalize(float x, float y, float z) {
+//   Point3f* p = new Point3f();
+//   p->x = (2*x / image_1.) - 1;
+//   p->y = (2*y / img_height) - 1;
+//   p->z = 1;
+//   return *p;
+
 }
 
 Mat FEstimationMethod::denormalize() {
-    //TODO
+    //return
 }

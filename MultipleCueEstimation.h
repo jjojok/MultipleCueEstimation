@@ -2,7 +2,10 @@
 #define MCE_H
 
 //ESTIMATORS
+#include "FEstimationMethod.h"
 #include "FEstimatorPoints.h"
+#include "FEstimatorLines.h"
+#include "FEstimatorPlanes.h"
 
 //SYSTEM
 #include <string>
@@ -38,29 +41,6 @@
 
 using namespace cv;
 
-struct segmentStruct {
-    int id;
-    int area;
-    Point startpoint;
-    int contours_idx;
-};
-
-struct matrixStruct {
-    std::string source;
-    Mat F;
-    float error;
-};
-
-struct lineCorrespStruct {
-    cv::line_descriptor::KeyLine line1, line2;
-    Point2f line1StartNormalized, line1EndNormalized, line2StartNormalized, line2EndNormalized;
-};
-
-struct lineSubsetStruct {
-    std::vector<lineCorrespStruct> lineCorrespondencies;
-    Mat Hs;
-};
-
 class MultipleCueEstimation
 {
 public:
@@ -68,39 +48,14 @@ public:
 
     void run();
     int loadData();
-    void extractPoints();
-    void extractLines();
-    void extractPlanes();
-    Mat calcFfromPoints();
-    Mat calcFfromLines();
-    Mat calcFfromPlanes();
-    Mat calcFfromConics();
-    Mat calcFfromCurves();
+    FEstimationMethod* calcFfromPoints();
+    FEstimationMethod* calcFfromLines();
+    FEstimationMethod* calcFfromPlanes();
+    FEstimationMethod* calcFfromConics();
+    FEstimationMethod* calcFfromCurves();
     Mat refineF();
 
-    //Utility finctions:
-
-    void findSegments(Mat image, Mat image_color, std::string image_name, std::vector<segmentStruct> &segmentList, Mat &segments);
-    Mat MatFromFile(std::string file, int cols);
-    void PointsToFile(std::vector<Point2f>* points, std::string file);
-    Mat crossProductMatrix(Mat input);
-    void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName);
     Mat getGroundTruth();
-    void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2);
-    std::string getType(Mat m);
-    Scalar averageSquaredError(Mat A, Mat B);
-    Scalar squaredError(Mat A, Mat B);
-    Point2f normalize(float x, float y, int img_width, int img_height);
-    void fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair);
-    void fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row);
-    Mat calcLMedS(std::vector<lineSubsetStruct> subsets);
-    float calcMedS(Mat Hs);
-    int calcMatRank(Mat M);
-    int calcNumberOfSolutions(Mat linEq);
-    double epipolarSADError(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F);
-    void showImage(std::string name, Mat image, int type = WINDOW_NORMAL, int width = 800, int height = 0);
-    int filterLineExtractions(std::vector<cv::line_descriptor::KeyLine>* keylines);
-    void filterLineMatches(cv::Mat descr1, cv::Mat descr2, std::vector<DMatch> matches);
 
     int arguments;
     std::string path_img1, path_P1;
@@ -112,7 +67,6 @@ private:
 
     Mat image_1, image_2;
     Mat image_1_color, image_2_color;
-    std::vector<lineCorrespStruct> lineCorrespondencies;  //Vector of consecutive normalized line startpoints and endpoints
     std::vector<Point2f> x1, x2;   //corresponding points in image 1 and 2
 };
 

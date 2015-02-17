@@ -1,16 +1,31 @@
 #include "FEstimatorLines.h"
 
 FEstimatorLines::FEstimatorLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
-    epipolarError = -1;
     image_1 = img1.clone();
     image_2 = img2.clone();
     image_1_color = img1_c.clone();
     image_2_color = img2_c.clone();
     this->name = name;
     std::cout << "Estimating: " << name << std::endl;
+
+    normT1 = Mat::eye(3,3,CV_32FC1);
+    normT2 = Mat::eye(3,3,CV_32FC1);
+
+    normT1.at<float>(2,0) = -image_1.cols*0.5;
+    normT1.at<float>(2,1) = -image_1.rows*0.5;
+
+    normT2.at<float>(2,0) = 2.0/image_1.cols;
+    normT2.at<float>(2,1) = 2.0/image_1.rows;
+
+}
+
+FEstimatorLines::~FEstimatorLines() {
+
 }
 
 Mat FEstimatorLines::compute() {
+    extractMatches();
+
     lineCorrespondencies.erase(lineCorrespondencies.begin()+100, lineCorrespondencies.end());   //TODO: REMOVE
 
     //TODO: Hard coded test data for castle 4 & 5:
@@ -57,60 +72,60 @@ Mat FEstimatorLines::compute() {
     lineCorrespondencies.push_back(lc3);
     lineCorrespondencies.push_back(lc4);
 
-    int numOfPairs = lineCorrespondencies.size();
-    int numOfPairSubsets = numOfPairs*NUM_OF_PAIR_SUBSETS_FACTOR;
-    std::vector<lineSubsetStruct> subsets;
+//    int numOfPairs = lineCorrespondencies.size();
+//    int numOfPairSubsets = numOfPairs*NUM_OF_PAIR_SUBSETS_FACTOR;
+//    std::vector<lineSubsetStruct> subsets;
 
-    //Compute H_21 from 4 line correspondencies
-    for(int i = 0; i < numOfPairSubsets; i++) {
-        std::vector<int> subsetsIdx;
-        Mat linEq = Mat::ones(8,9,CV_32FC1);
-        lineSubsetStruct subset;
-        for(int j = 0; j < 4; j++) {
-            int subsetIdx = 0;
-            do {        //Generate 4 uniqe random indices for line pair selection
-                subsetIdx = std::rand() % numOfPairs;
-            } while(std::find(subsetsIdx.begin(), subsetsIdx.end(), subsetIdx) != subsetsIdx.end());
+//    //Compute H_21 from 4 line correspondencies
+//    for(int i = 0; i < numOfPairSubsets; i++) {
+//        std::vector<int> subsetsIdx;
+//        Mat linEq = Mat::ones(8,9,CV_32FC1);
+//        lineSubsetStruct subset;
+//        for(int j = 0; j < 4; j++) {
+//            int subsetIdx = 0;
+//            do {        //Generate 4 uniqe random indices for line pair selection
+//                subsetIdx = std::rand() % numOfPairs;
+//            } while(std::find(subsetsIdx.begin(), subsetsIdx.end(), subsetIdx) != subsetsIdx.end());
 
-            subsetsIdx.push_back(subsetIdx);
-            lineCorrespStruct lc = lineCorrespondencies.at(subsetIdx);
-            subset.lineCorrespondencies.push_back(lc);
-            fillHLinEq(&linEq, lc, j);
-        }
-        Mat A = linEq.colRange(0, linEq.cols-1);    //TODO: ist das korrekt? :)
-        Mat x = -linEq.col(linEq.cols-1);
-        solve(A, x, subset.Hs, DECOMP_SVD);
-        //SVD::solveZ(linEq, subset.Hs);            //Oder das?
-        subset.Hs.resize(9);
-        subset.Hs = subset.Hs.reshape(1,3);
-        subset.Hs.at<float>(2,2) = 1.0;
-        subsets.push_back(subset);
-    }
+//            subsetsIdx.push_back(subsetIdx);
+//            lineCorrespStruct lc = lineCorrespondencies.at(subsetIdx);
+//            subset.lineCorrespondencies.push_back(lc);
+//            fillHLinEq(&linEq, lc, j);
+//        }
+//        Mat A = linEq.colRange(0, linEq.cols-1);    //TODO: ist das korrekt? :)
+//        Mat x = -linEq.col(linEq.cols-1);
+//        solve(A, x, subset.Hs, DECOMP_SVD);
+//        //SVD::solveZ(linEq, subset.Hs);            //Oder das?
+//        subset.Hs.resize(9);
+//        subset.Hs = subset.Hs.reshape(1,3);
+//        subset.Hs.at<float>(2,2) = 1.0;
+//        subsets.push_back(subset);
+//    }
 
-    return calcLMedS(subsets);
+//    return calcLMedS(subsets);
 
     //TODO: Hard coded test data for castle 4 & 5:
 
-    /*lineCorrespStruct lc1, lc2, lc3, lc4;
-    lc1.line1StartNormalized = normalize(343, 600, image_1.cols, image_1.rows);
-    lc1.line2StartNormalized = normalize(311, 610, image_1.cols, image_1.rows);
-    lc1.line1EndNormalized = normalize(287, 1217, image_1.cols, image_1.rows);
-    lc1.line2EndNormalized = normalize(264, 1196, image_1.cols, image_1.rows);
+    //lineCorrespStruct lc1, lc2, lc3, lc4;
+//    lc1.line1StartNormalized = normalize(343, 600, image_1.cols, image_1.rows);
+//    lc1.line2StartNormalized = normalize(311, 610, image_1.cols, image_1.rows);
+//    lc1.line1EndNormalized = normalize(287, 1217, image_1.cols, image_1.rows);
+//    lc1.line2EndNormalized = normalize(264, 1196, image_1.cols, image_1.rows);
 
-    lc2.line1StartNormalized = normalize(219, 1318, image_1.cols, image_1.rows);
-    lc2.line2StartNormalized = normalize(203, 1293, image_1.cols, image_1.rows);
-    lc2.line1EndNormalized = normalize(1041, 1336, image_1.cols, image_1.rows);
-    lc2.line2EndNormalized = normalize(984, 1291, image_1.cols, image_1.rows);
+//    lc2.line1StartNormalized = normalize(219, 1318, image_1.cols, image_1.rows);
+//    lc2.line2StartNormalized = normalize(203, 1293, image_1.cols, image_1.rows);
+//    lc2.line1EndNormalized = normalize(1041, 1336, image_1.cols, image_1.rows);
+//    lc2.line2EndNormalized = normalize(984, 1291, image_1.cols, image_1.rows);
 
-    lc3.line1StartNormalized = normalize(2628, 544, image_1.cols, image_1.rows);
-    lc3.line2StartNormalized = normalize(2723, 386, image_1.cols, image_1.rows);
-    lc3.line1EndNormalized = normalize(2752, 491, image_1.cols, image_1.rows);
-    lc3.line2EndNormalized = normalize(2858, 317, image_1.cols, image_1.rows);
+//    lc3.line1StartNormalized = normalize(2628, 544, image_1.cols, image_1.rows);
+//    lc3.line2StartNormalized = normalize(2723, 386, image_1.cols, image_1.rows);
+//    lc3.line1EndNormalized = normalize(2752, 491, image_1.cols, image_1.rows);
+//    lc3.line2EndNormalized = normalize(2858, 317, image_1.cols, image_1.rows);
 
-    lc4.line1StartNormalized = normalize(2641, 660, image_1.cols, image_1.rows);
-    lc4.line2StartNormalized = normalize(2738, 513, image_1.cols, image_1.rows);
-    lc4.line1EndNormalized = normalize(2717, 1358, image_1.cols, image_1.rows);
-    lc4.line2EndNormalized = normalize(2824, 1278, image_1.cols, image_1.rows);
+//    lc4.line1StartNormalized = normalize(2641, 660, image_1.cols, image_1.rows);
+//    lc4.line2StartNormalized = normalize(2738, 513, image_1.cols, image_1.rows);
+//    lc4.line1EndNormalized = normalize(2717, 1358, image_1.cols, image_1.rows);
+//    lc4.line2EndNormalized = normalize(2824, 1278, image_1.cols, image_1.rows);
 
     Mat result;
     Mat linEq2 = Mat::ones(8,9,CV_32FC1);
@@ -128,13 +143,16 @@ Mat FEstimatorLines::compute() {
     std::cout << "A result " << " = " << std::endl << A << std::endl;
     std::cout << "x result " << " = " << std::endl << x << std::endl;
     std::cout << "linEq result " << " = " << std::endl << result << std::endl;
-    return result;*/
+    F = result;
+    return result;
 }
 
 int FEstimatorLines::extractMatches() {
     /********************************************************************
      * From: http://docs.opencv.org/trunk/modules/line_descriptor/doc/tutorial.html
      * ******************************************************************/
+
+    if(lineCorrespondencies.size() > 0) return lineCorrespondencies.size();
 
     /* create binary masks */
     cv::Mat mask1 = Mat::ones( image_1.size(), CV_8UC1 );
@@ -176,7 +194,7 @@ int FEstimatorLines::extractMatches() {
     std::vector<DMatch> matches;
     bdm->match( descr1, descr2, matches );
 
-    std::cout << "-- Overall matches : " << matches.size() << std::endl;
+    std::cout << "-- Number of matches : " << matches.size() << std::endl;
 
     /* plot matches */
     cv::Mat outImg;
@@ -218,6 +236,8 @@ int FEstimatorLines::extractMatches() {
     }
 
     //showImage( "Matches", outImg, WINDOW_NORMAL, 1600);
+
+    return lineCorrespondencies.size();
 
     std::cout << std::endl;
 }

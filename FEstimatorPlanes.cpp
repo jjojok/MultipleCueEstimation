@@ -1,14 +1,17 @@
 #include "FEstimatorPlanes.h"
 
-//FEstimatorPlanes::FEstimatorPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
-//    epipolarError = -1;
-//    image_1 = img1.clone();
-//    image_2 = img2.clone();
-//    image_1_color = img1_c.clone();
-//    image_2_color = img2_c.clone();
-//    this->name = name;
-//    std::cout << "Estimating: " << name << std::endl;
-//}
+FEstimatorPlanes::FEstimatorPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
+    image_1 = img1.clone();
+    image_2 = img2.clone();
+    image_1_color = img1_c.clone();
+    image_2_color = img2_c.clone();
+    this->name = name;
+    std::cout << "Estimating: " << name << std::endl;
+}
+
+Mat FEstimatorPlanes::compute() {
+
+}
 
 int FEstimatorPlanes::extractMatches() {
     std::vector<segmentStruct> segmentsList_1, segmentsList_2;
@@ -22,10 +25,11 @@ int FEstimatorPlanes::extractMatches() {
     std::cout << "-- First image: " << segmentsList_1.size() << std::endl;
     std::cout << "-- Second image: " << segmentsList_2.size() << std::endl;
 
+    //TODO: MATCH!
 
     //std::cout << "-- Number of matches: " << good_matches.size() << std::endl;
 
-    waitKey(0);
+    return 0;
 
 }
 

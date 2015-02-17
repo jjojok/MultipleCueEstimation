@@ -10,13 +10,13 @@ struct segmentStruct {
     int contours_idx;
 };
 
-class FEstimatorPlanes : FEstimationMethod {
+class FEstimatorPlanes : public FEstimationMethod {
 public:
     FEstimatorPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);
     Mat compute();
+    int extractMatches();
 
 private:
-    int extractMatches();
     void findSegments(Mat image, Mat image_color, std::string image_name, std::vector<segmentStruct> &segmentList, Mat &segments);
 };
 

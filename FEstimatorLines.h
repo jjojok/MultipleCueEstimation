@@ -13,13 +13,16 @@ struct lineSubsetStruct {
     Mat Hs;
 };
 
-class FEstimatorLines : FEstimationMethod {
+class FEstimatorLines : public FEstimationMethod {
 public:
     FEstimatorLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);
+    ~FEstimatorLines();
     Mat compute();
+    int extractMatches();
 
 private:
-    int extractMatches();
+    int filterLineExtractions(std::vector<cv::line_descriptor::KeyLine>* keylines);
+    void filterLineMatches(cv::Mat descr1, cv::Mat descr2, std::vector<DMatch> matches);
     void fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair);
     void fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row);
     Mat calcLMedS(std::vector<lineSubsetStruct> subsets);

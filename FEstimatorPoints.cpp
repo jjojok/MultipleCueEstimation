@@ -1,13 +1,15 @@
 #include "FEstimatorPoints.h"
 
 FEstimatorPoints::FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
-    epipolarError = -1;
     image_1 = img1.clone();
     image_2 = img2.clone();
     image_1_color = img1_c.clone();
     image_2_color = img2_c.clone();
     this->name = name;
     std::cout << "Estimating: " << name << std::endl;
+
+    normT1 = Mat::eye(3,3,CV_32FC1);
+    normT2 = Mat::eye(3,3,CV_32FC1);
 }
 
 int FEstimatorPoints::extractMatches() {
@@ -55,7 +57,7 @@ int FEstimatorPoints::extractMatches() {
     //-- PS.- radiusMatch can also be used here.
     std::vector< DMatch > good_matches;
 
-    std::cout << "-- Overall matches : " << descriptors_1.rows << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Overall matches : " << descriptors_1.rows << std::endl;
 
     for( int i = 0; i < descriptors_1.rows; i++ )
     {
@@ -92,4 +94,12 @@ Mat FEstimatorPoints::compute() {
     extractMatches();
     F = findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, noArray());
     return F;
+}
+
+std::vector<Point2f> FEstimatorPoints::getX1() {
+    return x1;
+}
+
+std::vector<Point2f> FEstimatorPoints::getX2() {
+    return x2;
 }
