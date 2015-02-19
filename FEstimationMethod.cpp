@@ -24,20 +24,20 @@ void FEstimationMethod::init() {
 
 }
 
-
-Point3f FEstimationMethod::normalize(Point3f p) {
-    //return (normT1*normT2)*p;
+Mat FEstimationMethod::normalize(Mat T, Mat p) {
+    return T*p;
 }
 
-Point3f FEstimationMethod::normalize(float x, float y, float z) {
-//   Point3f* p = new Point3f();
-//   p->x = (2*x / image_1.) - 1;
-//   p->y = (2*y / img_height) - 1;
-//   p->z = 1;
-//   return *p;
+Mat FEstimationMethod::normalize(Mat T, float x, float y, float z) {
+    Mat *p = new Mat(3,1,CV_32FC1);
 
+    p->at<float>(0,0) = x;
+    p->at<float>(1,0) = y;
+    p->at<float>(2,0) = 1;
+
+    return normalize(T, *p);
 }
 
-Mat FEstimationMethod::denormalize() {
-    //return
+Mat FEstimationMethod::denormalize(Mat M) {
+    return normT2.inv(DECOMP_SVD)*M*normT1;
 }

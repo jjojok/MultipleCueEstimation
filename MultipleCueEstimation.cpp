@@ -92,9 +92,9 @@ FEstimationMethod* MultipleCueEstimation::calcFfromLines() {     // From Paper: 
 }
 
 FEstimationMethod* MultipleCueEstimation::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
-    //FEstimatorPlanes* estomatorPlanes = new FEstimatorPlanes(image_1, image_2, image_1_color, image_2_color, "F_Planes");
-    //estomatorPlanes->compute();
-    //return estomatorPlanes;
+    FEstimatorPlanes* estomatorPlanes = new FEstimatorPlanes(image_1, image_2, image_1_color, image_2_color, "F_Planes");
+    estomatorPlanes->compute();
+    return estomatorPlanes;
 }
 
 FEstimationMethod* MultipleCueEstimation::calcFfromConics() {    // Maybe: something with vanishing points v1*w*v2=0 (Hartley, Zissarmen p. 235ff)
@@ -112,64 +112,26 @@ Mat MultipleCueEstimation::refineF() {    //Reduce error of F AFTER computing it
 Mat MultipleCueEstimation::getGroundTruth() {
     Mat P1w = MatFromFile(path_P1, 3); //P1 in world coords
     Mat P2w = MatFromFile(path_P2, 3); //P2 in world coords
-    Mat T1w, T2w, R1w, R2w;   //World rotation, translation
-    Mat K1, K2, K; //calibration matrices
-    Mat Rrel, Trel; //Relative rotation, translation
+    Mat T1w, R1w;   //World rotation, translation
+    Mat K1; //calibration matrix
+    Mat Trel; //Relative translation
 
     if (LOG_DEBUG) {
         std::cout << "P1w = " << std::endl << P1w << std::endl;
-        //std::cout << "P2w = " << std::endl << P2w << std::endl;
     }
 
     decomposeProjectionMatrix(P1w, K1, R1w, T1w, noArray(), noArray(), noArray(), noArray() );
-    //decomposeProjectionMatrix(P2w, K2, R2w, T2w, noArray(), noArray(), noArray(), noArray() );
-
-    //K = (K1 + K2)/2;    //Images with same K
 
     T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
-    //T1w.resize(3);
-
-    //T2w = T2w/T2w.at<float>(3);      //convert to homogenius coords
-    //T2w.resize(3);
-
-//    R2w = R2w.t();      //switch rotation: world to 2. cam frame (Rc2w) to 2. cam to world frame (Rwc2)
-//    R1w = R1w.t();      //switch rotation: world to 1. cam frame (Rc1w) to 1. cam to world frame (Rwc1)
-
-
 
     if (LOG_DEBUG) {
         std::cout << "T1w = " << std::endl << T1w << std::endl;
-        //std::cout << "T2w = " << std::endl << T2w << std::endl;
-
         std::cout << "R1w = " << std::endl << R1w << std::endl;
-        //std::cout << "R2w = " << std::endl << R2w << std::endl;
-    }
-
-    //Rrel = R1w*R2w.t(); //Relative rotation between cam1 and cam2; Rc1c2 = Rwc1^T * Rwc2
-
-    if (LOG_DEBUG) {
-        //std::cout << "K = " << std::endl << K << std::endl;
-        //std::cout << "K2 = " << std::endl << K2 << std::endl;
-    }
-
-    //Trel = T2w - T1w;    //Realtive translation between cam1 and cam2
-
-    if (LOG_DEBUG) {
-        //std::cout << "Rrel = " << std::endl << Rrel << std::endl;
         std::cout << "Trel = " << std::endl << Trel << std::endl;
     }
 
-    Mat F = crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD);
+    Mat F = crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD); //(See Hartley, Zisserman: p. 244)
 
-//    Mat C = (Mat_<float>(4,1) << 0, 0, 0, 1.0);
-//    Mat e = P2w*C;
-//    std::cout << "e = " << std::endl << e << std::endl;
-//    return crossMatrix(e)*P2w*P1w.inv(DECOMP_SVD);
-
-//    F = K.t().inv()*crossProductMatrix(Trel)*Rrel*K.inv();
-//    //return K.t().inv()*crossProductMatrix(Trel)*Rrel*K.inv();
-//    //return K2.t().inv()*crossProductMatrix(Trel)*Rrel*K1.inv(); //(See Hartley, Zisserman: p. 244)
-//    F = K2.t().inv()*Rrel*K1.t()*crossProductMatrix(K1*Rrel.t()*Trel);
     return F / F.at<float>(2,2);       //Set global arbitrary scale factor 1 -> easier to compare
 }
 

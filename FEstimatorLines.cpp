@@ -7,16 +7,6 @@ FEstimatorLines::FEstimatorLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std
     image_2_color = img2_c.clone();
     this->name = name;
     std::cout << "Estimating: " << name << std::endl;
-
-    normT1 = Mat::eye(3,3,CV_32FC1);
-    normT2 = Mat::eye(3,3,CV_32FC1);
-
-    normT1.at<float>(2,0) = -image_1.cols*0.5;
-    normT1.at<float>(2,1) = -image_1.rows*0.5;
-
-    normT2.at<float>(2,0) = 2.0/image_1.cols;
-    normT2.at<float>(2,1) = 2.0/image_1.rows;
-
 }
 
 FEstimatorLines::~FEstimatorLines() {
@@ -24,48 +14,69 @@ FEstimatorLines::~FEstimatorLines() {
 }
 
 Mat FEstimatorLines::compute() {
-    extractMatches();
+    //extractMatches();
 
-    lineCorrespondencies.erase(lineCorrespondencies.begin()+100, lineCorrespondencies.end());   //TODO: REMOVE
+    lineCorrespondencies.clear();
+    //lineCorrespondencies.erase(lineCorrespondencies.begin()+100, lineCorrespondencies.end());   //TODO: REMOVE
 
     //TODO: Hard coded test data for castle 4 & 5:
 
     lineCorrespStruct lc1, lc2, lc3, lc4;
-    lc1.line1StartNormalized.x = 343;
-    lc1.line1StartNormalized.y = 600;
-    lc1.line2StartNormalized.x = 311;
-    lc1.line2StartNormalized.y = 610;
-    lc1.line1EndNormalized.x = 287;
-    lc1.line1EndNormalized.y = 1217;
-    lc1.line2EndNormalized.x = 264;
-    lc1.line2EndNormalized.y = 1196;
+    lc1.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc1.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc1.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc1.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
 
-    lc2.line1StartNormalized.x = 219;
-    lc2.line1StartNormalized.y = 1318;
-    lc2.line2StartNormalized.x = 203;
-    lc2.line2StartNormalized.y = 1293;
-    lc2.line1EndNormalized.x = 1041;
-    lc2.line1EndNormalized.y = 1336;
-    lc2.line2EndNormalized.x = 984;
-    lc2.line2EndNormalized.y = 1291;
+    lc2.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc2.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc2.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc2.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
 
-    lc3.line1StartNormalized.x = 2628;
-    lc3.line1StartNormalized.y = 544;
-    lc3.line2StartNormalized.x = 2723;
-    lc3.line2StartNormalized.y = 386;
-    lc3.line1EndNormalized.x = 2752;
-    lc3.line1EndNormalized.y = 491;
-    lc3.line2EndNormalized.x = 2858;
-    lc3.line2EndNormalized.y = 317;
+    lc3.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc3.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc3.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc3.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
 
-    lc4.line1StartNormalized.x = 2641;
-    lc4.line1StartNormalized.y = 660;
-    lc4.line2StartNormalized.x = 2738;
-    lc4.line2StartNormalized.y = 513;
-    lc4.line1EndNormalized.x = 2717;
-    lc4.line1EndNormalized.y = 1358;
-    lc4.line2EndNormalized.x = 2824;
-    lc4.line2EndNormalized.y = 1278;
+    lc4.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc4.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc4.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
+    lc4.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
+
+    lc1.line1StartNormalized.at<float>(0,0) = 343;
+    lc1.line1StartNormalized.at<float>(1,0) = 600;
+    lc1.line2StartNormalized.at<float>(0,0) = 311;
+    lc1.line2StartNormalized.at<float>(1,0) = 610;
+    lc1.line1EndNormalized.at<float>(0,0) = 287;
+    lc1.line1EndNormalized.at<float>(1,0) = 1217;
+    lc1.line2EndNormalized.at<float>(0,0) = 264;
+    lc1.line2EndNormalized.at<float>(1,0) = 1196;
+
+    lc2.line1StartNormalized.at<float>(0,0) = 219;
+    lc2.line1StartNormalized.at<float>(1,0) = 1318;
+    lc2.line2StartNormalized.at<float>(0,0) = 203;
+    lc2.line2StartNormalized.at<float>(1,0) = 1293;
+    lc2.line1EndNormalized.at<float>(0,0) = 1041;
+    lc2.line1EndNormalized.at<float>(1,0) = 1336;
+    lc2.line2EndNormalized.at<float>(0,0) = 984;
+    lc2.line2EndNormalized.at<float>(1,0) = 1291;
+
+    lc3.line1StartNormalized.at<float>(0,0) = 2628;
+    lc3.line1StartNormalized.at<float>(1,0) = 544;
+    lc3.line2StartNormalized.at<float>(0,0) = 2723;
+    lc3.line2StartNormalized.at<float>(1,0) = 386;
+    lc3.line1EndNormalized.at<float>(0,0) = 2752;
+    lc3.line1EndNormalized.at<float>(1,0) = 491;
+    lc3.line2EndNormalized.at<float>(0,0) = 2858;
+    lc3.line2EndNormalized.at<float>(1,0) = 317;
+
+    lc4.line1StartNormalized.at<float>(0,0) = 2641;
+    lc4.line1StartNormalized.at<float>(1,0) = 660;
+    lc4.line2StartNormalized.at<float>(0,0) = 2738;
+    lc4.line2StartNormalized.at<float>(1,0) = 513;
+    lc4.line1EndNormalized.at<float>(0,0) = 2717;
+    lc4.line1EndNormalized.at<float>(1,0) = 1358;
+    lc4.line2EndNormalized.at<float>(0,0) = 2824;
+    lc4.line2EndNormalized.at<float>(1,0) = 1278;
 
     lineCorrespondencies.push_back(lc1);
     lineCorrespondencies.push_back(lc2);
@@ -106,26 +117,32 @@ Mat FEstimatorLines::compute() {
 
     //TODO: Hard coded test data for castle 4 & 5:
 
-    //lineCorrespStruct lc1, lc2, lc3, lc4;
-//    lc1.line1StartNormalized = normalize(343, 600, image_1.cols, image_1.rows);
-//    lc1.line2StartNormalized = normalize(311, 610, image_1.cols, image_1.rows);
-//    lc1.line1EndNormalized = normalize(287, 1217, image_1.cols, image_1.rows);
-//    lc1.line2EndNormalized = normalize(264, 1196, image_1.cols, image_1.rows);
+//    lineCorrespStruct lc1, lc2, lc3, lc4;
+//    lc1.line1StartNormalized = normalize(normT1, 343, 600);
+//    lc1.line2StartNormalized = normalize(normT2, 311, 610);
+//    lc1.line1EndNormalized = normalize(normT1, 287, 1217);
+//    lc1.line2EndNormalized = normalize(normT2, 264, 1196);
 
-//    lc2.line1StartNormalized = normalize(219, 1318, image_1.cols, image_1.rows);
-//    lc2.line2StartNormalized = normalize(203, 1293, image_1.cols, image_1.rows);
-//    lc2.line1EndNormalized = normalize(1041, 1336, image_1.cols, image_1.rows);
-//    lc2.line2EndNormalized = normalize(984, 1291, image_1.cols, image_1.rows);
+//    lc2.line1StartNormalized = normalize(normT1, 219, 1318);
+//    lc2.line2StartNormalized = normalize(normT2, 203, 1293);
+//    lc2.line1EndNormalized = normalize(normT1, 1041, 1336);
+//    lc2.line2EndNormalized = normalize(normT2, 984, 1291);
 
-//    lc3.line1StartNormalized = normalize(2628, 544, image_1.cols, image_1.rows);
-//    lc3.line2StartNormalized = normalize(2723, 386, image_1.cols, image_1.rows);
-//    lc3.line1EndNormalized = normalize(2752, 491, image_1.cols, image_1.rows);
-//    lc3.line2EndNormalized = normalize(2858, 317, image_1.cols, image_1.rows);
+//    lc3.line1StartNormalized = normalize(normT1, 2628, 544);
+//    lc3.line2StartNormalized = normalize(normT2, 2723, 386);
+//    lc3.line1EndNormalized = normalize(normT1, 2752, 491);
+//    lc3.line2EndNormalized = normalize(normT2, 2858, 317);
 
-//    lc4.line1StartNormalized = normalize(2641, 660, image_1.cols, image_1.rows);
-//    lc4.line2StartNormalized = normalize(2738, 513, image_1.cols, image_1.rows);
-//    lc4.line1EndNormalized = normalize(2717, 1358, image_1.cols, image_1.rows);
-//    lc4.line2EndNormalized = normalize(2824, 1278, image_1.cols, image_1.rows);
+//    lc4.line1StartNormalized = normalize(normT1, 2641, 660);
+//    lc4.line2StartNormalized = normalize(normT2, 2738, 513);
+//    lc4.line1EndNormalized = normalize(normT1, 2717, 1358);
+//    lc4.line2EndNormalized = normalize(normT2, 2824, 1278);
+
+    normalizeAllLines();
+
+//    [4.8692675, 0.1330507, -1096.776;
+//     1.6317964, 3.1708324, -2950.1914;
+//     0.001353227, -3.3458778e-05, 1]
 
     Mat result;
     Mat linEq2 = Mat::ones(8,9,CV_32FC1);
@@ -140,9 +157,19 @@ Mat FEstimatorLines::compute() {
     result = result.reshape(1,3);
     result.at<float>(2,2) = 1;
 
+    result =result.inv(DECOMP_SVD);
+
+
     std::cout << "A result " << " = " << std::endl << A << std::endl;
     std::cout << "x result " << " = " << std::endl << x << std::endl;
     std::cout << "linEq result " << " = " << std::endl << result << std::endl;
+
+    result = denormalize(result);
+
+    result = result / result.at<float>(2,2);
+
+    std::cout << "linEq result after denormalization" << " = " << std::endl << result << std::endl;
+
     F = result;
     return result;
 }
@@ -203,9 +230,6 @@ int FEstimatorLines::extractMatches() {
 
     /************************************************************************/
 
-    int img_width = image_1.cols;
-    int img_height = image_1.rows;
-
     cv::line_descriptor::KeyLine l1, l2;
     for (std::vector<DMatch>::const_iterator it= matches.begin(); it!=matches.end(); ++it) {
 
@@ -215,27 +239,31 @@ int FEstimatorLines::extractMatches() {
         lineCorrespStruct lc;
         lc.line1 = l1;
         lc.line2 = l2;
-//        lc.line1StartNormalized = normalize(lc.line1.startPointX, lc.line1.startPointY, img_width, img_height);
-//        lc.line1EndNormalized = normalize(lc.line1.endPointX, lc.line1.endPointY, img_width, img_height);
-//        lc.line2StartNormalized = normalize(lc.line2.endPointX, lc.line2.endPointY, img_width, img_height);
-//        lc.line2EndNormalized = normalize(lc.line2.endPointX, lc.line2.endPointY, img_width, img_height);
 
-        //TODO: Normalizeation?
+        lc.line1StartNormalized = Mat::ones(3,1,CV_32FC1);
+        lc.line1EndNormalized = Mat::ones(3,1,CV_32FC1);
+        lc.line2StartNormalized = Mat::ones(3,1,CV_32FC1);
+        lc.line2EndNormalized = Mat::ones(3,1,CV_32FC1);
 
-        lc.line1StartNormalized.x = lc.line1.startPointX;
-        lc.line1StartNormalized.y = lc.line1.startPointY;
-        lc.line2StartNormalized.x = lc.line2.startPointX;
-        lc.line2StartNormalized.y = lc.line2.startPointY;
+        lc.line1StartNormalized.at<float>(0,0) = l1.startPointX;
+        lc.line1StartNormalized.at<float>(1,0) = l1.startPointY;
 
-        lc.line1EndNormalized.x = lc.line1.endPointX;
-        lc.line1EndNormalized.y = lc.line1.endPointY;
-        lc.line2EndNormalized.x = lc.line2.endPointX;
-        lc.line2EndNormalized.y = lc.line2.endPointY;
+        lc.line2StartNormalized.at<float>(0,0) = l2.startPointX;
+        lc.line2StartNormalized.at<float>(1,0) = l2.startPointY;
+
+        lc.line1EndNormalized.at<float>(0,0) = l1.endPointX;
+        lc.line1EndNormalized.at<float>(1,0) = l1.endPointY;
+
+        lc.line2EndNormalized.at<float>(0,0) = l2.endPointX;
+        lc.line2EndNormalized.at<float>(1,0) = l2.endPointY;
 
         lineCorrespondencies.push_back(lc);
+
     }
 
     //showImage( "Matches", outImg, WINDOW_NORMAL, 1600);
+
+    normalizeAllLines();
 
     return lineCorrespondencies.size();
 
@@ -243,12 +271,12 @@ int FEstimatorLines::extractMatches() {
 }
 
 void FEstimatorLines::fillHLinEq(Mat* linEq, lineCorrespStruct lc, int numPair) {
-    float A = lc.line2StartNormalized.y - lc.line2EndNormalized.y;
-    float B = lc.line2EndNormalized.x - lc.line2StartNormalized.x;
-    float C = lc.line1StartNormalized.x*lc.line2EndNormalized.y - lc.line2EndNormalized.x*lc.line2StartNormalized.y;
+    float A = lc.line2StartNormalized.at<float>(1,0) - lc.line2EndNormalized.at<float>(1,0);
+    float B = lc.line2EndNormalized.at<float>(0,0) - lc.line2StartNormalized.at<float>(0,0);
+    float C = lc.line1StartNormalized.at<float>(0,0)*lc.line2EndNormalized.at<float>(1,0) - lc.line2EndNormalized.at<float>(0,0)*lc.line2StartNormalized.at<float>(1,0);
     int row = 2*numPair;
-    fillHLinEqBase(linEq, lc.line1StartNormalized.x, lc.line1StartNormalized.y, A, B, C, row);
-    fillHLinEqBase(linEq, lc.line1EndNormalized.x, lc.line1EndNormalized.y, A, B, C, row + 1);
+    fillHLinEqBase(linEq, lc.line1StartNormalized.at<float>(0,0), lc.line1StartNormalized.at<float>(1,0), A, B, C, row);
+    fillHLinEqBase(linEq, lc.line1EndNormalized.at<float>(0,0), lc.line1EndNormalized.at<float>(1,0), A, B, C, row + 1);
 }
 
 void FEstimatorLines::fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row) {
@@ -304,4 +332,49 @@ float FEstimatorLines::calcMedS(Mat Hs) {
     std::sort(dist.begin(), dist.end());
 
     return dist.at(dist.size()/2);
+}
+
+void FEstimatorLines::normalizeAllLines() {
+
+    //Normalization: Hartley, Zisserman, Multiple View Geometry in Computer Vision, p. 109
+
+    float sum1x = 0, sum1y = 0, sum2x = 0, sum2y = 0, N = 0;
+
+    for (std::vector<lineCorrespStruct>::iterator it= lineCorrespondencies.begin(); it!=lineCorrespondencies.end(); ++it) {
+
+        sum1x += it->line1StartNormalized.at<float>(0,0) + it->line1EndNormalized.at<float>(0,0);
+        sum2x += it->line2StartNormalized.at<float>(0,0) + it->line2EndNormalized.at<float>(0,0);
+
+        sum1y += it->line1StartNormalized.at<float>(1,0) + it->line1EndNormalized.at<float>(1,0);
+        sum2y += it->line2StartNormalized.at<float>(1,0) + it->line2EndNormalized.at<float>(1,0);
+
+    }
+
+    normT1 = Mat::eye(3,3, CV_32FC1);
+    normT2 = Mat::eye(3,3, CV_32FC1);
+    N = 2*lineCorrespondencies.size();
+
+    normT1.at<float>(0,0) = N/sum1x;
+    normT1.at<float>(1,1) = N/sum1y;
+    normT1.at<float>(0,2) = -1;//-sum1x/N;
+    normT1.at<float>(1,2) = -1;//-sum1y/N;
+
+    normT2.at<float>(0,0) = N/sum2x;
+    normT2.at<float>(1,1) = N/sum2y;
+    normT2.at<float>(0,2) = -1;//-sum2x/N;
+    normT2.at<float>(1,2) = -1;//-sum2y/N;
+
+    if(LOG_DEBUG) std::cout << "Normalization Matrix 1 = "<< std::endl << normT1 << std::endl;
+    if(LOG_DEBUG) std::cout << "Normalization Matrix 2 = "<< std::endl << normT2 << std::endl;
+
+    //Carry normalization out:
+
+    for (std::vector<lineCorrespStruct>::iterator it= lineCorrespondencies.begin(); it!=lineCorrespondencies.end(); ++it) {
+
+        it->line1StartNormalized = normT1*it->line1StartNormalized;
+        it->line2StartNormalized = normT2*it->line2StartNormalized;
+
+        it->line1EndNormalized = normT1*it->line1EndNormalized;
+        it->line2EndNormalized = normT2*it->line2EndNormalized;
+    }
 }

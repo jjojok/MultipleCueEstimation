@@ -33,9 +33,9 @@ public:
 
 protected:
     virtual void init();
-    virtual Point3f normalize(Point3f p);
-    virtual Point3f normalize(float x, float y, float z = 1);
-    virtual Mat denormalize();
+    virtual Mat normalize(Mat T, Mat p);
+    virtual Mat normalize(Mat T, float x, float y, float z = 1);
+    virtual Mat denormalize(Mat M);
 
 	Mat F;
     Mat normT1, normT2;
