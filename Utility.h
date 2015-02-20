@@ -26,5 +26,6 @@ std::string getType(Mat m);
 int calcMatRank(Mat M);
 int calcNumberOfSolutions(Mat linEq);
 double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2);
+Mat matVector(float x, float y, float z);
 
 #endif // UTILITY_H

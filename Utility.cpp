@@ -197,3 +197,11 @@ double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f
     }
     return epipolarError;
 }
+
+Mat matVector(float x, float y, float z) {
+    Mat vect = Mat::zeros(3,1,CV_32FC1);
+    vect.at<float>(0,0) = x;
+    vect.at<float>(1,0) = y;
+    vect.at<float>(2,0) = z;
+    return vect;
+}

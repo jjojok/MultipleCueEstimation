@@ -35,7 +35,7 @@ protected:
     virtual void init();
     virtual Mat normalize(Mat T, Mat p);
     virtual Mat normalize(Mat T, float x, float y, float z = 1);
-    virtual Mat denormalize(Mat M);
+    virtual Mat denormalize(Mat M, Mat T1, Mat T2);
 
 	Mat F;
     Mat normT1, normT2;

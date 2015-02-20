@@ -38,6 +38,8 @@ Mat FEstimationMethod::normalize(Mat T, float x, float y, float z) {
     return normalize(T, *p);
 }
 
-Mat FEstimationMethod::denormalize(Mat M) {
-    return normT2.inv(DECOMP_SVD)*M*normT1;
+Mat FEstimationMethod::denormalize(Mat M, Mat T1, Mat T2) {
+    Mat T = T2.inv(DECOMP_SVD)*M*T1;
+    T = T / T.at<float>(2,2);
+    return T;
 }
