@@ -12,6 +12,7 @@ struct lineCorrespStruct {
 struct lineSubsetStruct {
     std::vector<lineCorrespStruct> lineCorrespondencies;
     std::vector<int> lineCorrespondenceIdx;
+    float MedS;
     Mat Hs;
 };
 
@@ -24,13 +25,16 @@ public:
 
 private:
     int filterLineExtractions(std::vector<cv::line_descriptor::KeyLine> &keylines);
-    void filterLineMatches(cv::Mat descr1, cv::Mat descr2, std::vector<DMatch> matches);
+    int filterLineMatches(std::vector<DMatch> &matches);
     void fillHLinEq(Mat* linEq, std::vector<lineCorrespStruct> correspondencies);
     void fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row);
-    Mat calcLMedS(std::vector<lineSubsetStruct> subsets);
+    lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> subsets);
     float calcMedS(Mat Hs);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
     double squaredDistance(Mat H, lineCorrespStruct lc);
+    void visualizeHomography(lineSubsetStruct subset, Mat img, std::string name);
+    int refineLineMatches(lineSubsetStruct subset);
+    lineSubsetStruct estimateHomography();
     lineCorrespStruct getlineCorrespStruct(float start1x, float start1y, float start2x, float start2y, float end1x, float end1y, float end2x, float end2y);
 
     std::vector<lineCorrespStruct> lineCorrespondencies;  //Vector of consecutive normalized line startpoints and endpoints

@@ -25,48 +25,53 @@ int FEstimatorLines::extractMatches() {
     /* create a pointer to a BinaryDescriptor object with default parameters */
     Ptr<cv::line_descriptor::BinaryDescriptor> bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
 
+    bd->setNumOfOctaves(OCTAVES);
+    bd->setReductionRatio(SCALING);
+    bd->setWidthOfBand(7);
+
     Ptr<cv::line_descriptor::LSDDetector> lsd = cv::line_descriptor::LSDDetector::createLSDDetector();
 
-    /* compute lines */
+    /* lines */
     std::vector<cv::line_descriptor::KeyLine> keylines1, keylines2;
-    //bd->detect( image_1, keylines1, mask1 );
-    //bd->detect( image_2, keylines2, mask2 );
 
+    /* extract lines */
     lsd->detect( image_1, keylines1, OCTAVES, SCALING, mask1 );
     lsd->detect( image_2, keylines2, OCTAVES, SCALING, mask2 );
 
+    //Filter detected lines:
+    int filtered1 = filterLineExtractions(keylines1);
+    int filtered2 = filterLineExtractions(keylines2);
+
     if(LOG_DEBUG) {
-        std::cout << "-- First image before filter: " << keylines1.size() << std::endl;
-        std::cout << "-- Second image before filter: " << keylines2.size() << std::endl;
+        std::cout << "-- First image: " << keylines1.size() << " filtered: " << filtered1 << std::endl;
+        std::cout << "-- Second image: " << keylines2.size() << " filtered: " << filtered2 << std::endl;
     }
 
-    //Filter detected lines:
-    int filtered1 = 0;//filterLineExtractions(keylines1);
-    int filtered2 = 0;//filterLineExtractions(keylines2);
+    std::vector<DMatch> matches;
 
     /* compute descriptors */
     cv::Mat descr1, descr2;
     bd->compute( image_1, keylines1, descr1 );
     bd->compute( image_2, keylines2, descr2 );
 
-    std::cout << "-- First image: " << keylines1.size() << " filtered: " << filtered1 << std::endl;
-    std::cout << "-- Second image: " << keylines2.size() << " filtered: " << filtered2 << std::endl;
-
     /* create a BinaryDescriptorMatcher object */
     Ptr<cv::line_descriptor::BinaryDescriptorMatcher> bdm = cv::line_descriptor::BinaryDescriptorMatcher::createBinaryDescriptorMatcher();
 
     /* require match */
-    std::vector<DMatch> matches;
     bdm->match( descr1, descr2, matches );
 
-    std::cout << "-- Number of matches : " << matches.size() << std::endl;
+    int filteredMatches = filterLineMatches(matches);
+
+    if(LOG_DEBUG) {
+        std::cout << "-- Number of matches : " << matches.size() << " filtered: " << filteredMatches << std::endl;
+    }
 
     if(VISUAL_DEBUG) {
         /* plot matches */
         cv::Mat outImg;
         std::vector<char> mask( matches.size(), 1 );
-        cv::line_descriptor::drawLineMatches( image_1_color, keylines1, image_2_color, keylines2, matches, outImg, Scalar::all( -1 ), Scalar::all( -1 ), mask, cv::line_descriptor::DrawLinesMatchesFlags::DEFAULT );
-        showImage("Line matches", outImg);
+        cv::line_descriptor::drawLineMatches( image_1_color, keylines1, image_2_color, keylines2, matches, outImg, Scalar::all( -1 ), Scalar::all( -1 ), mask, cv::line_descriptor::DrawLinesMatchesFlags::DEFAULT);
+        showImage("Line matches", outImg, WINDOW_NORMAL, 1600);
     }
 
     /************************************************************************/
@@ -90,24 +95,46 @@ int FEstimatorLines::extractMatches() {
 
     }
 
-    //showImage( "Matches", outImg, WINDOW_NORMAL, 1600);
-
     return lineCorrespondencies.size();
 
     std::cout << std::endl;
 }
 
+int matchLines(std::vector<DMatch> &matches, std::vector<cv::line_descriptor::KeyLine> keyLines1, std::vector<cv::line_descriptor::KeyLine> keyLines2) {
+    DMatch match;
+    //match.
+}
+
+int FEstimatorLines::filterLineMatches(std::vector<DMatch> &matches) {
+    int filtered = 0;
+    std::vector<DMatch>::iterator it= matches.begin();
+    while(it!=matches.end()) {
+        if (it->distance > MAX_HEMMING_DIST) {
+            matches.erase(it);
+            filtered++;
+        } else it++;
+    }
+    return filtered;
+}
+
 int FEstimatorLines::filterLineExtractions(std::vector<cv::line_descriptor::KeyLine> &keylines) {
     float minLenght = image_1.cols*image_1.rows*MIN_LENGTH_FACTOR;
+    if(LOG_DEBUG) std::cout << "Min line segment length: " << minLenght << std::endl;
     int filtered = 0;
-    for (std::vector<cv::line_descriptor::KeyLine>::iterator it= keylines.begin(); it!=keylines.end(); ++it) {
+    std::vector<cv::line_descriptor::KeyLine>::iterator it= keylines.begin();
+    while (it!=keylines.end()) {
         if (it->lineLength < minLenght) {
             keylines.erase(it);
             filtered++;
-            if(it == keylines.end()) break;
-        }
+        } else it++;
+//        if (it->octave != 1) {
+//            keylines.erase(it);
+//            filtered++;
+//            if(it == keylines.end()) break;
+//        } else {
+//            //std::cout << it->octave << std::endl;
+//        }
     }
-    std::cout << keylines.size() << std::endl;
     return filtered;
 }
 
@@ -116,82 +143,79 @@ Mat FEstimatorLines::compute() {
     //TODO: Hard coded test data for castle 4 & 5:
 
     lineCorrespStruct lc1, lc2, lc3, lc4;
-//    lc1.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc1.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc1.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc1.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
-
-//    lc2.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc2.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc2.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc2.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
-
-//    lc3.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc3.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc3.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc3.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
-
-//    lc4.line1StartNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc4.line1EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc4.line2EndNormalized = Mat::ones(3, 1, CV_32FC1);
-//    lc4.line2StartNormalized = Mat::ones(3, 1, CV_32FC1);
-
-//    lc1.line1StartNormalized.at<float>(0,0) = 343;
-//    lc1.line1StartNormalized.at<float>(1,0) = 600;
-//    lc1.line2StartNormalized.at<float>(0,0) = 311;
-//    lc1.line2StartNormalized.at<float>(1,0) = 610;
-//    lc1.line1EndNormalized.at<float>(0,0) = 287;
-//    lc1.line1EndNormalized.at<float>(1,0) = 1217;
-//    lc1.line2EndNormalized.at<float>(0,0) = 264;
-//    lc1.line2EndNormalized.at<float>(1,0) = 1196;
-
-//    lc2.line1StartNormalized.at<float>(0,0) = 219;
-//    lc2.line1StartNormalized.at<float>(1,0) = 1318;
-//    lc2.line2StartNormalized.at<float>(0,0) = 203;
-//    lc2.line2StartNormalized.at<float>(1,0) = 1293;
-//    lc2.line1EndNormalized.at<float>(0,0) = 1041;
-//    lc2.line1EndNormalized.at<float>(1,0) = 1336;
-//    lc2.line2EndNormalized.at<float>(0,0) = 984;
-//    lc2.line2EndNormalized.at<float>(1,0) = 1291;
-
-//    lc3.line1StartNormalized.at<float>(0,0) = 2628;
-//    lc3.line1StartNormalized.at<float>(1,0) = 544;
-//    lc3.line2StartNormalized.at<float>(0,0) = 2723;
-//    lc3.line2StartNormalized.at<float>(1,0) = 386;
-//    lc3.line1EndNormalized.at<float>(0,0) = 2752;
-//    lc3.line1EndNormalized.at<float>(1,0) = 491;
-//    lc3.line2EndNormalized.at<float>(0,0) = 2858;
-//    lc3.line2EndNormalized.at<float>(1,0) = 317;
-
-//    lc4.line1StartNormalized.at<float>(0,0) = 2641;
-//    lc4.line1StartNormalized.at<float>(1,0) = 660;
-//    lc4.line2StartNormalized.at<float>(0,0) = 2738;
-//    lc4.line2StartNormalized.at<float>(1,0) = 513;
-//    lc4.line1EndNormalized.at<float>(0,0) = 2717;
-//    lc4.line1EndNormalized.at<float>(1,0) = 1358;
-//    lc4.line2EndNormalized.at<float>(0,0) = 2824;
-//    lc4.line2EndNormalized.at<float>(1,0) = 1278;
 
     lc1 = getlineCorrespStruct(343, 600, 311, 610, 287, 1217, 264, 1196);
     lc2 = getlineCorrespStruct(219, 1318, 203, 1293, 1041, 1336, 984, 1291);
     lc3 = getlineCorrespStruct(2628, 544, 2723, 386, 2752, 491, 2858, 317);
     lc4 = getlineCorrespStruct(2641, 660, 2738, 513, 2717, 1358, 2824, 1278);
 
-    lineCorrespondencies.push_back(lc1);
-    lineCorrespondencies.push_back(lc2);
-    lineCorrespondencies.push_back(lc3);
-    lineCorrespondencies.push_back(lc4);
+//    lineCorrespondencies.push_back(lc1);
+//    lineCorrespondencies.push_back(lc2);
+//    lineCorrespondencies.push_back(lc3);
+//    lineCorrespondencies.push_back(lc4);
 
     extractMatches();
 
     //lineCorrespondencies.clear();
-    lineCorrespondencies.erase(lineCorrespondencies.begin()+5, lineCorrespondencies.end());   //TODO: REMOVE
+    //lineCorrespondencies.erase(lineCorrespondencies.begin()+4, lineCorrespondencies.end());   //TODO: REMOVE LMedS: Can handle Max 50% outlier
 
+    if(LOG_DEBUG) std::cout << "First estimation..." << std::endl;
+
+    lineSubsetStruct lineSubsetStruct1 = estimateHomography();
+
+    if(VISUAL_DEBUG) visualizeHomography(lineSubsetStruct1, image_1, "H21");
+
+    for(std::vector<lineCorrespStruct>::iterator it = lineSubsetStruct1.lineCorrespondencies.begin() ; it != lineSubsetStruct1.lineCorrespondencies.end(); ++it) {    //Remove used correpsondencies, TODO: nötig?
+        lineCorrespondencies.erase(lineCorrespondencies.begin()+(*it));
+    }
+
+    int removedOutliers = refineLineMatches(lineSubsetStruct1);
+
+    if(LOG_DEBUG) std::cout << "Removed ourliers from matches: " << removedOutliers << std::endl;
+
+    if(LOG_DEBUG) std::cout << "Second estimation..." << std::endl;
+
+    lineSubsetStruct lineSubsetStruct2 = estimateHomography();
+
+    F = lineSubsetStruct1.Hs;
+
+
+    return F;//F.inv(DECOMP_SVD);
+
+//    [0.68275422, -0.0036702971, 87.249878;
+//     -0.16811512, 0.86805153, 147.2561;
+//     -0.00011500907, 3.1741215e-06, 0.99999994]
+
+    //LMEDS: 2896.79
+
+//    Mat* T = normalizeLines(lineCorrespondencies);
+
+//    Mat result;
+//    Mat linEq2 = Mat::ones(8,9,CV_32FC1);
+//    fillHLinEq(&linEq2, lineCorrespondencies);
+//    Mat A = linEq2.colRange(0, linEq2.cols-1);
+//    Mat x = -linEq2.col(linEq2.cols-1);
+//    solve(A, x, result, DECOMP_SVD);
+//    result.resize(9);
+//    result = result.reshape(1,3);
+//    result.at<float>(2,2) = 1;
+
+//    std::cout << "linEq result " << " = " << std::endl << result << std::endl;
+
+//    result = denormalize(result, T[0], T[1]);
+
+//    std::cout << "linEq result after denormalization" << " = " << std::endl << result << std::endl;
+
+//    F = result;
+//    return result;
+}
+
+lineSubsetStruct FEstimatorLines::estimateHomography() {
     int numOfPairs = lineCorrespondencies.size();
-    int numOfPairSubsets = NUM_LINE_PAIR_SUBSETS;//numOfPairs*NUM_OF_PAIR_SUBSETS_FACTOR;
+    int numOfPairSubsets = NUM_LINE_PAIR_SUBSETS_FACTOR*numOfPairs;
     std::vector<lineSubsetStruct> subsets;
 
-    //Compute H_21 from 4 line correspondencies
+    //Compute H_21 from NUM_CORRESP line correspondencies
     for(int i = 0; i < numOfPairSubsets; i++) {
         std::vector<int> subsetsIdx;
         Mat linEq = Mat::ones(8,9,CV_32FC1);
@@ -219,47 +243,37 @@ Mat FEstimatorLines::compute() {
         subsets.push_back(subset);
     }
 
-    F = calcLMedS(subsets);
-    return F;
+    return calcLMedS(subsets);
+}
 
-//    [4.8692675, 0.1330507, -1096.776;
-//     1.6317964, 3.1708324, -2950.1914;
-//     0.001353227, -3.3458778e-05, 1]
+int FEstimatorLines::refineLineMatches(lineSubsetStruct subset) {
+    float threshold = pow(1.4826*(1 + 5/(lineCorrespondencies.size() - NUM_CORRESP))*sqrt(subset.MedS), 2)*OUTLIER_THESHOLD_FACTOR;
+    int filtered = 0;
+    std::vector<lineCorrespStruct>::iterator it= lineCorrespondencies.begin();
+    while(it!=lineCorrespondencies.end()) {
+        if (squaredDistance(subset.Hs, *it) > threshold) {
+            lineCorrespondencies.erase(it);
+            filtered++;
+        } else it++;
+    }
+    return filtered;
+}
 
-//    Mat result;
-//    Mat linEq2 = Mat::ones(8,9,CV_32FC1);
-//    fillHLinEq(&linEq2, lc1, 0);
-//    fillHLinEq(&linEq2, lc2, 1);
-//    fillHLinEq(&linEq2, lc3, 2);
-//    fillHLinEq(&linEq2, lc4, 3);
-//    Mat A = linEq2.colRange(0, linEq2.cols-1);
-//    Mat x = -linEq2.col(linEq2.cols-1);
-//    solve(A, x, result, DECOMP_SVD);
-//    result.resize(9);
-//    result = result.reshape(1,3);
-//    result.at<float>(2,2) = 1;
-
-//    //result =result.inv(DECOMP_SVD);
-
-
-//    std::cout << "A result " << " = " << std::endl << A << std::endl;
-//    std::cout << "x result " << " = " << std::endl << x << std::endl;
-//    std::cout << "linEq result " << " = " << std::endl << result << std::endl;
-
-//    result = denormalize(result);
-
-//    result = result / result.at<float>(2,2);
-
-//    std::cout << "linEq result after denormalization" << " = " << std::endl << result << std::endl;
-
-//    F = result;
-//    return result;
+void FEstimatorLines::visualizeHomography(lineSubsetStruct subset, Mat img, std::string name) {
+    Mat transformed;
+    warpPerspective(img, transformed, subset.Hs, Size(img.cols,img.rows));
+    for(std::vector<lineCorrespStruct>::iterator it = subset.lineCorrespondencies.begin() ; it != subset.lineCorrespondencies.end(); ++it) {
+        cv::line(transformed, cvPoint2D32f(it->line1.startPointX, it->line1.startPointY), cvPoint2D32f(it->line1.endPointX, it->line1.endPointY), Scalar(255, 255, 255));
+        cv::line(transformed, cvPoint2D32f(it->line2.startPointX, it->line2.startPointY), cvPoint2D32f(it->line2.endPointX, it->line2.endPointY), Scalar(255, 255, 255));
+    }
+    showImage(name, transformed);
 }
 
 void FEstimatorLines::fillHLinEq(Mat* linEq, std::vector<lineCorrespStruct> correspondencies) {
     lineCorrespStruct lc;
     for(int i = 0; i < correspondencies.size(); i++) {
         lc = correspondencies.at(i);
+        //std::cout << "start1 = " << lc.line1StartNormalized << std::endl << "end1" << std::endl << lc.line1EndNormalized << std::endl << "start2 = " << lc.line2StartNormalized << std::endl << "end2" << std::endl << lc.line2EndNormalized << std::endl;
         float A = lc.line2StartNormalized.at<float>(1,0) - lc.line2EndNormalized.at<float>(1,0);
         float B = lc.line2EndNormalized.at<float>(0,0) - lc.line2StartNormalized.at<float>(0,0);
         float C = lc.line1StartNormalized.at<float>(0,0)*lc.line2EndNormalized.at<float>(1,0) - lc.line2EndNormalized.at<float>(0,0)*lc.line2StartNormalized.at<float>(1,0);
@@ -281,22 +295,21 @@ void FEstimatorLines::fillHLinEqBase(Mat* linEq, float x, float y, float A, floa
     linEq->at<float>(row, 8) = C;
 }
 
-Mat FEstimatorLines::calcLMedS(std::vector<lineSubsetStruct> subsets) {
+lineSubsetStruct FEstimatorLines::calcLMedS(std::vector<lineSubsetStruct> subsets) {
     std::vector<lineSubsetStruct>::iterator it = subsets.begin();
-    float lMedS = calcMedS(it->Hs);
-    Mat lMedSH = it->Hs;
+    lineSubsetStruct lMedSsubset = *it;
+    lMedSsubset.MedS = calcMedS(it->Hs);
     it++;
     do {
-        float meds = calcMedS(it->Hs);
-        std::cout << meds << std::endl;
-        if(meds < lMedS) {
-            lMedS = meds;
-            lMedSH = it->Hs;
+        it->MedS = calcMedS(it->Hs);
+        //std::cout << meds << std::endl;
+        if(it->MedS < lMedSsubset.MedS) {
+            lMedSsubset = *it;
         }
         it++;
     } while(it != subsets.end());
-    if(LOG_DEBUG) std::cout << "LMEDS: " << lMedS << std::endl;
-    return lMedSH;
+    if(LOG_DEBUG) std::cout << "LMEDS: " << lMedSsubset.MedS << std::endl;
+    return lMedSsubset;
 }
 
 
@@ -370,7 +383,13 @@ Mat* FEstimatorLines::normalizeLines(std::vector<lineCorrespStruct> &corresponde
 
         it->line1EndNormalized = normalizationMats[0]*it->line1End;
         it->line2EndNormalized = normalizationMats[1]*it->line2End;
+
+        //std::cout << "start1 = " << it->line1Start << std::endl << "end1" << std::endl << it->line1End << std::endl << "start2 = " << it->line2Start << std::endl << "end2" << std::endl << it->line2End << std::endl;
+
+        //std::cout << "start1 = " << it->line1StartNormalized << std::endl << "end1" << std::endl << it->line1EndNormalized << std::endl << "start2 = " << it->line2StartNormalized << std::endl << "end2" << std::endl << it->line2EndNormalized << std::endl;
     }
+
+    //std::cout << "T1 = " << std::endl << normalizationMats[0] << std::endl << "T2" << std::endl << normalizationMats[1] << std::endl;
 
     return normalizationMats;
 }
@@ -393,7 +412,7 @@ lineCorrespStruct FEstimatorLines::getlineCorrespStruct(float start1x, float sta
     lc->line1Start = matVector(start1x, start1y, 1);
     lc->line2Start = matVector(start2x, start2y, 1);
     lc->line1End = matVector(end1x, end1y, 1);
-    lc->line2End = matVector(end2x, end1y, 1);
+    lc->line2End = matVector(end2x, end2y, 1);
 
     return *lc;
 }

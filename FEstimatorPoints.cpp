@@ -42,9 +42,10 @@ int FEstimatorPoints::extractMatches() {
 
     //-- Quick calculation of max and min distances between keypoints
     for( int i = 0; i < descriptors_1.rows; i++ )
-    { double dist = matches[i].distance;
-    if( dist < min_dist ) min_dist = dist;
-    if( dist > max_dist ) max_dist = dist;
+    {
+        double dist = matches[i].distance;
+        if( dist < min_dist ) min_dist = dist;
+        if( dist > max_dist ) max_dist = dist;
     }
 
     if (LOG_DEBUG) {
@@ -76,7 +77,7 @@ int FEstimatorPoints::extractMatches() {
 
     //-- Show detected matches
     if(VISUAL_DEBUG) {
-        showImage( "SURF results", img_matches );
+        showImage( "SURF results", img_matches, WINDOW_NORMAL, 1600);
     }
 
     // ++++

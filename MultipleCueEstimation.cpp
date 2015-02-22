@@ -18,9 +18,6 @@ void MultipleCueEstimation::run() {
         if(computations & F_FROM_LINES) {
             FEstimationMethod* lines = calcFfromLines();
             fundamentalMatrices.push_back(*lines);
-            Mat transformed;
-            warpPerspective(image_2, transformed, lines->getF(), Size(image_2.cols,image_2.rows));
-            showImage("H21", transformed);
         }
         if(computations & F_FROM_PLANES) {
             fundamentalMatrices.push_back(*calcFfromPlanes());
@@ -114,7 +111,6 @@ Mat MultipleCueEstimation::getGroundTruth() {
     Mat P2w = MatFromFile(path_P2, 3); //P2 in world coords
     Mat T1w, R1w;   //World rotation, translation
     Mat K1; //calibration matrix
-    Mat Trel; //Relative translation
 
     if (LOG_DEBUG) {
         std::cout << "P1w = " << std::endl << P1w << std::endl;
@@ -127,7 +123,6 @@ Mat MultipleCueEstimation::getGroundTruth() {
     if (LOG_DEBUG) {
         std::cout << "T1w = " << std::endl << T1w << std::endl;
         std::cout << "R1w = " << std::endl << R1w << std::endl;
-        std::cout << "Trel = " << std::endl << Trel << std::endl;
     }
 
     Mat F = crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD); //(See Hartley, Zisserman: p. 244)
