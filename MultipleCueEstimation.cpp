@@ -112,15 +112,12 @@ Mat MultipleCueEstimation::getGroundTruth() {
     Mat T1w, R1w;   //World rotation, translation
     Mat K1; //calibration matrix
 
-    if (LOG_DEBUG) {
-        std::cout << "P1w = " << std::endl << P1w << std::endl;
-    }
-
     decomposeProjectionMatrix(P1w, K1, R1w, T1w, noArray(), noArray(), noArray(), noArray() );
 
     T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
 
     if (LOG_DEBUG) {
+        std::cout << "P1w = " << std::endl << P1w << std::endl;
         std::cout << "T1w = " << std::endl << T1w << std::endl;
         std::cout << "R1w = " << std::endl << R1w << std::endl;
     }
