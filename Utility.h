@@ -20,8 +20,8 @@ void showImage(std::string name, Mat image, int type = WINDOW_NORMAL, int width 
 Scalar squaredError(Mat A, Mat B);
 Mat MatFromFile(std::string file, int cols);
 Mat crossProductMatrix(Mat input);
-void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName);
-void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2);
+void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2, std::string windowName);
+void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2, std::string name);
 std::string getType(Mat m);
 int calcMatRank(Mat M);
 int calcNumberOfSolutions(Mat linEq);

@@ -27,12 +27,20 @@ void MultipleCueEstimation::run() {
             //it->error = averageSquaredError(Fgt,it->F)[0];
             double error = epipolarSADError(it->getF(), x1, x2);
             std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl << "Error: " << error << std::endl;
+            if(VISUAL_DEBUG) {
+                //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
+                drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
+            }
         }
 
         if (compareWithGroundTruth) {   //Compare to ground truth
             Fgt = getGroundTruth();
             double error = epipolarSADError(Fgt, x1, x2);
             std::cout << "F_groundtruth = " << std::endl << Fgt << std::endl << "Error: " << error << std::endl;
+            if(VISUAL_DEBUG) {
+                //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
+                drawEpipolarLines(x1,x2, Fgt, image_1, image_2, "F_groundtruth");
+            }
         }
 
         //rectify(x1, x2, Fgt, image_1, 1, "Image 1 rect Fgt");

@@ -13,6 +13,9 @@ public:
 
 private:
 
+    void visualizeMatches(std::vector<Point2f> p1, std::vector<Point2f> p2, int lineWidth, bool drawConnections, std::string name);
+
+    std::vector<Point2f> x1_used, x2_used;
     std::vector<Point2f> x1, x2;    //corresponding points in image 1 and 2
 };
 

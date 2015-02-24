@@ -17,6 +17,10 @@
 //Points:
 //Sift features
 #define SIFT_FEATURE_COUNT 800
+//Min Sift distance to be a "good" match
+#define SIFT_MIN_DIST 0.05
+//Factor of min Sift distance from all generated points where correspondence is still acceptable
+#define SIFT_MIN_DIST_FACTOR 4.0
 
 //Lines:
 //Number of segements for image pyramid
@@ -36,6 +40,6 @@
 //Max hemming distance of binary matchig
 #define MAX_HEMMING_DIST 20
 //Factor for selecting wrong matches in refinement step after first homography estimation
-#define OUTLIER_THESHOLD_FACTOR 2
+#define OUTLIER_THESHOLD_FACTOR 2.0
 
 #endif // STATICS_H

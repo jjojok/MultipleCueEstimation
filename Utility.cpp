@@ -61,7 +61,7 @@ std::string getType(Mat m) {
     return type;
 }
 
-void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2) {
+void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2, std::string name) {
 
     //#################################################################################
     //From: http://opencv-cookbook.googlecode.com/svn/trunk/Chapter%2009/estimateF.cpp
@@ -116,8 +116,8 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
 
     // Display the images with points
 
-    showImage("Right Image Epilines",image1);
-    showImage("Left Image Epilines",image2);
+    showImage(name+" 1",image1);
+    showImage(name+" 2",image2);
 
     //#############################################################################
 }
@@ -133,24 +133,38 @@ Mat crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
     return crossMat;
 }
 
-void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image, int imgNum, std::string windowName) {
-    if(VISUAL_DEBUG) {
-        Mat H1, H2, H, rectified;
-        if(stereoRectifyUncalibrated(p1, p2, F, Size(image.cols,image.rows), H1, H2, 0 )) {
-            if (LOG_DEBUG) {
-                std::cout << "H1 = " << std::endl << H1 << std::endl;
-                std::cout << "H2 = " << std::endl << H2 << std::endl;
-            }
+void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2, std::string windowName) {
+    Mat H1, H2, rectified1, rectified2;
+    if(stereoRectifyUncalibrated(p1, p2, F, Size(image1.cols,image1.rows), H1, H2, 2 )) {
 
-            if (imgNum == 1) H = H1;
-            else H = H2;
+        warpPerspective(image1, rectified1, H1, Size(image1.cols,image1.rows));
+        warpPerspective(image2, rectified2, H2, Size(image1.cols,image1.rows));
 
-            warpPerspective(image, rectified, H, Size(image.cols,image.rows));
-
-            showImage(windowName, rectified);
-        }
+        showImage(windowName+" 1", rectified1);
+        showImage(windowName+" 2", rectified2);
     }
 }
+
+//void syntheticView(Mat F, Mat image, std::string windowName) {
+//    Mat outImg = Mat::zeros(image.rows, image.cols, image.type());
+//    for(int m = 0; m < image.rows; m++) {
+//        for(int n = 0; n < image.cols; n++) {
+//            Mat p = Mat(3,3,CV_32FC1);
+//            p.at<float>(0,0) = n;
+//            p.at<float>(1,0) = m;
+//            p.at<float>(2,0) = 1;
+
+//            Mat p2 = p*F;
+
+
+//        }
+//    }
+
+//        showImage(windowName+" 1", rectified1);
+//        showImage(windowName+" 2", rectified2);
+//    }
+
+//}
 
 void PointsToFile(std::vector<Point2f>* points, std::string file) {
 
@@ -192,10 +206,11 @@ double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f
     double epipolarError = 0;
     cv::computeCorrespondEpilines(points1, 1, F, lines1);
     cv::computeCorrespondEpilines(points2, 2, F, lines2);
-    for(int i = 0; i < points1.size(); i++) {
+    int i = 0;
+    for(; i < points1.size(); i++) {
         epipolarError += fabs(points1.at(i).x*lines2.at(i)[0] + points1.at(i).y*lines2.at(i)[1] + lines2.at(i)[2]) + fabs(points2.at(i).x*lines1.at(i)[0] + points2.at(i).y*lines1.at(i)[1] + lines1.at(i)[2]);
     }
-    return epipolarError;
+    return epipolarError/(2*i);
 }
 
 Mat matVector(float x, float y, float z) {

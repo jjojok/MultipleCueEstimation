@@ -143,24 +143,43 @@ Mat FEstimatorLines::compute() {
 
     if(VISUAL_DEBUG && lineSubsetStruct1.success) {
         visualizeHomography(lineSubsetStruct1, image_1, "H21");
-        visualizeMatches(lineSubsetStruct1.lineCorrespondencies, 6, true, "H21 used Matches");
+        visualizeMatches(lineSubsetStruct1.lineCorrespondencies, 8, true, "H21 used Matches");
     }
 
-    int removed = refineLineMatches(lineSubsetStruct1);
+    for(int i = 0; i < lineSubsetStruct1.lineCorrespondenceIdx.size(); i++) {
+        lineCorrespondencies.erase(lineCorrespondencies.begin()+lineSubsetStruct1.lineCorrespondenceIdx.at(i));
+    }
+
+    //int removed = refineLineMatches(lineSubsetStruct1);
 
     if(LOG_DEBUG) std::cout << "Second estimation..." << std::endl;
-    if(LOG_DEBUG) std::cout << "Refined number of matches: " << lineCorrespondencies.size() <<  ", removed: " << removed << std::endl;
+    //if(LOG_DEBUG) std::cout << "Refined number of matches: " << lineCorrespondencies.size() <<  ", removed: " << removed << std::endl;
 
     lineSubsetStruct lineSubsetStruct2 = estimateHomography();
 
     if(VISUAL_DEBUG && lineSubsetStruct2.success) {
         visualizeMatches(lineCorrespondencies, 4, true, "remaining Matches");
         visualizeHomography(lineSubsetStruct2, image_1, "H21_2");
-        visualizeMatches(lineSubsetStruct2.lineCorrespondencies, 6, true, "H21_2 used Matches");
+        visualizeMatches(lineSubsetStruct2.lineCorrespondencies, 8, true, "H21_2 used Matches");
     }
 
-    F = lineSubsetStruct1.Hs;
+    Mat H = lineSubsetStruct1.Hs*lineSubsetStruct2.Hs.inv(DECOMP_SVD);
+    std::vector<float> eigenvalues;
+    Mat eigenvectors;
+    eigen(H, eigenvalues, eigenvectors);
 
+    if(LOG_DEBUG) {
+        for(int i = 0; i < eigenvalues.size(); i++) {
+            std::cout << i+1 << "th Eigenvalue: " << eigenvalues.at(i) << ", Eigenvector = " << std::endl << eigenvectors.row(i).t() << std::endl;
+        }
+
+        std::cout << "H1*H2 = " << std::endl << H << std::endl;
+    }
+
+    Mat e = eigenvectors.row(1).t();
+    e /= e.at<float>(2,0);
+    F = crossProductMatrix(e)*lineSubsetStruct1.Hs;
+    F /= F.at<float>(2,2);
     return F;
 }
 

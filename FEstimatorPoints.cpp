@@ -53,7 +53,7 @@ int FEstimatorPoints::extractMatches() {
         std::cout << "-- Min dist : " << min_dist << std::endl;
     }
     //-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
-    //-- or a small arbitary value ( 0.02 ) in the event that min_dist is very
+    //-- or a small arbitary value in the event that min_dist is very
     //-- small)
     //-- PS.- radiusMatch can also be used here.
     std::vector< DMatch > good_matches;
@@ -62,23 +62,13 @@ int FEstimatorPoints::extractMatches() {
 
     for( int i = 0; i < descriptors_1.rows; i++ )
     {
-        if( matches[i].distance <= max(2*min_dist, 0.02) )
+        if( matches[i].distance <= max(SIFT_MIN_DIST_FACTOR*min_dist, SIFT_MIN_DIST) )
         {
             good_matches.push_back( matches[i]);
         }
     }
 
     std::cout << "-- Number of matches: " << good_matches.size() << std::endl;
-
-    //-- Draw only "good" matches
-    Mat img_matches;
-    drawMatches( image_1_color, keypoints_1, image_2_color, keypoints_2,
-               good_matches, img_matches );
-
-    //-- Show detected matches
-    if(VISUAL_DEBUG) {
-        showImage( "SURF results", img_matches, WINDOW_NORMAL, 1600);
-    }
 
     // ++++
 
@@ -87,20 +77,49 @@ int FEstimatorPoints::extractMatches() {
         x1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
         x2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
     }
-
-    std::cout << std::endl;
 }
 
 Mat FEstimatorPoints::compute() {
+    std::vector<bool> mask;
+    int used = 0;
     extractMatches();
-    F = findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, noArray());
+    F = findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, mask);
+    for(int i = 0; i < x1.size(); i++) {
+        if(mask.at(i)) {
+            x1_used.push_back(x1.at(i));
+            x2_used.push_back(x2.at(i));
+            used++;
+        }
+    }
+    std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
+
+    visualizeMatches(getX1(), getX2(), 3, true, "Used matches");
+
+    std::cout << std::endl;
+
     return F;
 }
 
 std::vector<Point2f> FEstimatorPoints::getX1() {
-    return x1;
+    return x1_used;
 }
 
 std::vector<Point2f> FEstimatorPoints::getX2() {
-    return x2;
+    return x2_used;
+}
+
+void FEstimatorPoints::visualizeMatches(std::vector<Point2f> p1, std::vector<Point2f> p2, int lineWidth, bool drawConnections, std::string name) {
+    Mat img;
+    hconcat(image_1_color.clone(), image_2_color.clone(), img);
+    for(int i = 0; i < p1.size(); i++) {
+        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        cv::circle(img, p1.at(i), 2, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), 2, color, lineWidth);
+        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
+        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        if(drawConnections) {
+            cv::line(img, p1.at(i), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        }
+    }
+    showImage(name, img, WINDOW_NORMAL, 1600);
 }
