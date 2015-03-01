@@ -18,9 +18,9 @@
 //Sift features
 #define SIFT_FEATURE_COUNT 800
 //Min Sift distance to be a "good" match
-#define SIFT_MIN_DIST 0.05
+#define SIFT_MIN_DIST 0.1
 //Factor of min Sift distance from all generated points where correspondence is still acceptable
-#define SIFT_MIN_DIST_FACTOR 4.0
+#define SIFT_MIN_DIST_FACTOR 3.0
 
 //Lines:
 //Number of segements for image pyramid
@@ -41,5 +41,11 @@
 #define MAX_HEMMING_DIST 20
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
+
+//Error Estimation:
+//Number of points for error measure between two fundamental matrices
+#define NUM_SAMPLES_F_COMARATION 50000
+//Max trys per draw to find a point who's epipolar line intersects the other image
+#define MAX_SAMPLE_TRYS 1000
 
 #endif // STATICS_H

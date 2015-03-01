@@ -27,5 +27,8 @@ int calcMatRank(Mat M);
 int calcNumberOfSolutions(Mat linEq);
 double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2);
 Mat matVector(float x, float y, float z);
+Mat matVector(Point2f p);
+double epipolarLineDistanceError(Mat F1, Mat F2, Mat image, int numOfSamples);
+double epipolarLineDistanceErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples);
 
 #endif // UTILITY_H

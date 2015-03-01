@@ -2,6 +2,8 @@
 #define FESTIMATORLINES_H
 
 #include "FEstimationMethod.h"
+#include <eigen3/Eigen/Eigenvalues>
+#include <opencv2/core/eigen.hpp>
 
 struct lineCorrespStruct {
     cv::line_descriptor::KeyLine line1, line2;

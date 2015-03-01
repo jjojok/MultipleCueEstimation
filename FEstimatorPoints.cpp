@@ -84,6 +84,7 @@ Mat FEstimatorPoints::compute() {
     int used = 0;
     extractMatches();
     F = findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, mask);
+    F.convertTo(F, CV_32FC1);
     for(int i = 0; i < x1.size(); i++) {
         if(mask.at(i)) {
             x1_used.push_back(x1.at(i));

@@ -1,6 +1,8 @@
 #include "Utility.h"
 #include "Statics.h"
 
+#include <ctime>
+
 void showImage(std::string name, Mat image, int type, int width, int height) {
     float tx = 0;
     float ty = 0;
@@ -145,27 +147,6 @@ void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1
     }
 }
 
-//void syntheticView(Mat F, Mat image, std::string windowName) {
-//    Mat outImg = Mat::zeros(image.rows, image.cols, image.type());
-//    for(int m = 0; m < image.rows; m++) {
-//        for(int n = 0; n < image.cols; n++) {
-//            Mat p = Mat(3,3,CV_32FC1);
-//            p.at<float>(0,0) = n;
-//            p.at<float>(1,0) = m;
-//            p.at<float>(2,0) = 1;
-
-//            Mat p2 = p*F;
-
-
-//        }
-//    }
-
-//        showImage(windowName+" 1", rectified1);
-//        showImage(windowName+" 2", rectified2);
-//    }
-
-//}
-
 void PointsToFile(std::vector<Point2f>* points, std::string file) {
 
     Point2f point;
@@ -184,7 +165,7 @@ void PointsToFile(std::vector<Point2f>* points, std::string file) {
 
 Mat MatFromFile(std::string file, int rows) {
 
-    Mat matrix;
+    Mat matrix = Mat::zeros(0,0,CV_32FC1);
     std::ifstream inputStream;
     float x;
     inputStream.open(file.c_str());
@@ -200,17 +181,68 @@ Mat MatFromFile(std::string file, int rows) {
     return matrix;
 }
 
-double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2) {
+double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2) {    //Reprojection error, epipolar line
     std::vector<cv::Vec3f> lines1;
     std::vector<cv::Vec3f> lines2;
     double epipolarError = 0;
-    cv::computeCorrespondEpilines(points1, 1, F, lines1);
-    cv::computeCorrespondEpilines(points2, 2, F, lines2);
-    int i = 0;
-    for(; i < points1.size(); i++) {
-        epipolarError += fabs(points1.at(i).x*lines2.at(i)[0] + points1.at(i).y*lines2.at(i)[1] + lines2.at(i)[2]) + fabs(points2.at(i).x*lines1.at(i)[0] + points2.at(i).y*lines1.at(i)[1] + lines1.at(i)[2]);
+    cv::computeCorrespondEpilines(points1, 1, F, lines2);
+    cv::computeCorrespondEpilines(points2, 2, F, lines1);
+    for(int i = 0; i < points1.size(); i++) {
+        epipolarError+=abs(matVector(points1.at(i)).dot(lines2.at(i))) + abs(matVector(points2.at(i)).dot(lines1.at(i)));
     }
-    return epipolarError/(2*i);
+    return epipolarError;
+}
+
+double epipolarLineDistanceError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+    double err1 = epipolarLineDistanceErrorSub(F1, F2, image, numOfSamples);
+    if(err1 == -1) return -1;
+    double err2 = epipolarLineDistanceErrorSub(F2, F1, image, numOfSamples);
+    if(err2 == -1) return -1;
+    return err1 + err2;
+}
+
+double epipolarLineDistanceErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+    double epipolarDistSum = 0;
+    //std::srand(std::time(0));
+    for(int i = 0; i < numOfSamples; i++) {
+        //line: y = ax + b; a = x1/x3, b = x2/x3
+
+        Mat p1homog;
+        int xBoundsMin = 0;
+        int xBounds = 0;
+        float l2F1a = 0, l2F1b = 0;
+
+        int trys = 1;
+        do {    //Draw random point until it's epipolar line intersects image 2
+            p1homog = matVector(rand()%image.cols, rand()%image.rows, 1);
+            Mat l2F1homog = F1*p1homog;
+            l2F1a = l2F1homog.at<float>(0,0) / l2F1homog.at<float>(2,0);
+            l2F1b = l2F1homog.at<float>(1,0) / l2F1homog.at<float>(2,0);
+            l2F1a/=(-l2F1b);
+            l2F1b=1.0/(-l2F1b);
+            xBoundsMin = std::min(std::max((int)ceil(l2F1b/l2F1a),0), image.cols);
+            xBounds = std::min((int)floor(image.rows*l2F1b/l2F1a), image.cols) - xBoundsMin;
+            trys++;
+        } while((xBounds < 0 || xBoundsMin > image.cols) && (trys < MAX_SAMPLE_TRYS));
+
+        if(trys == MAX_SAMPLE_TRYS) return -1;
+
+        float x, y;
+        if(xBounds == 0) x = xBoundsMin;
+        else x = rand()%xBounds + xBoundsMin;
+        y = l2F1a*x + l2F1b;
+
+        //Compute distance of chosen random point to epipolar line of F2
+        Mat p2homog = matVector(x, y, 1);
+        Mat l2F2homog = F2*p1homog;
+        epipolarDistSum+=fabs(p2homog.dot(l2F2homog));
+
+        //Compute distance of point1 to epipolar line from random point using F2^T in image 1
+        Mat l1F2homog = F2.t()*p2homog;
+        epipolarDistSum+=fabs(p1homog.dot(l1F2homog));
+
+    }
+    return epipolarDistSum/(2*numOfSamples);
 }
 
 Mat matVector(float x, float y, float z) {
@@ -218,5 +250,13 @@ Mat matVector(float x, float y, float z) {
     vect.at<float>(0,0) = x;
     vect.at<float>(1,0) = y;
     vect.at<float>(2,0) = z;
+    return vect;
+}
+
+Mat matVector(Point2f p) {
+    Mat vect = Mat::zeros(3,1,CV_32FC1);
+    vect.at<float>(0,0) = p.x;
+    vect.at<float>(1,0) = p.y;
+    vect.at<float>(2,0) = 1;
     return vect;
 }

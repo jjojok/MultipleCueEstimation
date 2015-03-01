@@ -10,14 +10,14 @@ MultipleCueEstimation::MultipleCueEstimation()
 
 void MultipleCueEstimation::run() {
     Mat Fgt;       //Ground truth Fundamental matrix
+    std::vector<Point2f> randomX1;
     std::vector<FEstimationMethod> fundamentalMatrices;
     if (loadData()) {
         if(computations & F_FROM_POINTS) {
             fundamentalMatrices.push_back(*calcFfromPoints());
         }
         if(computations & F_FROM_LINES) {
-            FEstimationMethod* lines = calcFfromLines();
-            fundamentalMatrices.push_back(*lines);
+            fundamentalMatrices.push_back(*calcFfromLines());
         }
         if(computations & F_FROM_PLANES) {
             fundamentalMatrices.push_back(*calcFfromPlanes());
@@ -25,8 +25,8 @@ void MultipleCueEstimation::run() {
 
         for (std::vector<FEstimationMethod>::iterator it = fundamentalMatrices.begin() ; it != fundamentalMatrices.end(); ++it) {
             //it->error = averageSquaredError(Fgt,it->F)[0];
-            double error = epipolarSADError(it->getF(), x1, x2);
-            std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl << "Error: " << error << std::endl;
+            //double error = epipolarSADError(it->getF(), x1, x2);
+            //std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl << "Error: " << error << std::endl;
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
                 drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
@@ -35,8 +35,19 @@ void MultipleCueEstimation::run() {
 
         if (compareWithGroundTruth) {   //Compare to ground truth
             Fgt = getGroundTruth();
-            double error = epipolarSADError(Fgt, x1, x2);
-            std::cout << "F_groundtruth = " << std::endl << Fgt << std::endl << "Error: " << error << std::endl;
+            //double error = epipolarSADError(Fgt, x1, x2);
+
+            std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
+
+            for (std::vector<FEstimationMethod>::iterator it = fundamentalMatrices.begin() ; it != fundamentalMatrices.end(); ++it) {
+                double error = epipolarLineDistanceError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
+                //double error = epipolarLineDistanceError(Fgt, Fgt, image_1, NUM_SAMPLES_F_COMARATION);
+
+                std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl << "Error: " << error << std::endl;
+                //std::cout << "Error: " << error << std::endl;
+            }
+
+            //std::cout << "F_groundtruth = " << std::endl << Fgt << std::endl << "Error: " << error << std::endl;
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
                 drawEpipolarLines(x1,x2, Fgt, image_1, image_2, "F_groundtruth");
@@ -120,7 +131,7 @@ Mat MultipleCueEstimation::getGroundTruth() {
     Mat T1w, R1w;   //World rotation, translation
     Mat K1; //calibration matrix
 
-    decomposeProjectionMatrix(P1w, K1, R1w, T1w, noArray(), noArray(), noArray(), noArray() );
+    decomposeProjectionMatrix(P1w, K1, R1w, T1w);
 
     T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
 
@@ -128,11 +139,13 @@ Mat MultipleCueEstimation::getGroundTruth() {
         std::cout << "P1w = " << std::endl << P1w << std::endl;
         std::cout << "T1w = " << std::endl << T1w << std::endl;
         std::cout << "R1w = " << std::endl << R1w << std::endl;
+        std::cout << "P2w = " << std::endl << P2w << std::endl;
     }
 
     Mat F = crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD); //(See Hartley, Zisserman: p. 244)
 
-    return F / F.at<float>(2,2);       //Set global arbitrary scale factor 1 -> easier to compare
+    return F / F.at<float>(2,2);       //convert to homogenius coords
+
 }
 
 

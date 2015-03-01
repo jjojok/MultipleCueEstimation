@@ -100,6 +100,7 @@ int FEstimatorLines::extractMatches() {
             lc.line2End = matVector(l2.endPointX, l2.endPointY, 1);
 
             lineCorrespondencies.push_back(lc);
+
         }
     }
 
@@ -163,22 +164,68 @@ Mat FEstimatorLines::compute() {
         visualizeMatches(lineSubsetStruct2.lineCorrespondencies, 8, true, "H21_2 used Matches");
     }
 
+    //TODO: Check if H1, H2 are the same (H1*H2⁻1) ~ Unity, if this is the case: remove lines used for H2 and rerun estimateHomography()
+
     Mat H = lineSubsetStruct1.Hs*lineSubsetStruct2.Hs.inv(DECOMP_SVD);
+
+    SVD svd2;
+    Mat u2, vt2, w2;
+    svd2.compute(H, w2, u2, vt2);
+    std::cout << "W2: " << std::endl << w2 << std::endl;
+    std::cout << "U2: " << std::endl << u2 << std::endl;
+    std::cout << "Vt2: " << std::endl << vt2 << std::endl;
+
+    //H/=H.at<float>(2,2);
     std::vector<float> eigenvalues;
     Mat eigenvectors;
-    eigen(H, eigenvalues, eigenvectors);
+
+    // Map the OpenCV matrix with Eigen:
+    Eigen::Matrix3f HEigen;
+    cv2eigen(H, HEigen);
+    //http://eigen.tuxfamily.org/dox/classEigen_1_1EigenSolver.html#a8c287af80cfd71517094b75dcad2a31b
+    Eigen::EigenSolver<Eigen::Matrix3f> solver;
+    solver.compute(HEigen);
+
+    //std::cout << "HEigen:" << std::endl << HEigen << std::endl;
+    std::cout << "The eigenvalues of A are:" << std::endl << solver.eigenvalues() << std::endl;
+    std::cout << "The matrix of eigenvectors, V, is:" << std::endl << solver.eigenvectors() << std::endl << std::endl;
+
+    Mat eigenvaluesCV, eigenvectorsCV;
+    eigen2cv(solver.eigenvalues(), eigenvaluesCV);
+    eigen2cv(solver.eigenvectors(), eigenvectorsCV);
+
+    //eigenvaluesCV.convertTo(eigenvaluesCV, CV_32FC1);
+    //eigenvaluesCV.convertTo(eigenvectorsCV, CV_32FC1);
+
+    for(int i = 0; i < eigenvaluesCV.rows; i++) {
+        std::cout << i+1 << "th Eigenvalue: " << eigenvaluesCV.at<float>(i,0) << ", Eigenvector = " << std::endl << eigenvectorsCV.col(i) << std::endl;
+    }
+
+    //eigen(H, eigenvalues, eigenvectors);        //TDOD: Wrong! Only for symetrical matrices!
 
     if(LOG_DEBUG) {
-        for(int i = 0; i < eigenvalues.size(); i++) {
-            std::cout << i+1 << "th Eigenvalue: " << eigenvalues.at(i) << ", Eigenvector = " << std::endl << eigenvectors.row(i).t() << std::endl;
-        }
+//        for(int i = 0; i < eigenvalues.size(); i++) {
+//            std::cout << i+1 << "th Eigenvalue: " << eigenvalues.at(i) << ", Eigenvector = " << std::endl << eigenvectors.row(i).t() << std::endl;
+//        }
 
         std::cout << "H1*H2 = " << std::endl << H << std::endl;
     }
 
-    Mat e = eigenvectors.row(1).t();
-    e /= e.at<float>(2,0);
-    F = crossProductMatrix(e)*lineSubsetStruct1.Hs;
+    std::vector<Mat> e;
+    split(eigenvectorsCV.col(1),e); //TODO: Why second channel?
+    //Mat e = eigenvectors.row(1).t();
+    //e /= e.at<float>(2,0);
+    std::cout << "e = " << std::endl << e.at(0) << std::endl;
+    F = crossProductMatrix(e.at(0))*lineSubsetStruct1.Hs;
+
+    //Enforce Rank 2 constraint:
+    SVD svd;
+    Mat u, vt, w;
+    svd.compute(F, w, u, vt);
+    Mat newW = Mat::zeros(3,3,CV_32FC1);
+    newW.at<float>(0,0) = w.at<float>(0,0);
+    newW.at<float>(1,1) = w.at<float>(1,0);
+    F = u*newW*vt;
     F /= F.at<float>(2,2);
     return F;
 }
