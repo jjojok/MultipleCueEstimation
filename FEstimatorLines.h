@@ -4,6 +4,7 @@
 #include "FEstimationMethod.h"
 #include <eigen3/Eigen/Eigenvalues>
 #include <opencv2/core/eigen.hpp>
+#include "Utility.h"
 
 struct lineCorrespStruct {
     cv::line_descriptor::KeyLine line1, line2;
@@ -15,7 +16,6 @@ struct lineSubsetStruct {
     std::vector<lineCorrespStruct> lineCorrespondencies;
     std::vector<int> lineCorrespondenceIdx;
     float MedS;
-    bool success;
     Mat Hs;
 };
 
@@ -34,14 +34,14 @@ private:
     lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> subsets);
     float calcMedS(Mat Hs);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
-    double squaredDistance(Mat H, lineCorrespStruct lc);
+    double squaredProjectionDistance(Mat H, lineCorrespStruct lc);
     void visualizeHomography(lineSubsetStruct subset, Mat img, std::string name);
     int refineLineMatches(lineSubsetStruct subset);
     lineSubsetStruct estimateHomography();
     lineCorrespStruct getlineCorrespStruct(float start1x, float start1y, float start2x, float start2y, float end1x, float end1y, float end2x, float end2y);
     void visualizeMatches(std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name);
     bool filterLineMatch(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2);
-
+    bool isUnity(Mat m);
     std::vector<lineCorrespStruct> lineCorrespondencies;  //Vector of consecutive normalized line startpoints and endpoints
 };
 

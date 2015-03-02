@@ -30,6 +30,7 @@ public:
     Mat getF();
     virtual int extractMatches();
     std::string name;
+    bool isSuccessful();
 
 protected:
     virtual void init();
@@ -41,6 +42,7 @@ protected:
     Mat normT1, normT2;
     Mat image_1_color, image_2_color, image_1, image_2;
 	double epipolarError;
+    bool successful;
 
 private:
 

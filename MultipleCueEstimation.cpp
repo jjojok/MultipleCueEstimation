@@ -2,92 +2,87 @@
 
 using namespace cv;
 
-MultipleCueEstimation::MultipleCueEstimation()
-{
+MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp) {
+    image_1_color = img1->clone();
+    image_2_color = img2->clone();
     compareWithGroundTruth = false;
-    computations = 0;
+    computations = comp;
+}
+
+MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat *F_groudtruth)
+{
+    image_1_color = img1->clone();
+    image_2_color = img2->clone();
+    compareWithGroundTruth = false;
+    computations = comp;
+    compareWithGroundTruth = true;
+    Fgt = F_groudtruth->clone();
 }
 
 void MultipleCueEstimation::run() {
-    Mat Fgt;       //Ground truth Fundamental matrix
-    std::vector<Point2f> randomX1;
-    std::vector<FEstimationMethod> fundamentalMatrices;
-    if (loadData()) {
+    std::vector<FEstimationMethod> estimations;
+    if (checkData()) {
         if(computations & F_FROM_POINTS) {
-            fundamentalMatrices.push_back(*calcFfromPoints());
+            estimations.push_back(*calcFfromPoints());
         }
         if(computations & F_FROM_LINES) {
-            fundamentalMatrices.push_back(*calcFfromLines());
+            estimations.push_back(*calcFfromLines());
         }
         if(computations & F_FROM_PLANES) {
-            fundamentalMatrices.push_back(*calcFfromPlanes());
+            estimations.push_back(*calcFfromPlanes());
         }
 
-        for (std::vector<FEstimationMethod>::iterator it = fundamentalMatrices.begin() ; it != fundamentalMatrices.end(); ++it) {
-            //it->error = averageSquaredError(Fgt,it->F)[0];
-            //double error = epipolarSADError(it->getF(), x1, x2);
-            //std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl << "Error: " << error << std::endl;
-            if(VISUAL_DEBUG) {
-                //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
-                drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
-            }
-        }
-
-        if (compareWithGroundTruth) {   //Compare to ground truth
-            Fgt = getGroundTruth();
-            //double error = epipolarSADError(Fgt, x1, x2);
-
+        if (compareWithGroundTruth) {
             std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
-
-            for (std::vector<FEstimationMethod>::iterator it = fundamentalMatrices.begin() ; it != fundamentalMatrices.end(); ++it) {
-                double error = epipolarLineDistanceError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
-                //double error = epipolarLineDistanceError(Fgt, Fgt, image_1, NUM_SAMPLES_F_COMARATION);
-
-                std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl << "Error: " << error << std::endl;
-                //std::cout << "Error: " << error << std::endl;
-            }
-
-            //std::cout << "F_groundtruth = " << std::endl << Fgt << std::endl << "Error: " << error << std::endl;
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
                 drawEpipolarLines(x1,x2, Fgt, image_1, image_2, "F_groundtruth");
             }
         }
 
-        //rectify(x1, x2, Fgt, image_1, 1, "Image 1 rect Fgt");
-        //rectify(x1, x2, Fpt, image_1, 1, "Image 1 rect Fpt");
+        //double error = epipolarSADError(Fgt, x1, x2);
 
-        //drawEpipolarLines(x1, x2, Fgt, image_1.clone(), image_2.clone());
+        for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
+            std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
+            if (compareWithGroundTruth) {
+                double error1 = epipolarLineDistanceError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
+                double error2 = squaredError(Fgt, it->getF());
+                std::cout << "Random sample epipolar error: " << error1 << ", Squated distance: " << error2 << std::endl;
+            }
+            if(VISUAL_DEBUG) {
+                //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
+                drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
+            }
+        }
 
         waitKey(0);
-        //Mat h = findHomography(x1, x2, noArray(), CV_RANSAC, 3);
     }
 
 }
 
-int MultipleCueEstimation::loadData() {
-    if (arguments != 4 && !compareWithGroundTruth) {
-        std::cout << "Usage: MultipleCueEstimation <path to first image> <path to second image> <optional: path to first camera matrix> <optional: path to second camera matrix>" << std::endl;
+int MultipleCueEstimation::checkData() {
+    if(!image_1_color.data || !image_2_color.data)
+    {
+        std::cerr << "No image data!" << std::endl;
         return 0;
     }
 
-    image_1 = imread(path_img1, CV_LOAD_IMAGE_GRAYSCALE);
-    image_2 = imread(path_img2, CV_LOAD_IMAGE_GRAYSCALE);
-
-    image_1_color = imread(path_img1, CV_LOAD_IMAGE_COLOR);
-    image_2_color = imread(path_img2, CV_LOAD_IMAGE_COLOR);
-
-    if ( !image_1.data || !image_2.data || !image_1_color.data || !image_2_color.data )
-    {
-        printf("No image data \n");
+    if(compareWithGroundTruth && !Fgt.data) {
+        std::cerr << "No ground truth data!" << std::endl;
         return 0;
+    }
+
+    if(image_1_color.channels() < 1) {
+        cvtColor(image_1_color, image_1, CV_BGR2GRAY);
+        cvtColor(image_2_color, image_2, CV_BGR2GRAY);
+    } else {
+        image_1 = image_1_color;
+        image_2 = image_2_color;
     }
 
     if(VISUAL_DEBUG) {
-        showImage("Image 1 original", image_1);
-
-        showImage("Image 2 original", image_2);
-
+        showImage("Image 1 original", image_1_color);
+        showImage("Image 2 original", image_2_color);
     }
 
     return 1;
@@ -122,29 +117,6 @@ FEstimationMethod* MultipleCueEstimation::calcFfromCurves() {    // First deriva
 }
 
 Mat MultipleCueEstimation::refineF() {    //Reduce error of F AFTER computing it seperatly form different sources
-
-}
-
-Mat MultipleCueEstimation::getGroundTruth() {
-    Mat P1w = MatFromFile(path_P1, 3); //P1 in world coords
-    Mat P2w = MatFromFile(path_P2, 3); //P2 in world coords
-    Mat T1w, R1w;   //World rotation, translation
-    Mat K1; //calibration matrix
-
-    decomposeProjectionMatrix(P1w, K1, R1w, T1w);
-
-    T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
-
-    if (LOG_DEBUG) {
-        std::cout << "P1w = " << std::endl << P1w << std::endl;
-        std::cout << "T1w = " << std::endl << T1w << std::endl;
-        std::cout << "R1w = " << std::endl << R1w << std::endl;
-        std::cout << "P2w = " << std::endl << P2w << std::endl;
-    }
-
-    Mat F = crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD); //(See Hartley, Zisserman: p. 244)
-
-    return F / F.at<float>(2,2);       //convert to homogenius coords
 
 }
 

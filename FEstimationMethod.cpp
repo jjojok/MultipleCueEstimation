@@ -43,3 +43,7 @@ Mat FEstimationMethod::denormalize(Mat M, Mat T1, Mat T2) {
     T = T / T.at<float>(2,2);
     return T;
 }
+
+bool FEstimationMethod::isSuccessful() {
+    return successful;
+}

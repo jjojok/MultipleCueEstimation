@@ -18,8 +18,8 @@ void showImage(std::string name, Mat image, int type, int width, int height) {
     imshow(name, resized);
 }
 
-Scalar squaredError(Mat A, Mat B) {
-    return cv::sum((A-B).mul(A-B));
+double squaredError(Mat A, Mat B) {
+    return cv::sum((A-B).mul(A-B))[0];
 }
 
 int calcMatRank(Mat M) {
@@ -63,7 +63,10 @@ std::string getType(Mat m) {
     return type;
 }
 
-void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2, std::string name) {
+void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat img1, Mat img2, std::string name) {
+
+    Mat image1 = img1.clone();
+    Mat image2 = img2.clone();
 
     //#################################################################################
     //From: http://opencv-cookbook.googlecode.com/svn/trunk/Chapter%2009/estimateF.cpp
@@ -194,6 +197,8 @@ double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f
 }
 
 double epipolarLineDistanceError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+    //std::srand(std::time(0));
+    std::srand(1);  //Try to use the same points for every image
     double err1 = epipolarLineDistanceErrorSub(F1, F2, image, numOfSamples);
     if(err1 == -1) return -1;
     double err2 = epipolarLineDistanceErrorSub(F2, F1, image, numOfSamples);
@@ -203,7 +208,6 @@ double epipolarLineDistanceError(Mat F1, Mat F2, Mat image, int numOfSamples) { 
 
 double epipolarLineDistanceErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
     double epipolarDistSum = 0;
-    //std::srand(std::time(0));
     for(int i = 0; i < numOfSamples; i++) {
         //line: y = ax + b; a = x1/x3, b = x2/x3
 

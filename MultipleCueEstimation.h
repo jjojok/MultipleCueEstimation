@@ -27,10 +27,14 @@ using namespace cv;
 class MultipleCueEstimation
 {
 public:
-    MultipleCueEstimation();
+    MultipleCueEstimation(Mat *img1, Mat *img2, int comp);
+    MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat *F_groudtruth);
 
     void run();
-    int loadData();
+
+private:
+
+    int checkData();
     FEstimationMethod* calcFfromPoints();
     FEstimationMethod* calcFfromLines();
     FEstimationMethod* calcFfromPlanes();
@@ -38,18 +42,13 @@ public:
     FEstimationMethod* calcFfromCurves();
     Mat refineF();
 
-    Mat getGroundTruth();
-
     int arguments;
-    std::string path_img1, path_P1;
-    std::string path_img2, path_P2;
     unsigned int computations;
     bool compareWithGroundTruth;
 
-private:
-
     Mat image_1, image_2;
     Mat image_1_color, image_2_color;
+    Mat Fgt;    //Ground truth
     std::vector<Point2f> x1, x2;   //corresponding points in image 1 and 2
 
 };

@@ -7,6 +7,7 @@ FEstimatorPoints::FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
     image_2_color = img2_c.clone();
     this->name = name;
     std::cout << "Estimating: " << name << std::endl;
+    successful = false;
 
     normT1 = Mat::eye(3,3,CV_32FC1);
     normT2 = Mat::eye(3,3,CV_32FC1);
@@ -94,7 +95,9 @@ Mat FEstimatorPoints::compute() {
     }
     std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
 
-    visualizeMatches(getX1(), getX2(), 3, true, "Used matches");
+    if(x1_used.size() > 8) successful = true;
+
+    visualizeMatches(getX1(), getX2(), 3, true, "Used point matches");
 
     std::cout << std::endl;
 

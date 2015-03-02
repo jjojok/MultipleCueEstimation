@@ -7,6 +7,7 @@ FEstimatorPlanes::FEstimatorPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
     image_2_color = img2_c.clone();
     this->name = name;
     std::cout << "Estimating: " << name << std::endl;
+    successful = false;
 }
 
 Mat FEstimatorPlanes::compute() {
