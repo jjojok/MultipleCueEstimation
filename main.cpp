@@ -10,26 +10,39 @@
 //- Try implementing ransac instead of LMeds
 //- Maybe tweak line corresp. reduction
 
+Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat R1w, Mat R2w, Mat T1w, Mat T2w) {      //Compute F from K,R,t in world coords
 
+    R1w = R1w.t();      //Strecha Rotation matrices are transposed
+    R2w = R2w.t();
 
-Mat *getGroundTruth(Mat P1w, Mat P2w) {      //Compute F from Ps in world coords
-    Mat T1w, R1w;   //World rotation, translation
-    Mat K1; //calibration matrix
+    Mat R12 = R1w.t()*R2w;                    //Rotation from camera 1 to camera 2
+    Mat T12 = -R1w*Mat(T2w - T1w).rowRange(0,3);   //Translation from camera 1 to camera 2
 
-    decomposeProjectionMatrix(P1w, K1, R1w, T1w);
+    Mat P2;
+    hconcat(R12, T12, P2);
+    P2 = K2*P2;                              //P2 = K2[R12|t12]
 
-    T1w = T1w/T1w.at<float>(3);      //convert to homogenius coords
+    Mat P1p, C;
+    vconcat(K1.inv(DECOMP_SVD), Mat::zeros(1,3,CV_32FC1), P1p);         //Pseudo inverse of P1 (P1^t = [K1^(-1); 0^t]
+    vconcat(Mat::zeros(3,1,CV_32FC1), Mat::ones(1,1,CV_32FC1), C);      //Camera center image 1
 
     if (LOG_DEBUG) {
-        std::cout << "P1w = " << std::endl << P1w << std::endl;
-        std::cout << "T1w = " << std::endl << T1w << std::endl;
-        std::cout << "R1w = " << std::endl << R1w << std::endl;
-        std::cout << "P2w = " << std::endl << P2w << std::endl;
+        std::cout << "Computation of ground truth: " << std::endl;
+        std::cout << "-- K1 = " << std::endl << K1 << std::endl;
+        std::cout << "-- K2 = " << std::endl << K2 << std::endl;
+        std::cout << "-- T1w = " << std::endl << T1w << std::endl;
+        std::cout << "-- T2w = " << std::endl << T2w << std::endl;
+        std::cout << "-- R1w = " << std::endl << R1w << std::endl;
+        std::cout << "-- R2w = " << std::endl << R2w << std::endl;
+        std::cout << "-- R12 = " << std::endl << R12 << std::endl;
+        std::cout << "-- T12 = " << std::endl << T12 << std::endl;
+        std::cout << "-- P1p = " << std::endl << P1p << std::endl;
+        std::cout << "-- P2 = " << std::endl << P2 << std::endl;
+        std::cout << std::endl;
     }
 
-    Mat* F = new Mat(crossProductMatrix(P2w*T1w)*P2w*P1w.inv(DECOMP_SVD)); //(See Hartley, Zisserman: p. 244)
-
-    *F = *F / F->at<float>(2,2);       //convert to homogenius coords
+    Mat * F = new Mat(crossProductMatrix(P2*C)*P2*P1p);     //F = [P'*C]x*P'*P^+(See Hartley, Zisserman: p. 244)
+    *F = *F / F->at<float>(2,2);
 
     return F;
 
@@ -63,10 +76,13 @@ int main(int argc, char** argv )
     if(argc < 6) {
         mce = new MultipleCueEstimation(&image_1_color, &image_2_color, computations);
     } else {
-        Mat P1w = MatFromFile(argv[4], 3); //P1 in world coords
-        Mat P2w = MatFromFile(argv[5], 3); //P2 in world coords
-
-        mce = new MultipleCueEstimation(&image_1_color, &image_2_color, computations, getGroundTruth(P1w, P2w));
+//        Mat P1w = MatFromFile(argv[4], 3); //P1 in world coords
+//        Mat P2w = MatFromFile(argv[5], 3); //P2 in world coords
+        //Mat K1 = Mat::zeros(3,3,CV_32FC1), K2 = Mat::zeros(3,3,CV_32FC1), R1w = Mat::zeros(3,3,CV_32FC1), R2w = Mat::zeros(3,3,CV_32FC1), t1w = Mat::zeros(3,1,CV_32FC1), t2w = Mat::zeros(3,1,CV_32FC1);
+        Mat K1, K2, R1w, R2w, t1w, t2w;
+        if(ImgParamsFromFile(argv[4], K1, R1w, t1w) && ImgParamsFromFile(argv[5], K2, R2w, t2w)) {
+            mce = new MultipleCueEstimation(&image_1_color, &image_2_color, computations, getGroundTruthKRt(K1, K2, R1w, R2w, t1w, t2w));
+        }
     }
-    mce->run();
+    if(mce != 0) mce->run();
 }

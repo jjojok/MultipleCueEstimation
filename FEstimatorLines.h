@@ -27,7 +27,7 @@ public:
     int extractMatches();
 
 private:
-    int filterLineExtractions(std::vector<cv::line_descriptor::KeyLine> &keylines);
+    int filterLineExtractions(float minLenght, std::vector<cv::line_descriptor::KeyLine> &keylines);
     //int filterLineMatches(std::vector<DMatch> &matches);
     void fillHLinEq(Mat* linEq, std::vector<lineCorrespStruct> correspondencies);
     void fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row);
@@ -35,6 +35,7 @@ private:
     float calcMedS(Mat Hs);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
     double squaredProjectionDistance(Mat H, lineCorrespStruct lc);
+    double squaredProjectionDistance(Mat H_invT, Mat H_T, lineCorrespStruct lc);
     void visualizeHomography(lineSubsetStruct subset, Mat img, std::string name);
     int refineLineMatches(lineSubsetStruct subset);
     lineSubsetStruct estimateHomography();

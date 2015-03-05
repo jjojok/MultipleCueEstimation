@@ -91,33 +91,32 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
                              cv::Scalar(255,255,255));
     }
 
-    // Draw the inlier points
-//    std::vector<cv::Point2f> points1In, points2In;
-//    std::vector<cv::Point2f>::const_iterator itPts= p1.begin();
-//    std::vector<uchar>::const_iterator itIn= inliers.begin();
-//    while (itPts!=points1.end()) {
+    // Draw points
+    std::vector<cv::Point2f>::const_iterator itPts= p1.begin();
+    //std::vector<uchar>::const_iterator itIn= inliers.begin();
+    while (itPts!=p1.end()) {
 
-//        // draw a circle at each inlier location
-//        if (*itIn) {
-//            cv::circle(image1,*itPts,3,cv::Scalar(255,255,255),2);
-//            points1In.push_back(*itPts);
-//        }
-//        ++itPts;
-//        ++itIn;
-//    }
+        // draw a circle at each inlier location
+        //if (*itIn) {
+            cv::circle(image1,*itPts,3,cv::Scalar(255,255,255),2);
+            //points1In.push_back(*itPts);
+       // }
+        ++itPts;
+        //++itIn;
+    }
 
-//    itPts= p2.begin();
-//    itIn= inliers.begin();
-//    while (itPts!=points2.end()) {
+    itPts= p2.begin();
+    //itIn= inliers.begin();
+    while (itPts!=p2.end()) {
 
-//        // draw a circle at each inlier location
-//        if (*itIn) {
-//            cv::circle(image2,*itPts,3,cv::Scalar(255,255,255),2);
-//            points2In.push_back(*itPts);
-//        }
-//        ++itPts;
-//        ++itIn;
-//    }
+        // draw a circle at each inlier location
+        //if (*itIn) {
+            cv::circle(image2,*itPts,3,cv::Scalar(255,255,255),2);
+            //points2In.push_back(*itPts);
+        //}
+        ++itPts;
+        //++itIn;
+    }
 
     // Display the images with points
 
@@ -182,6 +181,33 @@ Mat MatFromFile(std::string file, int rows) {
         std::cerr << "Unable to open file: " << file;
     }
     return matrix;
+}
+
+bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
+    int values = 1;
+    std::ifstream inputStream;
+    float x;
+    inputStream.open(file.c_str());
+    if (inputStream.is_open()) {
+        while(inputStream >> x) {
+            if(values >= 1 && values <= 9) {    //K
+                K.push_back(x);
+            } else if(values >= 13 && values <= 21) { //R
+                R.push_back(x);
+            } else if(values >= 22 && values <= 24) { //t
+                t.push_back(x);
+            }
+            values++;
+        }
+        inputStream.close();
+        K = K.reshape(1, 3);
+        R = R.reshape(1, 3);
+        t = t.reshape(1, 3);
+        return true;
+    } else {
+        std::cerr << "Unable to open file: " << file <<std::endl;
+        return false;
+    }
 }
 
 double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2) {    //Reprojection error, epipolar line

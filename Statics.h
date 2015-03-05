@@ -28,17 +28,17 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.02;
+#define MIN_LENGTH_FACTOR 0.005;
 //Max angle between matched lines
-#define MAX_LINE_ANGLE M_PI/4.0
+#define MAX_LINE_ANGLE M_PI/6.0
 //defines number of subsets which are randomly picked to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
-#define NUM_LINE_PAIR_SUBSETS_FACTOR 20
+#define NUM_LINE_PAIR_SUBSETS_FACTOR 10
 //Number of subsets for Homography computations
 #define NUM_LINE_PAIR_SUBSETS 500
 //Number of correspondencies per homography estimation
-#define NUM_CORRESP 8
+#define NUM_CORRESP 4
 //Max hemming distance of binary matchig
-#define MAX_HEMMING_DIST 20
+#define MAX_HEMMING_DIST 5
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
 //How close a H has to be at unity to be teated as unity
