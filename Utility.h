@@ -16,6 +16,8 @@
 
 using namespace cv;
 
+void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name);
+float smallestRelAngle(float ang1, float ang2);
 void showImage(std::string name, Mat image, int type = WINDOW_NORMAL, int width = 800, int height = 0);
 double squaredError(Mat A, Mat B);
 Mat MatFromFile(std::string file, int cols);

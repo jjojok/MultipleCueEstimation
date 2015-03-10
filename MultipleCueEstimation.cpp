@@ -23,10 +23,12 @@ void MultipleCueEstimation::run() {
     std::vector<FEstimationMethod> estimations;
     if (checkData()) {
         if(computations & F_FROM_POINTS) {
-            estimations.push_back(*calcFfromPoints());
+            FEstimationMethod* points = calcFfromPoints();
+            if(points->isSuccessful()) estimations.push_back(*points);
         }
         if(computations & F_FROM_LINES) {
-            estimations.push_back(*calcFfromLines());
+            FEstimationMethod* lines = calcFfromLines();
+            if(lines->isSuccessful()) estimations.push_back(*lines);
         }
         if(computations & F_FROM_PLANES) {
             estimations.push_back(*calcFfromPlanes());

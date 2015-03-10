@@ -47,6 +47,10 @@
 #define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
 #define MAX_H2_ESTIMATIONS 10
+//Max Angle difference for lines being parallel
+#define MAX_ANGLE_DIFF M_PI/30.0
+//Max distance of projected lines to be considered as a correct projection (pixel)
+#define MAX_PROJ_DIST 1.5
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

@@ -12,13 +12,20 @@ struct lineCorrespStruct {
     Mat line1Start, line1End, line2Start, line2End;
 };
 
+struct lineCorrespWrapper {
+    int lineCorrespIdx;
+    float lineCorrespError;
+};
+
 struct lineSubsetStruct {
     std::vector<lineCorrespStruct> lineCorrespondencies;
     std::vector<int> lineCorrespondenceIdx;
     float errorMeasure;
     Mat Hs, Hs_normalized;
-    std::vector<int> consensusSetIdx;
+    std::vector<int> consensusCorrespIndices;
 };
+
+bool compareLineCorrespWrapper(lineCorrespWrapper ls1, lineCorrespWrapper ls2);
 
 class FEstimatorLines : public FEstimationMethod {
 public:
@@ -28,6 +35,8 @@ public:
     int extractMatches();
 
 private:
+    void visualizeProjectedLines(lineSubsetStruct subset, int lineWidth, bool drawConnections, std::string name);
+    bool hasGeneralPosition(std::vector<int> subsetsIdx, int newIdx);
     double algebraicDistance(Mat H_T, lineCorrespStruct lc);
     lineSubsetStruct calcRANSAC(std::vector<lineSubsetStruct> subsets, double threshold);
     int filterLineExtractions(float minLenght, std::vector<cv::line_descriptor::KeyLine> &keylines);
@@ -39,8 +48,7 @@ private:
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
     double squaredProjectionDistance(Mat H, lineCorrespStruct lc);
     double squaredProjectionDistance(Mat H_invT, Mat H_T, lineCorrespStruct lc);
-    void visualizeHomography(lineSubsetStruct subset, Mat img, std::string name);
-    int refineLineMatches(lineSubsetStruct subset);
+    int refineLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &refinedlineCorrespondencies);
     lineSubsetStruct estimateHomography();
     lineCorrespStruct getlineCorrespStruct(float start1x, float start1y, float start2x, float start2y, float end1x, float end1y, float end2x, float end2y);
     void visualizeMatches(std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name);
