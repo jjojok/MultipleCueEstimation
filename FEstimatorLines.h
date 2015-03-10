@@ -15,8 +15,9 @@ struct lineCorrespStruct {
 struct lineSubsetStruct {
     std::vector<lineCorrespStruct> lineCorrespondencies;
     std::vector<int> lineCorrespondenceIdx;
-    float MedS;
-    Mat Hs;
+    float errorMeasure;
+    Mat Hs, Hs_normalized;
+    std::vector<int> consensusSetIdx;
 };
 
 class FEstimatorLines : public FEstimationMethod {
@@ -27,6 +28,8 @@ public:
     int extractMatches();
 
 private:
+    double algebraicDistance(Mat H_T, lineCorrespStruct lc);
+    lineSubsetStruct calcRANSAC(std::vector<lineSubsetStruct> subsets, double threshold);
     int filterLineExtractions(float minLenght, std::vector<cv::line_descriptor::KeyLine> &keylines);
     //int filterLineMatches(std::vector<DMatch> &matches);
     void fillHLinEq(Mat* linEq, std::vector<lineCorrespStruct> correspondencies);
