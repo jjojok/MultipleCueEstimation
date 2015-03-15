@@ -33,5 +33,6 @@ Mat matVector(Point2f p);
 double epipolarLineDistanceError(Mat F1, Mat F2, Mat image, int numOfSamples);
 double epipolarLineDistanceErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples);
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t);
+float fnorm(float x, float y);
 
 #endif // UTILITY_H

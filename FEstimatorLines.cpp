@@ -67,8 +67,9 @@ int FEstimatorLines::extractMatches() {
 
     cv::line_descriptor::KeyLine l1, l2;
     int filteredMatches = 0;
+    int id = 0;
     //Reduce max hemming distance if number of matches are high
-    int maxHemmingDist = MIN_HEMMING_DIST + std::min((int)((MAX_HEMMING_DIST - MIN_HEMMING_DIST)*1000.0/matches.size()), (MAX_HEMMING_DIST - MIN_HEMMING_DIST));
+    int maxHemmingDist = MIN_HEMMING_DIST + std::min((int)((MAX_HEMMING_DIST - MIN_HEMMING_DIST)*2000.0/matches.size()), (MAX_HEMMING_DIST - MIN_HEMMING_DIST));
     if(LOG_DEBUG) std::cout << "-- Min match hemming dist: " << maxHemmingDist << std::endl;
 
     for (std::vector<DMatch>::const_iterator it= matches.begin(); it!=matches.end(); ++it) {
@@ -79,49 +80,19 @@ int FEstimatorLines::extractMatches() {
         if (it->distance > maxHemmingDist || filterLineMatch(l1,l2)) {  //Bad match
             filteredMatches++;
         } else {    //Good match, add to correspondence list
-
-            lineCorrespStruct lc;
-            lc.line1 = l1;
-            lc.line2 = l2;
-
-            if(l1.octave > 0) { //TODO: OpenCV bug: coordinates are from downscaled versions of image pyramid
-                double scaling = l1.octave*SCALING;
-
-                lc.line1.startPointX *= scaling;
-                lc.line1.startPointY *= scaling;
-                lc.line2.startPointX *= scaling;
-                lc.line2.startPointY *= scaling;
-
-                lc.line1.endPointX *= scaling;
-                lc.line1.endPointY *= scaling;
-                lc.line2.endPointX *= scaling;
-                lc.line2.endPointY *= scaling;
-
-                lc.line1.lineLength *= scaling;
-                lc.line2.lineLength *= scaling;
-            }
-
-            lc.line1Start = matVector(l1.startPointX, l1.startPointY, 1);
-            lc.line2Start = matVector(l2.startPointX, l2.startPointY, 1);
-            lc.line1End = matVector(l1.endPointX, l1.endPointY, 1);
-            lc.line2End = matVector(l2.endPointX, l2.endPointY, 1);
-
-
-//            std::cout << "l1s: " << lc.line1Start << std::endl << "l2s: " << lc.line2Start << std::endl;
-//            std::cout << "l1e: " << lc.line1End << std::endl << "l2e: " << lc.line2End << std::endl;
-
-            lineCorrespondencies.push_back(lc);
-
+            lineCorrespStruct lc = getlineCorrespStruct(l1,l2, id);
+            id++;
+            matchedLines.push_back(lc);
         }
     }
 
     if(LOG_DEBUG) {
-        std::cout << "-- Number of matches : " << lineCorrespondencies.size() << " filtered: " << filteredMatches << std::endl;
+        std::cout << "-- Number of matches : " << matchedLines.size() << " filtered: " << filteredMatches << std::endl;
     }
 
-    if(VISUAL_DEBUG) visualizeMatches(lineCorrespondencies, 2, true, "Line matches");
+    if(VISUAL_DEBUG) visualizeMatches(matchedLines, 2, true, "Line matches");
 
-    return lineCorrespondencies.size();
+    return matchedLines.size();
 
     std::cout << std::endl;
 }
@@ -147,76 +118,81 @@ Mat FEstimatorLines::compute() {
 
     extractMatches();
 
-    if(lineCorrespondencies.size() < 2*NUM_CORRESP) {
+//    lineCorrespondencies.clear();       //TODO: Remove hard coded lines for entry 8+9
+//    lineCorrespStruct lc1, lc2, lc3, lc4, lc5, lc6;
+//    lc1 = getlineCorrespStruct(1092, 617, 1069, 1225, 1510, 608, 1514, 1216);
+//    lc2 = getlineCorrespStruct(910, 1526, 1096, 1512, 1405, 1530, 1546, 1511);
+//    lc3 = getlineCorrespStruct(1121, 897, 1209, 1149, 1542, 884, 1619, 1134);
+//    lc4 = getlineCorrespStruct(1096, 1673, 1202, 1360, 1552, 1671, 1622, 1353);
+//    lc5 = getlineCorrespStruct(2046, 962, 2256, 909, 2353, 855, 2540, 772);
+//    lc6 = getlineCorrespStruct(2320, 1706, 2284, 1203, 2625, 1648, 2582, 1112);
+//    lineCorrespondencies.push_back(lc1);
+//    lineCorrespondencies.push_back(lc2);
+//    lineCorrespondencies.push_back(lc3);
+//    lineCorrespondencies.push_back(lc4);
+//    lineCorrespondencies.push_back(lc5);
+//    lineCorrespondencies.push_back(lc6);
+//    if(VISUAL_DEBUG) visualizeMatches(lineCorrespondencies, 8, true, "Line matches");
+
+    if(matchedLines.size() < 2*NUM_CORRESP) {
         if(LOG_DEBUG) std::cout << "-- Estimation failed, not enough line correspondencies!" << std::endl;
         return Mat::zeros(CV_32FC1, 3, 3);
     }
 
     if(LOG_DEBUG) std::cout << "-- First estimation..." << std::endl;
 
-    lineSubsetStruct lineSubsetStruct1 = estimateHomography();
-
-//    for(int i = 0; i < lineSubsetStruct1.lineCorrespondencies.size(); i++) {
-//        std::cout << "l1s: " << lineSubsetStruct1.lineCorrespondencies.at(i).line1Start << std::endl << "l2s: " << lineSubsetStruct1.lineCorrespondencies.at(i).line2Start << std::endl;
-//        std::cout << "l1e: " << lineSubsetStruct1.lineCorrespondencies.at(i).line1End << std::endl << "l2e: " << lineSubsetStruct1.lineCorrespondencies.at(i).line2End << std::endl;
-//    }
-
-    visualizeProjectedLines(lineSubsetStruct1, 2, true, "Projected lines 1");
-
-    if(VISUAL_DEBUG) {
-        visualizeHomography(lineSubsetStruct1.Hs, image_1, image_2, "H21");
-        visualizeMatches(lineSubsetStruct1.lineCorrespondencies, 8, true, "H21 used Matches");
+    std::vector<lineCorrespStruct> goodLineMatches;
+    for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
+        goodLineMatches.push_back(*it);
     }
 
-    //    for(int i = 0; i < lineSubsetStruct1.lineCorrespondenceIdx.size(); i++) {
-    //        refinedlineCorrespondencies.push_back(lineCorrespondencies.at(lineSubsetStruct1.lineCorrespondenceIdx.at(i)));
-    //    }
+    lineSubsetStruct H1 = findHomography(goodLineMatches, LMEDS);
 
-    std::vector<lineCorrespStruct> refinedlineCorrespondencies;
-    int removed = refineLineMatches(lineSubsetStruct1, refinedlineCorrespondencies);
-    lineCorrespondencies = refinedlineCorrespondencies;
-    if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << refinedlineCorrespondencies.size() <<  ", removed: " << removed << std::endl;
+    if(VISUAL_DEBUG) {
+        visualizeHomography(H1.Hs, image_1, image_2, "H21");
+        visualizeMatches(H1.lineCorrespondencies, 8, true, "H21 used Matches");
+        visualizeProjectedLines(H1, 8, true, "H21 used lines projected to image 2");
+    }
 
-//    float threshold = MAX_PROJ_DIST;//pow(1.4826*(1.0 + 5.0/(lineCorrespondencies.size() - NUM_CORRESP))*sqrt(lineSubsetStruct1.errorMeasure), 2)*OUTLIER_THESHOLD_FACTOR;
-//    int removed = refineLineMatches(lineSubsetStruct1, threshold);
+    if(LOG_DEBUG) std::cout << "-- Second estimation..." << std::endl;
 
+    filterUsedLineMatches(matchedLines, goodLineMatches);
+    if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matchedLines.size() <<  ", removed: " << goodLineMatches.size() << std::endl;
 
-
+    lineSubsetStruct H2;
     int estCnt = 0;
     bool H_close_to_unitiy = true;
     Mat H;
 
-    while(H_close_to_unitiy && lineCorrespondencies.size() > NUM_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
+    while(H_close_to_unitiy && matchedLines.size() > NUM_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
 
-        if(LOG_DEBUG) std::cout << "-- Second estimation..." << std::endl;
-
-        lineSubsetStruct lineSubsetStruct2 = estimateHomography();
-
-        if(VISUAL_DEBUG) {
-            visualizeMatches(lineCorrespondencies, 4, true, "remaining line Matches");
-            visualizeHomography(lineSubsetStruct2.Hs, image_1, image_2, "H21_2");
-            visualizeMatches(lineSubsetStruct2.lineCorrespondencies, 8, true, "H21_2 used Matches");
+        goodLineMatches.clear();
+        for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
+            goodLineMatches.push_back(*it);
         }
-
-        H = lineSubsetStruct1.Hs*lineSubsetStruct2.Hs.inv(DECOMP_SVD); // H = (H1*H2⁻1)
+        H2 = findHomography(goodLineMatches, LMEDS);
+        H = H1.Hs*H2.Hs.inv(DECOMP_SVD); // H = (H1*H2⁻1)
 
         H_close_to_unitiy = isUnity(H);
-
         if(H_close_to_unitiy) {
             if(LOG_DEBUG) std::cout << "-- H close to unity, repeating estimation..." << std::endl << "H = " << std::endl << H << std::endl;
-            std::vector<lineCorrespStruct> refinedlineCorrespondencies;
-            int removed = refineLineMatches(lineSubsetStruct2, refinedlineCorrespondencies);
-            lineCorrespondencies = refinedlineCorrespondencies;
-            if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << refinedlineCorrespondencies.size() <<  ", removed: " << removed << std::endl;
+            filterUsedLineMatches(matchedLines, goodLineMatches);
+            if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matchedLines.size() <<  ", removed: " << goodLineMatches.size() << std::endl;
         }
 
         estCnt++;
 
     }
 
-    if(H_close_to_unitiy) {
+    if(H_close_to_unitiy) {     //Not able to find a secont homographie
         if(LOG_DEBUG) std::cout << "-- Estimation failed!" << std::endl;
         return Mat::zeros(CV_32FC1, 3, 3);
+    }
+
+    if(VISUAL_DEBUG) {
+        visualizeHomography(H2.Hs, image_1, image_2, "H21_2");
+        visualizeMatches(H2.lineCorrespondencies, 8, true, "H21_2 used Matches");
+        visualizeProjectedLines(H2, 8, true, "H21_2 used lines projected to image 2");
     }
 
     // Map the OpenCV matrix with Eigen:
@@ -256,7 +232,7 @@ Mat FEstimatorLines::compute() {
     std::vector<Mat> e;
     split(eigenvectors.col(col),e); //Remove channel for imaginary part
     std::cout << "e = " << std::endl << e.at(0) << std::endl;
-    F = crossProductMatrix(e.at(0))*lineSubsetStruct1.Hs;
+    F = crossProductMatrix(e.at(0))*H1.Hs;
 
     //Enforce Rank 2 constraint:
     SVD svd;
@@ -268,17 +244,42 @@ Mat FEstimatorLines::compute() {
     F = u*newW*vt;
     F /= F.at<float>(2,2);
 
-    cvWaitKey(0);
+    successful = true;
 
     return F;
+}
+
+lineSubsetStruct FEstimatorLines::findHomography(std::vector<lineCorrespStruct> &goodLineMatches, int method) {
+    float lastError = 0;
+    lineSubsetStruct bestSubset;
+    bestSubset.meanSquaredSymmeticTransferError = 0;
+
+    do {
+
+        lastError = bestSubset.meanSquaredSymmeticTransferError;
+
+        bestSubset = estimateHomography(goodLineMatches, method);
+
+        goodLineMatches.clear();
+
+        for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
+            if(squaredSymmeticTransferError(bestSubset.Hs, *it) < MAX_PROJ_DIST) goodLineMatches.push_back(*it);
+        }
+
+        if(LOG_DEBUG) std::cout << "-- Mean squared symmetric transfer error: " << bestSubset.meanSquaredSymmeticTransferError << std::endl;
+
+    } while(goodLineMatches.size() > NUM_CORRESP && fabs(lastError - bestSubset.meanSquaredSymmeticTransferError)/bestSubset.meanSquaredSymmeticTransferError > 0.1 && bestSubset.meanSquaredSymmeticTransferError > 10E-12);
+
+    bestSubset.lineCorrespondencies = goodLineMatches;
+
+    computeHomography(bestSubset);
+
+    return bestSubset;
 }
 
 bool FEstimatorLines::isUnity(Mat m) {
 
     Mat diff = abs(m - Mat::eye(m.rows, m.cols, CV_32FC1));
-
-    std::cout << diff << std::endl;
-
     for(int i = 0; i < m.cols; i++) {
         if(diff.at<float>(i,i) > MARGIN) return false;
     }
@@ -286,7 +287,7 @@ bool FEstimatorLines::isUnity(Mat m) {
     return true;
 }
 
-lineSubsetStruct FEstimatorLines::estimateHomography() {
+lineSubsetStruct FEstimatorLines::estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method) {
     int numOfPairs = lineCorrespondencies.size();
     int numOfPairSubsets = NUM_LINE_PAIR_SUBSETS_FACTOR*numOfPairs;
     std::vector<lineSubsetStruct> subsets;
@@ -295,7 +296,6 @@ lineSubsetStruct FEstimatorLines::estimateHomography() {
     srand(time(NULL));  //Init random generator
     for(int i = 0; i < numOfPairSubsets; i++) {
         std::vector<int> subsetsIdx;
-        Mat linEq = Mat::ones(2*NUM_CORRESP,9,CV_32FC1);
         lineSubsetStruct subset;
 
         for(int j = 0; j < NUM_CORRESP; j++) {
@@ -303,63 +303,72 @@ lineSubsetStruct FEstimatorLines::estimateHomography() {
 
             do {        //Generate NUM_CORRESP uniqe random indices for line pairs where not 3 are parallel
                 subsetIdx = std::rand() % numOfPairs;
-            } while(std::find(subsetsIdx.begin(), subsetsIdx.end(), subsetIdx) != subsetsIdx.end() && hasGeneralPosition(subsetsIdx, subsetIdx));
+            } while(!isUniqe(subsetsIdx, subsetIdx) || !hasGeneralPosition(subsetsIdx, subsetIdx, lineCorrespondencies));
 
             subsetsIdx.push_back(subsetIdx);
-            subset.lineCorrespondencies.push_back(lineCorrespondencies.at(subsetIdx));
-//            std::cout << "l1s: " << lineCorrespondencies.at(subsetIdx).line1Start << std::endl << "l2s: " << lineCorrespondencies.at(subsetIdx).line2Start << std::endl;
-//            std::cout << "l1e: " << lineCorrespondencies.at(subsetIdx).line1End << std::endl << "l2e: " << lineCorrespondencies.at(subsetIdx).line2End << std::endl;
+            subset.lineCorrespondencies.push_back(getlineCorrespStruct(lineCorrespondencies.at(subsetIdx)));
         }
 
-//        for(int i = 0; i < subset.lineCorrespondencies.size(); i++) {
-//            std::cout << "l1s: " << subset.lineCorrespondencies.at(i).line1Start << std::endl << "l2s: " << subset.lineCorrespondencies.at(i).line2Start << std::endl;
-//            std::cout << "l1e: " << subset.lineCorrespondencies.at(i).line1End << std::endl << "l2e: " << subset.lineCorrespondencies.at(i).line2End << std::endl;
-//        }
-
-        subset.lineCorrespondenceIdx = subsetsIdx;
-        Mat* T = normalizeLines(subset.lineCorrespondencies);
-        fillHLinEq(&linEq, subset.lineCorrespondencies);
-
-        Mat A = linEq.colRange(0, linEq.cols-1);
-        Mat x = -linEq.col(linEq.cols-1);
-        solve(A, x, subset.Hs_normalized, DECOMP_SVD);
-        subset.Hs_normalized.resize(9);
-        subset.Hs_normalized = subset.Hs_normalized.reshape(1,3);
-        subset.Hs_normalized.at<float>(2,2) = 1.0;
-        subset.Hs = denormalize(subset.Hs_normalized, T[0], T[1]);
+        //subset.lineCorrespondenceIdx = subsetsIdx;
+        computeHomography(subset);
+        //if(LOG_DEBUG) std::cout << "Hs = " << std::endl << subset.Hs << std::endl;
         subsets.push_back(subset);
     }
 
-    //return calcLMedS(subsets);
-    //return calcRANSAC(subsets, MAX_PROJ_DIST);
-    return calcRANSAC(subsets, 0.1);
+    if(method == RANSAC) return calcRANSAC(subsets, 6, lineCorrespondencies);
+    else return calcLMedS(subsets, lineCorrespondencies);
 }
 
-bool FEstimatorLines::hasGeneralPosition(std::vector<int> subsetsIdx, int newIdx) {
+bool FEstimatorLines::computeHomography(lineSubsetStruct &subset) {
+    Mat linEq = Mat::ones(2*subset.lineCorrespondencies.size(),9,CV_32FC1);
+    Mat* T = normalizeLines(subset.lineCorrespondencies);
+    fillHLinEq(linEq, subset.lineCorrespondencies);
+    Mat A = linEq.colRange(0, linEq.cols-1);
+    Mat x = -linEq.col(linEq.cols-1);
+    solve(A, x, subset.Hs_normalized, DECOMP_SVD);
+    subset.Hs_normalized.resize(9);
+    subset.Hs_normalized = subset.Hs_normalized.reshape(1,3);
+    subset.Hs_normalized.at<float>(2,2) = 1.0;
+    subset.Hs = denormalize(subset.Hs_normalized, T[0], T[1]);
+    return true;
+}
+
+bool FEstimatorLines::hasGeneralPosition(std::vector<int> subsetsIdx, int newIdx, std::vector<lineCorrespStruct> lineCorrespondencies) {
     if(subsetsIdx.size() < 3) return true;
     int parallelCout = 0;
     lineCorrespStruct lc;
     lineCorrespStruct lcNew = lineCorrespondencies.at(newIdx);
     for(int i = 0; i < subsetsIdx.size(); i++) {
         lc = lineCorrespondencies.at(subsetsIdx.at(i));
-        if(smallestRelAngle(lc.line1.angle, lcNew.line1.angle) < MAX_ANGLE_DIFF || smallestRelAngle(lc.line2.angle, lcNew.line2.angle) < MAX_ANGLE_DIFF) parallelCout++;
+        if(smallestRelAngle(lc.line1Angle, lcNew.line1Angle) < MAX_ANGLE_DIFF || smallestRelAngle(lc.line2Angle, lcNew.line2Angle) < MAX_ANGLE_DIFF) parallelCout++;
     }
     if(parallelCout >= 3) return false;
     return true;
 }
 
-int FEstimatorLines::refineLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &refinedlineCorrespondencies) {
-    for(int i = 0; i < lineCorrespondencies.size(); i++) {
-        bool add = true;
-        for(int j = 0; j < subset.consensusCorrespIndices.size(); j++) {
-            if(subset.consensusCorrespIndices.at(j) == i) {
-                add = false;
+bool FEstimatorLines::isUniqe(std::vector<int> subsetsIdx, int newIdx) {
+    if(subsetsIdx.size() == 0) return true;
+    for(std::vector<int>::const_iterator iter = subsetsIdx.begin(); iter != subsetsIdx.end(); ++iter) {
+        if(*iter == newIdx) return false;
+    }
+    return true;
+}
+
+void FEstimatorLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches) {
+    std::vector<lineCorrespStruct>::iterator it= matches.begin();
+    while (it!=matches.end()) {
+        bool remove = false;
+        for(std::vector<lineCorrespStruct>::const_iterator used = usedMatches.begin(); used != usedMatches.end(); ++used) {
+            if(it->id == used->id) {
+                remove = true;
                 break;
             }
         }
-        if(add) refinedlineCorrespondencies.push_back(lineCorrespondencies.at(i));
+        if(remove) matches.erase(it);
+        else {
+            it++;
+        }
     }
-    return subset.consensusCorrespIndices.size();
 }
 
 void FEstimatorLines::visualizeMatches(std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name) {
@@ -367,10 +376,10 @@ void FEstimatorLines::visualizeMatches(std::vector<lineCorrespStruct> correspond
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
     for(std::vector<lineCorrespStruct>::iterator it = correspondencies.begin() ; it != correspondencies.end(); ++it) {
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
-        cv::line(img, cvPoint2D32f(it->line1.startPointX, it->line1.startPointY), cvPoint2D32f(it->line1.endPointX, it->line1.endPointY), color, lineWidth);
-        cv::line(img, cvPoint2D32f(it->line2.startPointX + image_1_color.cols, it->line2.startPointY), cvPoint2D32f(it->line2.endPointX + image_1_color.cols, it->line2.endPointY), color, lineWidth);
+        cv::line(img, cvPoint2D32f(it->line1Start.at<float>(0,0), it->line1Start.at<float>(1,0)), cvPoint2D32f(it->line1End.at<float>(0,0), it->line1End.at<float>(1,0)), color, lineWidth);
+        cv::line(img, cvPoint2D32f(it->line2Start.at<float>(0,0) + image_1_color.cols, it->line2Start.at<float>(1,0)), cvPoint2D32f(it->line2End.at<float>(0,0) + image_1_color.cols, it->line2End.at<float>(1,0)), color, lineWidth);
         if(drawConnections) {
-            cv::line(img, cvPoint2D32f(it->line1.startPointX, it->line1.startPointY), cvPoint2D32f(it->line2.startPointX + image_1_color.cols, it->line2.startPointY), color, lineWidth);
+            cv::line(img, cvPoint2D32f(it->line1Start.at<float>(0,0), it->line1Start.at<float>(1,0)), cvPoint2D32f(it->line2Start.at<float>(0,0) + image_1_color.cols, it->line2Start.at<float>(1,0)), color, lineWidth);
         }
     }
     showImage(name, img, WINDOW_NORMAL, 1600);
@@ -380,48 +389,43 @@ void FEstimatorLines::visualizeProjectedLines(lineSubsetStruct subset, int lineW
     Mat img;
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
     for(std::vector<lineCorrespStruct>::iterator it = subset.lineCorrespondencies.begin() ; it != subset.lineCorrespondencies.end(); ++it) {
-
-            std::cout << "l1s: " << it->line1Start << std::endl << "l2s: " << it->line2Start << std::endl;
-            std::cout << "l1e: " << it->line1End << std::endl << "l2e: " << it->line2End << std::endl;
-
         Mat start2 = subset.Hs*it->line1Start;
         start2 /= start2.at<float>(2,0);
         Mat end2 = subset.Hs*it->line1End;
         end2 /= end2.at<float>(2,0);
-        std::cout << "s2: " << start2 << std::endl << "e2: " << end2 << std::endl;
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
-        cv::line(img, cvPoint2D32f(it->line1.startPointX, it->line1.startPointY), cvPoint2D32f(it->line1.endPointX, it->line1.endPointY), color, lineWidth);
+        cv::line(img, cvPoint2D32f(it->line1Start.at<float>(0,0), it->line1Start.at<float>(1,0)), cvPoint2D32f(it->line1End.at<float>(0,0), it->line1End.at<float>(1,0)), color, lineWidth);
         cv::line(img, cvPoint2D32f(start2.at<float>(0,0) + image_1_color.cols, start2.at<float>(1,0)), cvPoint2D32f(end2.at<float>(0,0) + image_1_color.cols, end2.at<float>(1,0)), color, lineWidth);
         if(drawConnections) {
-            cv::line(img, cvPoint2D32f(it->line1.startPointX, it->line1.startPointY), cvPoint2D32f(start2.at<float>(0,0) + image_1_color.cols, start2.at<float>(1,0)), color, lineWidth);
+            cv::line(img, cvPoint2D32f(it->line1Start.at<float>(0,0), it->line1Start.at<float>(1,0)), cvPoint2D32f(start2.at<float>(0,0) + image_1_color.cols, start2.at<float>(1,0)), color, lineWidth);
         }
     }
     showImage(name, img, WINDOW_NORMAL, 1600);
 }
 
-void FEstimatorLines::fillHLinEq(Mat* linEq, std::vector<lineCorrespStruct> correspondencies) {
+void FEstimatorLines::fillHLinEq(Mat &linEq, std::vector<lineCorrespStruct> correspondencies) {
     lineCorrespStruct lc;
     for(int i = 0; i < correspondencies.size(); i++) {
         lc = correspondencies.at(i);
         float A = lc.line2StartNormalized.at<float>(1,0) - lc.line2EndNormalized.at<float>(1,0);
         float B = lc.line2EndNormalized.at<float>(0,0) - lc.line2StartNormalized.at<float>(0,0);
-        float C = lc.line1StartNormalized.at<float>(0,0)*lc.line2EndNormalized.at<float>(1,0) - lc.line2EndNormalized.at<float>(0,0)*lc.line2StartNormalized.at<float>(1,0);
+        float C = lc.line2StartNormalized.at<float>(0,0)*lc.line2EndNormalized.at<float>(1,0) - lc.line2EndNormalized.at<float>(0,0)*lc.line2StartNormalized.at<float>(1,0);
         int row = 2*i;
         fillHLinEqBase(linEq, lc.line1StartNormalized.at<float>(0,0), lc.line1StartNormalized.at<float>(1,0), A, B, C, row);
         fillHLinEqBase(linEq, lc.line1EndNormalized.at<float>(0,0), lc.line1EndNormalized.at<float>(1,0), A, B, C, row + 1);
     }
 }
 
-void FEstimatorLines::fillHLinEqBase(Mat* linEq, float x, float y, float A, float B, float C, int row) {
-    linEq->at<float>(row, 0) = A*x;
-    linEq->at<float>(row, 1) = A*y;
-    linEq->at<float>(row, 2) = A;
-    linEq->at<float>(row, 3) = B*x;
-    linEq->at<float>(row, 4) = B*y;
-    linEq->at<float>(row, 5) = B;
-    linEq->at<float>(row, 6) = C*x;
-    linEq->at<float>(row, 7) = C*y;
-    linEq->at<float>(row, 8) = C;
+void FEstimatorLines::fillHLinEqBase(Mat &linEq, float x, float y, float A, float B, float C, int row) {
+    linEq.at<float>(row, 0) = A*x;
+    linEq.at<float>(row, 1) = A*y;
+    linEq.at<float>(row, 2) = A;
+    linEq.at<float>(row, 3) = B*x;
+    linEq.at<float>(row, 4) = B*y;
+    linEq.at<float>(row, 5) = B;
+    linEq.at<float>(row, 6) = C*x;
+    linEq.at<float>(row, 7) = C*y;
+    linEq.at<float>(row, 8) = C;
 }
 
 //lineSubsetStruct FEstimatorLines::calcRANSAC(std::vector<lineSubsetStruct> subsets, double threshold) {
@@ -443,25 +447,27 @@ void FEstimatorLines::fillHLinEqBase(Mat* linEq, float x, float y, float A, floa
 //    return bestSolution;
 //}
 
-lineSubsetStruct FEstimatorLines::calcRANSAC(std::vector<lineSubsetStruct> subsets, double threshold) {
+lineSubsetStruct FEstimatorLines::calcRANSAC(std::vector<lineSubsetStruct> subsets, double threshold, std::vector<lineCorrespStruct> lineCorrespondencies) {
     if(LOG_DEBUG) std::cout << "-- Computing RANSAC of " << subsets.size() << " Homographies" << std::endl;
-    std::vector<lineCorrespWrapper> largestSet;
+    std::vector<lineCorrespSubsetError> largestSet;
     lineSubsetStruct largestSetSubset;
     for(std::vector<lineSubsetStruct>::iterator it = subsets.begin() ; it != subsets.end(); ++it) {
-        std::vector<lineCorrespWrapper> lineCorrespError;
+        std::vector<lineCorrespSubsetError> lineCorrespError;
         Mat H_T = it->Hs.t();
         Mat H_invT = it->Hs.inv(DECOMP_SVD).t();
         for(int i = 0; i < lineCorrespondencies.size(); i++) {
-            lineCorrespWrapper lcw;
+            lineCorrespSubsetError lcw;
             //lcw.lineCorrespError = sqrt(squaredProjectionDistance(H_invT, H_T, lineCorrespondencies.at(i)));
-            lcw.lineCorrespError = squaredProjectionDistance(H_invT, H_T, lineCorrespondencies.at(i));
+            lcw.lineCorrespError = squaredSymmeticTransferError(H_invT, H_T, lineCorrespondencies.at(i));
             lcw.lineCorrespIdx = i;
             lineCorrespError.push_back(lcw);
         }
-        std::sort(lineCorrespError.begin(), lineCorrespError.end(), compareLineCorrespWrapper);
+        std::sort(lineCorrespError.begin(), lineCorrespError.end(), compareLineCorrespErrors);
+
+        //for(int i = 0; i < lineCorrespError.size(); i++ ) std::cout << "line " << lineCorrespError.at(i).lineCorrespIdx << ": " << lineCorrespError.at(i).lineCorrespError << ", ";
 
         float lastError = lineCorrespError.begin()->lineCorrespError;
-        for(std::vector<lineCorrespWrapper>::iterator lcwIter = lineCorrespError.begin() ; lcwIter != lineCorrespError.end(); ++lcwIter) {
+        for(std::vector<lineCorrespSubsetError>::iterator lcwIter = lineCorrespError.begin() ; lcwIter != lineCorrespError.end(); ++lcwIter) {
             if(((lcwIter->lineCorrespError - lastError) / lcwIter->lineCorrespError) > threshold) { //If error growes more then threshold -> stop
                 lineCorrespError.erase(lcwIter, lineCorrespError.end());    //Erase correspondencies with error > threshold
                 break;
@@ -475,55 +481,71 @@ lineSubsetStruct FEstimatorLines::calcRANSAC(std::vector<lineSubsetStruct> subse
         }
     }
 
-    for(std::vector<lineCorrespWrapper>::iterator it = largestSet.begin() ; it != largestSet.end(); ++it) {
-        largestSetSubset.consensusCorrespIndices.push_back(it->lineCorrespIdx);
-    }
+//    for(std::vector<lineCorrespSubsetError>::iterator it = largestSet.begin() ; it != largestSet.end(); ++it) {
+//        largestSetSubset.correspErrors.push_back(*it);
+//    }
 
     if(LOG_DEBUG) std::cout << "-- RANSAC inlaiers: " << largestSet.size() << std::endl;
     return largestSetSubset;
 }
 
-lineSubsetStruct FEstimatorLines::calcLMedS(std::vector<lineSubsetStruct> subsets) {
+lineSubsetStruct FEstimatorLines::calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies) {
     if(LOG_DEBUG) std::cout << "-- Computing LMedS of " << subsets.size() << " Homographies" << std::endl;
     std::vector<lineSubsetStruct>::iterator it = subsets.begin();
     lineSubsetStruct lMedSsubset = *it;
-    lMedSsubset.errorMeasure = calcMedS(it->Hs);
+    lMedSsubset.errorMeasure = calcMedS(*it, lineCorrespondencies);
+    if(subsets.size() < 2) return lMedSsubset;
     it++;
     do {
-        it->errorMeasure = calcMedS(it->Hs);
+        it->errorMeasure = calcMedS(*it, lineCorrespondencies);
         //std::cout << meds << std::endl;
         if(it->errorMeasure < lMedSsubset.errorMeasure) {
             lMedSsubset = *it;
         }
         it++;
     } while(it != subsets.end());
+
+//    //Select line idices where projection error lies below threshold
+//    for(std::vector<lineCorrespSubsetError>::iterator errit = lMedSsubset.correspErrors.begin() ; errit != lMedSsubset.correspErrors.end(); ++errit) {
+//        if(errit->lineCorrespError > MAX_PROJ_DIST) {
+//            lMedSsubset.correspErrors.erase(errit, lMedSsubset.correspErrors.end());
+//            break;
+//        }
+//    }
+
     if(LOG_DEBUG) std::cout << "-- LMEDS: " << lMedSsubset.errorMeasure << std::endl;
     return lMedSsubset;
 }
 
 
-float FEstimatorLines::calcMedS(Mat Hs) {
-    std::vector<float> dist;
-    Mat H_invT = Hs.inv(DECOMP_SVD).t();
-    Mat H_T = Hs.t();
+float FEstimatorLines::calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies) {
+    Mat H_invT = subset.Hs.inv(DECOMP_SVD).t();
+    Mat H_T = subset.Hs.t();
+    std::vector<float> errors;
+    float error;
     for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
-        dist.push_back(squaredProjectionDistance(H_invT, H_T, *it));
-        //dist.push_back(algebraicDistance(H_T, *it));
+        error = squaredSymmeticTransferError(H_invT, H_T, *it);
+        errors.push_back(error);
+        subset.meanSquaredSymmeticTransferError += error;
+//        e.lineCorrespIdx = cnt;
+//        subset.correspErrors.push_back(e);
+//        cnt++;
     }
 
-    std::sort(dist.begin(), dist.end());
+    subset.meanSquaredSymmeticTransferError /= lineCorrespondencies.size();
 
-    return dist.at(dist.size()/2);    //TODO: change back
-    //return absError/lineCorrespondencies.size();
+    std::sort(errors.begin(), errors.end());
+
+    return errors.at(errors.size()/2);
 }
 
-double FEstimatorLines::squaredProjectionDistance(Mat H, lineCorrespStruct lc) {
+double FEstimatorLines::squaredSymmeticTransferError(Mat H, lineCorrespStruct lc) {
     Mat H_invT = H.inv(DECOMP_SVD).t();
     Mat H_T = H.t();
-    return squaredProjectionDistance(H_invT, H_T, lc);
+    return squaredSymmeticTransferError(H_invT, H_T, lc);
 }
 
-double FEstimatorLines::squaredProjectionDistance(Mat H_invT, Mat H_T, lineCorrespStruct lc) {
+double FEstimatorLines::squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc) {
     Mat A = H_T*crossProductMatrix(lc.line2Start)*lc.line2End;
     Mat start1 = lc.line1Start.t()*A;
     Mat end1 = lc.line1End.t()*A;
@@ -546,14 +568,15 @@ Mat* FEstimatorLines::normalizeLines(std::vector<lineCorrespStruct> &corresponde
 
     Mat* normalizationMats = new Mat[2];
     float sum1x = 0, sum1y = 0, sum2x = 0, sum2y = 0, N = 0;
+    float mean1x = 0, mean1y = 0, mean2x = 0, mean2y = 0, v1 = 0, v2 = 0, scale1 = 0, scale2 = 0;
 
     for (std::vector<lineCorrespStruct>::iterator it= correspondencies.begin(); it!=correspondencies.end(); ++it) {
 
-        sum1x += it->line1.startPointX + it->line1.endPointX;
-        sum2x += it->line2.startPointX + it->line2.endPointX;
+        sum1x += it->line1Start.at<float>(0,0) + it->line1End.at<float>(0,0);
+        sum2x += it->line2Start.at<float>(0,0) + it->line2End.at<float>(0,0);
 
-        sum1y += it->line1.startPointY + it->line1.endPointY;
-        sum2y += it->line2.startPointY + it->line2.endPointY;
+        sum1y += it->line1Start.at<float>(1,0) + it->line1End.at<float>(1,0);
+        sum2y += it->line2Start.at<float>(1,0) + it->line2End.at<float>(1,0);
 
     }
 
@@ -561,15 +584,43 @@ Mat* FEstimatorLines::normalizeLines(std::vector<lineCorrespStruct> &corresponde
     normalizationMats[1] = Mat::eye(3,3, CV_32FC1);
     N = 2*correspondencies.size();
 
-    normalizationMats[0].at<float>(0,0) = N/sum1x;
-    normalizationMats[0].at<float>(1,1) = N/sum1y;
-    normalizationMats[0].at<float>(0,2) = -1;
-    normalizationMats[0].at<float>(1,2) = -1;
+    mean1x = sum1x/N;
+    mean1y = sum1y/N;
+    mean2x = sum2x/N;
+    mean2y = sum2y/N;
 
-    normalizationMats[1].at<float>(0,0) = N/sum2x;
-    normalizationMats[1].at<float>(1,1) = N/sum2y;
-    normalizationMats[1].at<float>(0,2) = -1;
-    normalizationMats[1].at<float>(1,2) = -1;
+    for (std::vector<lineCorrespStruct>::iterator it= correspondencies.begin(); it!=correspondencies.end(); ++it) {
+        v1 += fnorm(it->line1Start.at<float>(0,0)-mean1x, it->line1Start.at<float>(1,0)-mean1y);
+        v1 += fnorm(it->line1End.at<float>(0,0)-mean1x, it->line1End.at<float>(1,0)-mean1y);
+        v2 += fnorm(it->line2Start.at<float>(0,0)-mean2x, it->line2Start.at<float>(1,0)-mean2y);
+        v2 += fnorm(it->line2End.at<float>(0,0)-mean2x, it->line2End.at<float>(1,0)-mean2y);
+    }
+
+    v1 /= N;
+    v2 /= N;
+
+    scale1 = sqrt(2.0)/v1;
+    scale2 = sqrt(2.0)/v2;
+
+    normalizationMats[0].at<float>(0,0) = scale1;
+    normalizationMats[0].at<float>(1,1) = scale1;
+    normalizationMats[0].at<float>(0,2) = -scale1*mean1x;
+    normalizationMats[0].at<float>(1,2) = -scale1*mean1y;
+
+    normalizationMats[1].at<float>(0,0) = scale2;
+    normalizationMats[1].at<float>(1,1) = scale2;
+    normalizationMats[1].at<float>(0,2) = -scale2*mean2x;
+    normalizationMats[1].at<float>(1,2) = -scale2*mean2y;
+
+//    normalizationMats[0].at<float>(0,0) = N/sum1x;
+//    normalizationMats[0].at<float>(1,1) = N/sum1y;
+//    normalizationMats[0].at<float>(0,2) = -1;
+//    normalizationMats[0].at<float>(1,2) = -1;
+
+//    normalizationMats[1].at<float>(0,0) = N/sum2x;
+//    normalizationMats[1].at<float>(1,1) = N/sum2y;
+//    normalizationMats[1].at<float>(0,2) = -1;
+//    normalizationMats[1].at<float>(1,2) = -1;
 
     //Carry out normalization:
 
@@ -586,29 +637,78 @@ Mat* FEstimatorLines::normalizeLines(std::vector<lineCorrespStruct> &corresponde
     return normalizationMats;
 }
 
-lineCorrespStruct FEstimatorLines::getlineCorrespStruct(float start1x, float start1y, float start2x, float start2y, float end1x, float end1y, float end2x, float end2y) {
+lineCorrespStruct FEstimatorLines::getlineCorrespStruct(lineCorrespStruct lcCopy) {
     lineCorrespStruct* lc = new lineCorrespStruct;
-    cv::line_descriptor::KeyLine l1, l2;
-    lc->line1 = l1;
-    lc->line2 = l2;
-    lc->line1.startPointX = start1x;
-    lc->line1.endPointX = end1x;
-    lc->line1.startPointY = start1y;
-    lc->line1.endPointY = end1y;
+    lc->line1Angle = lcCopy.line1Angle;
+    lc->line2Angle = lcCopy.line2Angle;
 
-    lc->line2.startPointX = start2x;
-    lc->line2.endPointX = end2x;
-    lc->line2.startPointY = start2y;
-    lc->line2.endPointY = end2y;
+    lc->line1Length = lcCopy.line1Length;
+    lc->line2Length = lcCopy.line2Length;
+
+    lc->line1Start = lcCopy.line1Start.clone();
+    lc->line2Start = lcCopy.line2Start.clone();
+    lc->line1End = lcCopy.line1End.clone();
+    lc->line2End = lcCopy.line2End.clone();
+
+    lc->id = lcCopy.id;
+
+    return *lc;
+}
+
+lineCorrespStruct FEstimatorLines::getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+    double scaling = 1;
+    if(l1.octave > 0) { //TODO: OpenCV bug: coordinates are from downscaled versions of image pyramid
+        scaling = l1.octave*SCALING;
+    }
+
+    lc->line1Angle = l1.angle;
+    lc->line2Angle = l2.angle;
+
+    lc->line1Length = l1.lineLength*scaling;
+    lc->line2Length = l1.lineLength*scaling;
+
+    lc->line1Start = matVector(l1.startPointX*scaling, l1.startPointY*scaling, 1);
+    lc->line2Start = matVector(l2.startPointX*scaling, l2.startPointY*scaling, 1);
+    lc->line1End = matVector(l1.endPointX*scaling, l1.endPointY*scaling, 1);
+    lc->line2End = matVector(l2.endPointX*scaling, l2.endPointY*scaling, 1);
+
+    lc->id = id;
+
+    return *lc;
+}
+
+lineCorrespStruct FEstimatorLines::getlineCorrespStruct(float start1x, float start1y, float end1x, float end1y, float start2x, float start2y , float end2x, float end2y, int id) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+//    cv::line_descriptor::KeyLine l1, l2;
+//    lc->line1 = l1;
+//    lc->line2 = l2;
+//    lc->line1.startPointX = start1x;
+//    lc->line1.endPointX = end1x;
+//    lc->line1.startPointY = start1y;
+//    lc->line1.endPointY = end1y;
+
+//    lc->line2.startPointX = start2x;
+//    lc->line2.endPointX = end2x;
+//    lc->line2.startPointY = start2y;
+//    lc->line2.endPointY = end2y;
+
+    lc->line1Angle = atan2(end1y - start1y, end1x - start1x);
+    lc->line2Angle = atan2(end2y - start2y, end2x - start2x);
+
+    lc->line1Length = fnorm(start1x-end1x, start1y-end1y);
+    lc->line2Length = fnorm(start2x-end2x, start2y-end2y);
 
     lc->line1Start = matVector(start1x, start1y, 1);
     lc->line2Start = matVector(start2x, start2y, 1);
     lc->line1End = matVector(end1x, end1y, 1);
     lc->line2End = matVector(end2x, end2y, 1);
 
+    lc->id;
+
     return *lc;
 }
 
-bool compareLineCorrespWrapper(lineCorrespWrapper ls1, lineCorrespWrapper ls2) {
+bool compareLineCorrespErrors(lineCorrespSubsetError ls1, lineCorrespSubsetError ls2) {
     return ls1.lineCorrespError < ls2.lineCorrespError;
 }

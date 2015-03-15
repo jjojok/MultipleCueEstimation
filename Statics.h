@@ -32,11 +32,11 @@
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
 //defines number of subsets which are randomly picked to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
-#define NUM_LINE_PAIR_SUBSETS_FACTOR 15
+#define NUM_LINE_PAIR_SUBSETS_FACTOR 25.0//0.25
 //Number of subsets for Homography computations
 #define NUM_LINE_PAIR_SUBSETS 500
 //Number of correspondencies per homography estimation
-#define NUM_CORRESP 4
+#define NUM_CORRESP 6
 //Max hemming distance of binary matchig
 #define MAX_HEMMING_DIST 20
 //Min hemming distance of binary matchig
@@ -46,11 +46,11 @@
 //How close a H has to be at unity to be teated as unity
 #define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
-#define MAX_H2_ESTIMATIONS 10
+#define MAX_H2_ESTIMATIONS 20
 //Max Angle difference for lines being parallel
 #define MAX_ANGLE_DIFF M_PI/30.0
-//Max distance of projected lines to be considered as a correct projection (pixel)
-#define MAX_PROJ_DIST 1.5
+//Max squared distance of projected lines to be considered as a correct projection (pixel)
+#define MAX_PROJ_DIST 1.0
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

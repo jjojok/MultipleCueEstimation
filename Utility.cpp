@@ -3,6 +3,10 @@
 
 #include <ctime>
 
+float fnorm(float x, float y) {
+    return sqrt(pow(x, 2) + pow(y, 2));
+}
+
 void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name) {
     Mat transformed;
     Mat result;
@@ -79,7 +83,7 @@ std::string getType(Mat m) {
 
 void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat img1, Mat img2, std::string name) {
 
-    if(p1.size() < 0 || p2.size() < 0) return;
+    if(p1.size() == 0 || p2.size() == 0) return;
 
     Mat image1 = img1.clone();
     Mat image2 = img2.clone();
