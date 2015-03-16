@@ -30,9 +30,10 @@ int calcNumberOfSolutions(Mat linEq);
 double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2);
 Mat matVector(float x, float y, float z);
 Mat matVector(Point2f p);
-double epipolarLineDistanceError(Mat F1, Mat F2, Mat image, int numOfSamples);
-double epipolarLineDistanceErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples);
+double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples);
+double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples);
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t);
 float fnorm(float x, float y);
+void enforceRankTwoConstraint(Mat &F);
 
 #endif // UTILITY_H

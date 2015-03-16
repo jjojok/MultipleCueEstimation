@@ -12,7 +12,7 @@ int FEstimationMethod::extractMatches() {
 
 }
 
-Mat FEstimationMethod::compute() {
+bool FEstimationMethod::compute() {
 
 }
 

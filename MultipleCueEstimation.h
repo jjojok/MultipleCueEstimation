@@ -40,7 +40,7 @@ private:
     FEstimationMethod* calcFfromPlanes();
     FEstimationMethod* calcFfromConics();
     FEstimationMethod* calcFfromCurves();
-    Mat refineF();
+    Mat refineF(std::vector<FEstimationMethod> estimations);
 
     int arguments;
     unsigned int computations;

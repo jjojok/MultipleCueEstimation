@@ -10,8 +10,8 @@ FEstimatorPlanes::FEstimatorPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
     successful = false;
 }
 
-Mat FEstimatorPlanes::compute() {
-
+bool FEstimatorPlanes::compute() {
+    return false;
 }
 
 int FEstimatorPlanes::extractMatches() {

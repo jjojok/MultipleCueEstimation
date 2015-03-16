@@ -22,7 +22,7 @@ struct lineCorrespSubsetError {
 struct lineSubsetStruct {
     std::vector<lineCorrespStruct> lineCorrespondencies;
     //std::vector<int> lineCorrespondenceIdx;
-    float errorMeasure;
+    float qualityMeasure;
     double meanSquaredSymmeticTransferError;
     Mat Hs, Hs_normalized;
     //std::vector<lineCorrespSubsetError> correspErrors;
@@ -34,14 +34,13 @@ class FEstimatorLines : public FEstimationMethod {
 public:
     FEstimatorLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);
     ~FEstimatorLines();
-    Mat compute();
+    bool compute();
     int extractMatches();
 
 private:
     void visualizeProjectedLines(lineSubsetStruct subset, int lineWidth, bool drawConnections, std::string name);
     bool hasGeneralPosition(std::vector<int> subsetsIdx, int newIdx, std::vector<lineCorrespStruct> lineCorrespondencies);
-    double algebraicDistance(Mat H_T, lineCorrespStruct lc);
-    lineSubsetStruct calcRANSAC(std::vector<lineSubsetStruct> subsets, double threshold, std::vector<lineCorrespStruct> lineCorrespondencies);
+    lineSubsetStruct calcRANSAC(std::vector<lineSubsetStruct> &subsets, double threshold, std::vector<lineCorrespStruct> lineCorrespondencies);
     int filterLineExtractions(float minLenght, std::vector<cv::line_descriptor::KeyLine> &keylines);
     //int filterLineMatches(std::vector<DMatch> &matches);
     void fillHLinEq(Mat &linEq, std::vector<lineCorrespStruct> correspondencies);
@@ -52,7 +51,7 @@ private:
     double squaredSymmeticTransferError(Mat H, lineCorrespStruct lc);
     double squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
     void filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
-    lineSubsetStruct findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method);
+    bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, lineSubsetStruct &result);
     lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method);
     bool computeHomography(lineSubsetStruct &subset);
     lineCorrespStruct getlineCorrespStruct(float start1x, float start1y, float end1x, float end1y, float start2x, float start2y, float end2x, float end2y, int id);

@@ -6,7 +6,7 @@
 class FEstimatorPoints : public FEstimationMethod {
 public:
     FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);
-    Mat compute();
+    bool compute();
     std::vector<Point2f> getX1();
     std::vector<Point2f> getX2();
     int extractMatches();

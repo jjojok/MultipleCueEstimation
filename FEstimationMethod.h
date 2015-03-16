@@ -24,7 +24,7 @@ using namespace cv;
 class FEstimationMethod
 {
 public:
-    virtual Mat compute();
+    virtual bool compute();
     FEstimationMethod();
     ~FEstimationMethod();
     Mat getF();

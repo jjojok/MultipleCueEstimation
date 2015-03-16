@@ -3,6 +3,18 @@
 
 #include <ctime>
 
+void enforceRankTwoConstraint(Mat &F) {
+    //Enforce Rank 2 constraint:
+    SVD svd;
+    Mat u, vt, w;
+    svd.compute(F, w, u, vt);
+    Mat newW = Mat::zeros(3,3,CV_32FC1);
+    newW.at<float>(0,0) = w.at<float>(0,0);
+    newW.at<float>(1,1) = w.at<float>(1,0);
+    F = u*newW*vt;
+    F /= F.at<float>(2,2);
+}
+
 float fnorm(float x, float y) {
     return sqrt(pow(x, 2) + pow(y, 2));
 }
@@ -242,17 +254,17 @@ double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f
     return epipolarError;
 }
 
-double epipolarLineDistanceError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
     //std::srand(std::time(0));
-    std::srand(1);  //Try to use the same points for every image
-    double err1 = epipolarLineDistanceErrorSub(F1, F2, image, numOfSamples);
+    std::srand(1);  //Pseudo random: Try to use the same points for every image
+    double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image, numOfSamples);
     if(err1 == -1) return -1;
-    double err2 = epipolarLineDistanceErrorSub(F2, F1, image, numOfSamples);
+    double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image, numOfSamples);
     if(err2 == -1) return -1;
     return err1 + err2;
 }
 
-double epipolarLineDistanceErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
     double epipolarDistSum = 0;
     for(int i = 0; i < numOfSamples; i++) {
         //line: y = ax + b; a = x1/x3, b = x2/x3
@@ -292,7 +304,7 @@ double epipolarLineDistanceErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples)
         epipolarDistSum+=fabs(p1homog.dot(l1F2homog));
 
     }
-    return epipolarDistSum/(2*numOfSamples);
+    return epipolarDistSum/(2.0*numOfSamples);
 }
 
 Mat matVector(float x, float y, float z) {
