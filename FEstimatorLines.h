@@ -36,8 +36,12 @@ public:
     ~FEstimatorLines();
     bool compute();
     int extractMatches();
+    bool computeHomography(lineSubsetStruct &subset);
+    double squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
+    double squaredSymmeticTransferError(Mat H, lineCorrespStruct lc);
 
 private:
+
     void visualizeProjectedLines(lineSubsetStruct subset, int lineWidth, bool drawConnections, std::string name);
     bool hasGeneralPosition(std::vector<int> subsetsIdx, int newIdx, std::vector<lineCorrespStruct> lineCorrespondencies);
     lineSubsetStruct calcRANSAC(std::vector<lineSubsetStruct> &subsets, double threshold, std::vector<lineCorrespStruct> lineCorrespondencies);
@@ -48,12 +52,9 @@ private:
     lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies);
     float calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
-    double squaredSymmeticTransferError(Mat H, lineCorrespStruct lc);
-    double squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
     void filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
     bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, lineSubsetStruct &result);
     lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method);
-    bool computeHomography(lineSubsetStruct &subset);
     lineCorrespStruct getlineCorrespStruct(float start1x, float start1y, float end1x, float end1y, float start2x, float start2y, float end2x, float end2y, int id);
     lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id);
     lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy);

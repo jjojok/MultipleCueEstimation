@@ -35,5 +35,7 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t);
 float fnorm(float x, float y);
 void enforceRankTwoConstraint(Mat &F);
+void decomPoseFundamentalMat(Mat F, Mat &P1, Mat &P2);
+void decomPoseFundamentalMat(Mat F, Mat &K1, Mat &R12, Mat T12);
 
 #endif // UTILITY_H

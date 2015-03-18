@@ -3,6 +3,15 @@
 
 #include <ctime>
 
+void decomPoseFundamentalMat(Mat F, Mat &P1, Mat &P2) {
+    //Mat C =
+    //vconcat(Mat::zeros(3,1,CV_32FC1), Mat::ones(1,1,CV_32FC1), C);      //Camera center image 1
+}
+
+void decomPoseFundamentalMat(Mat F, Mat &K1, Mat &R12, Mat T12) {
+
+}
+
 void enforceRankTwoConstraint(Mat &F) {
     //Enforce Rank 2 constraint:
     SVD svd;
