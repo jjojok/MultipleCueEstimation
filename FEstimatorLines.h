@@ -36,12 +36,12 @@ public:
     ~FEstimatorLines();
     bool compute();
     int extractMatches();
-    bool computeHomography(lineSubsetStruct &subset);
-    double squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
-    double squaredSymmeticTransferError(Mat H, lineCorrespStruct lc);
 
 private:
 
+    bool computeHomography(lineSubsetStruct &subset);
+    double squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
+    double squaredSymmeticTransferError(Mat H, lineCorrespStruct lc);
     void visualizeProjectedLines(lineSubsetStruct subset, int lineWidth, bool drawConnections, std::string name);
     bool hasGeneralPosition(std::vector<int> subsetsIdx, int newIdx, std::vector<lineCorrespStruct> lineCorrespondencies);
     lineSubsetStruct calcRANSAC(std::vector<lineSubsetStruct> &subsets, double threshold, std::vector<lineCorrespStruct> lineCorrespondencies);

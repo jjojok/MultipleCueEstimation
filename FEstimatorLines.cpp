@@ -254,6 +254,10 @@ bool FEstimatorLines::findHomography(std::vector<lineCorrespStruct> &goodLineMat
 
     do {
 
+        iteration++;
+
+        if(LOG_DEBUG) std::cout << "-- Iteration: " << iteration <<"/" << MAX_REFINEMENT_ITERATIONS << ", Used number of matches: " << goodLineMatches.size() << std::endl;
+
         if(goodLineMatches.size() < NUM_CORRESP) return false;
 
         lastError = bestSubset.meanSquaredSymmeticTransferError;
@@ -275,24 +279,54 @@ bool FEstimatorLines::findHomography(std::vector<lineCorrespStruct> &goodLineMat
         x(7) = bestSubset.Hs.at<float>(2,1);
         x(8) = bestSubset.Hs.at<float>(2,2);
 
-        FunctorNumericalLineDiff functor;
+        //std::cout << "x input: " << std::endl << x << std::endl;
+
+        LineFunctor functor;
         functor.estimator = this;
-        functor.lines = bestSubset;
-        Eigen::LevenbergMarquardt<FunctorNumericalLineDiff> lm(functor);
+        functor.lines = &bestSubset;
+        Eigen::NumericalDiff<LineFunctor> numDiff(functor, 1.0e-6);
+        Eigen::LevenbergMarquardt<Eigen::NumericalDiff<LineFunctor>,double> lm(numDiff);
+
+        //FunctorNumericalLineDiff functor(1.0e-3);
+        //Eigen::LevenbergMarquardt<FunctorNumericalLineDiff> lm(functor);
+
+        lm.parameters.ftol = 1.0e-10;
+        lm.parameters.xtol = 1.0e-10;
+        //lm.parameters.epsfcn = 1.0e-3;
+        lm.parameters.maxfev = 2000; // Max iterations
+
         Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
-        std::cout << "LMA status: " << status << std::endl;
+        //std::cout << "LMA status: " << status << std::endl;
+
+        //std::cout << "maxfev: " << lm.parameters.maxfev << std::endl;
+        std::cout << "LMA Iterations: " << lm.iter << std::endl;
+
         //std::cout << "LMA info: " << lm.info() << std::endl;
 
-        std::cout << "x that minimizes the function: " << std::endl << x << std::endl;
+        //std::cout << "x that minimizes the function: " << std::endl << x << std::endl;
 
-        if(LOG_DEBUG) std::cout << "-- Iteration: " << iteration <<"/" << MAX_REFINEMENT_ITERATIONS << ", Used number of matches: " << goodLineMatches.size() << std::endl;
+        //std::cout << "Hs: " << std::endl << bestSubset.Hs << std::endl;
+
+        bestSubset.Hs.at<float>(0,0) = x(0);
+        bestSubset.Hs.at<float>(0,1) = x(1);
+        bestSubset.Hs.at<float>(0,2) = x(2);
+
+        bestSubset.Hs.at<float>(1,0) = x(3);
+        bestSubset.Hs.at<float>(1,1) = x(4);
+        bestSubset.Hs.at<float>(1,2) = x(5);
+
+        bestSubset.Hs.at<float>(2,0) = x(6);
+        bestSubset.Hs.at<float>(2,1) = x(7);
+        bestSubset.Hs.at<float>(2,2) = x(8);
+
+        //std::cout << "Hs: " << std::endl << bestSubset.Hs << std::endl;
+
         goodLineMatches.clear();
 
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
-            if(squaredSymmeticTransferError(bestSubset.Hs, *it) < MAX_PROJ_DIST*0.6) goodLineMatches.push_back(*it);
+            if(squaredSymmeticTransferError(bestSubset.Hs, *it) < MAX_PROJ_DIST) goodLineMatches.push_back(*it);
         }
 
-        iteration++;
         if(iteration == MAX_REFINEMENT_ITERATIONS) return false;
 
         dError = (lastError - bestSubset.meanSquaredSymmeticTransferError)/bestSubset.meanSquaredSymmeticTransferError;
