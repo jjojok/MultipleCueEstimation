@@ -4,11 +4,11 @@
 #include "Utility.h"
 
 //TODO:
-//Lines:
-//- Check if LmedS is correct
-//- Check if the line projectionDistance is correct (maybe visual)
-//- Try implementing ransac instead of LMeds
-//- Maybe tweak line corresp. reduction
+//- fix ground truth computation
+
+//MAYBE:
+//- tweak dinamic line corresp. reduction
+//- Use levenberg marquardt in Eigen to solve minimization in ransac
 
 Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat R1w, Mat R2w, Mat T1w, Mat T2w) {      //Compute F from K,R,t in world coords
 
@@ -43,7 +43,8 @@ Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat R1w, Mat R2w, Mat T1w, Mat T2w) {    
 
     Mat * F = new Mat(crossProductMatrix(P2*C)*P2*P1p);     //F = [P'*C]x*P'*P^+(See Hartley, Zisserman: p. 244)
     *F = *F / F->at<float>(2,2);
-
+    *F = *F * 10;
+    F->at<float>(2,2) = 1.0;
     return F;
 
 }

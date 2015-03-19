@@ -6,7 +6,7 @@ FEstimatorPoints::FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
     image_1_color = img1_c.clone();
     image_2_color = img2_c.clone();
     this->name = name;
-    std::cout << "Estimating: " << name << std::endl;
+    if(LOG_DEBUG) std::cout << "Estimating: " << name << std::endl;
     successful = false;
 
     normT1 = Mat::eye(3,3,CV_32FC1);
@@ -23,8 +23,8 @@ int FEstimatorPoints::extractMatches() {
     detector->detect(image_1, keypoints_1);
     detector->detect(image_2, keypoints_2);
 
-    std::cout << "-- First image: " << keypoints_1.size() << std::endl;
-    std::cout << "-- Second image: " << keypoints_2.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- First image: " << keypoints_1.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Second image: " << keypoints_2.size() << std::endl;
 
     //-- Step 2: Calculate descriptors (feature vectors)
     Ptr<xfeatures2d::SurfDescriptorExtractor> extractor = xfeatures2d::SurfDescriptorExtractor::create();
@@ -69,7 +69,7 @@ int FEstimatorPoints::extractMatches() {
         }
     }
 
-    std::cout << "-- Number of matches: " << good_matches.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Number of good matches: " << good_matches.size() << std::endl;
 
     // ++++
 
@@ -80,7 +80,7 @@ int FEstimatorPoints::extractMatches() {
     }
 }
 
-Mat FEstimatorPoints::compute() {
+bool FEstimatorPoints::compute() {
     std::vector<bool> mask;
     int used = 0;
     extractMatches();
@@ -93,15 +93,19 @@ Mat FEstimatorPoints::compute() {
             used++;
         }
     }
-    std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
 
-    if(x1_used.size() > 8) successful = true;
+    if(x1_used.size() < 8) {
+        return false;
+    }
 
-    visualizeMatches(getX1(), getX2(), 3, true, "Used point matches");
+    if(VISUAL_DEBUG) visualizeMatches(getX1(), getX2(), 3, true, "Used point matches");
 
-    std::cout << std::endl;
+    if(LOG_DEBUG) std::cout << std::endl;
 
-    return F;
+    successful = true;
+
+    return true;
 }
 
 std::vector<Point2f> FEstimatorPoints::getX1() {

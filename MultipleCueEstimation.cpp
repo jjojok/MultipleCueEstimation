@@ -47,7 +47,7 @@ void MultipleCueEstimation::run() {
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
             std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
             if (compareWithGroundTruth) {
-                double error1 = epipolarLineDistanceError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
+                double error1 = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
                 double error2 = squaredError(Fgt, it->getF());
                 std::cout << "Random sample epipolar error: " << error1 << ", Squated distance: " << error2 << std::endl;
             }
@@ -55,6 +55,14 @@ void MultipleCueEstimation::run() {
                 //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
                 drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
             }
+        }
+
+        Mat F = refineF(estimations);
+        std::cout << "Refined F = " << std::endl << F << std::endl;
+        if (compareWithGroundTruth) {
+            double error1 = randomSampleSymmeticTransferError(Fgt, F, image_1, NUM_SAMPLES_F_COMARATION);
+            double error2 = squaredError(Fgt, F);
+            std::cout << "Random sample epipolar error: " << error1 << ", Squated distance: " << error2 << std::endl;
         }
 
         waitKey(0);
@@ -74,7 +82,7 @@ int MultipleCueEstimation::checkData() {
         return 0;
     }
 
-    if(image_1_color.channels() < 1) {
+    if(image_1_color.channels() > 1) {
         cvtColor(image_1_color, image_1, CV_BGR2GRAY);
         cvtColor(image_2_color, image_2, CV_BGR2GRAY);
     } else {
@@ -118,8 +126,15 @@ FEstimationMethod* MultipleCueEstimation::calcFfromCurves() {    // First deriva
 
 }
 
-Mat MultipleCueEstimation::refineF() {    //Reduce error of F AFTER computing it seperatly form different sources
+Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {    //Reduce error of F AFTER computing it seperatly form different sources
+    Mat F = Mat::zeros(3,3,CV_32FC1);
 
+    for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
+        F += it->getF();
+    }
+
+    F /= estimations.size();
+    return F;
 }
 
 
