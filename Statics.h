@@ -28,21 +28,19 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.015;
+#define MIN_LENGTH_FACTOR 0.012;
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
 //defines number of subsets which are randomly picked for LMedS to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
-#define NUM_LINE_PAIR_SUBSETS_FACTOR 20.0//0.25
+//#define NUM_LINE_PAIR_SUBSETS_FACTOR 20.0//0.25
 //Ransac confidence
 #define CONFIDENCE 0.99
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define LINE_OUTLIERS 0.65
-//Number of subsets for Homography computations
-#define NUM_LINE_PAIR_SUBSETS 500
 //Number of correspondencies per homography estimation
 #define NUM_CORRESP 6
 //Max hemming distance of binary matchig
-#define MAX_HEMMING_DIST 15
+#define MAX_HEMMING_DIST 18
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
 //Factor for selecting wrong matches in refinement step after first homography estimation
@@ -56,7 +54,7 @@
 //Max Angle difference for lines being parallel
 #define MAX_ANGLE_DIFF M_PI/30.0
 //Max squared distance of projected lines to be considered as a correct projection (pixel)
-#define MAX_PROJ_DIST 1.0
+#define MAX_PROJ_DIST 1.25
 //max Percentage of error changing for error to beconsidered as stable
 #define MAX_ERROR_CHANGE 0.1
 

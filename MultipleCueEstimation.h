@@ -49,7 +49,7 @@ private:
     Mat image_1, image_2;
     Mat image_1_color, image_2_color;
     Mat Fgt;    //Ground truth
-    std::vector<Point2f> x1, x2;   //corresponding points in image 1 and 2
+    std::vector<Point2d> x1, x2;   //corresponding points in image 1 and 2
 
 };
 

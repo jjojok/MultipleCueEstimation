@@ -24,7 +24,7 @@ void MultipleCueEstimation::run() {
     if (checkData()) {
         if(computations & F_FROM_POINTS) {
             FEstimationMethod* points = calcFfromPoints();
-            if(points->isSuccessful()) estimations.push_back(*points);
+            estimations.push_back(*points);
         }
         if(computations & F_FROM_LINES) {
             FEstimationMethod* lines = calcFfromLines();
@@ -127,7 +127,7 @@ FEstimationMethod* MultipleCueEstimation::calcFfromCurves() {    // First deriva
 }
 
 Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {    //Reduce error of F AFTER computing it seperatly form different sources
-    Mat F = Mat::zeros(3,3,CV_32FC1);
+    Mat F = Mat::zeros(3,3,CV_64FC1);
 
     for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
         F += it->getF();

@@ -5,7 +5,7 @@
 
 void decomPoseFundamentalMat(Mat F, Mat &P1, Mat &P2) {
     //Mat C =
-    //vconcat(Mat::zeros(3,1,CV_32FC1), Mat::ones(1,1,CV_32FC1), C);      //Camera center image 1
+    //vconcat(Mat::zeros(3,1,CV_64FC1), Mat::ones(1,1,CV_64FC1), C);      //Camera center image 1
 }
 
 void decomPoseFundamentalMat(Mat F, Mat &K1, Mat &R12, Mat T12) {
@@ -17,14 +17,14 @@ void enforceRankTwoConstraint(Mat &F) {
     SVD svd;
     Mat u, vt, w;
     svd.compute(F, w, u, vt);
-    Mat newW = Mat::zeros(3,3,CV_32FC1);
-    newW.at<float>(0,0) = w.at<float>(0,0);
-    newW.at<float>(1,1) = w.at<float>(1,0);
+    Mat newW = Mat::zeros(3,3,CV_64FC1);
+    newW.at<double>(0,0) = w.at<double>(0,0);
+    newW.at<double>(1,1) = w.at<double>(1,0);
     F = u*newW*vt;
-    F /= F.at<float>(2,2);
+    F /= F.at<double>(2,2);
 }
 
-float fnorm(float x, float y) {
+double fnorm(double x, double y) {
     return sqrt(pow(x, 2) + pow(y, 2));
 }
 
@@ -36,18 +36,18 @@ void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name) {
     showImage(name, result, WINDOW_NORMAL, 1600);
 }
 
-float smallestRelAngle(float ang1, float ang2) {
-    float diff = fabs(ang1 - ang2);
+double smallestRelAngle(double ang1, double ang2) {
+    double diff = fabs(ang1 - ang2);
     if(diff > M_PI) diff = (2*M_PI) - diff;
     return diff;
 }
 
 void showImage(std::string name, Mat image, int type, int width, int height) {
-    float tx = 0;
-    float ty = 0;
+    double tx = 0;
+    double ty = 0;
     Mat resized;
-    if (width > 0) tx= (float)width/image.cols; {
-        if (height > 0) ty= (float)height/image.rows;
+    if (width > 0) tx= (double)width/image.cols; {
+        if (height > 0) ty= (double)height/image.rows;
         else ty= tx;
     }
     namedWindow(name, type);
@@ -68,7 +68,7 @@ int calcMatRank(Mat M) {
     if (W.cols < W.rows) diag = W.cols;
     else diag = W.rows;
     for(int i = 0; i < diag; i++) {
-        if(fabs(W.at<float>(i,i)) > 10^(-10)) {
+        if(fabs(W.at<double>(i,i)) > 10^(-10)) {
             rank++;
         }
     }
@@ -102,7 +102,7 @@ std::string getType(Mat m) {
     return type;
 }
 
-void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat img1, Mat img2, std::string name) {
+void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, Mat img1, Mat img2, std::string name) {
 
     if(p1.size() == 0 || p2.size() == 0) return;
 
@@ -113,9 +113,9 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
     //From: http://opencv-cookbook.googlecode.com/svn/trunk/Chapter%2009/estimateF.cpp
     //#################################################################################
 
-    std::vector<cv::Vec3f> lines1, lines2;
+    std::vector<cv::Vec3d> lines1, lines2;
     cv::computeCorrespondEpilines(p1, 1, F, lines1);
-    for (std::vector<cv::Vec3f>::const_iterator it= lines1.begin();
+    for (std::vector<cv::Vec3d>::const_iterator it= lines1.begin();
          it!=lines1.end(); ++it) {
 
              cv::line(image2,cv::Point(0,-(*it)[2]/(*it)[1]),
@@ -124,7 +124,7 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
     }
 
     cv::computeCorrespondEpilines(p2,2,F,lines2);
-    for (std::vector<cv::Vec3f>::const_iterator it= lines2.begin();
+    for (std::vector<cv::Vec3d>::const_iterator it= lines2.begin();
          it!=lines2.end(); ++it) {
 
              cv::line(image1,cv::Point(0,-(*it)[2]/(*it)[1]),
@@ -133,7 +133,7 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
     }
 
     // Draw points
-    std::vector<cv::Point2f>::const_iterator itPts= p1.begin();
+    std::vector<cv::Point2d>::const_iterator itPts= p1.begin();
     //std::vector<uchar>::const_iterator itIn= inliers.begin();
     while (itPts!=p1.end()) {
 
@@ -169,16 +169,16 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
 
 Mat crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
     Mat crossMat = Mat::zeros(3,3, input.type());
-    crossMat.at<float>(0,1) = -input.at<float>(2);
-    crossMat.at<float>(0,2) = input.at<float>(1);
-    crossMat.at<float>(1,0) = input.at<float>(2);
-    crossMat.at<float>(1,2) = -input.at<float>(0);
-    crossMat.at<float>(2,0) = -input.at<float>(1);
-    crossMat.at<float>(2,1) = input.at<float>(0);
+    crossMat.at<double>(0,1) = -input.at<double>(2);
+    crossMat.at<double>(0,2) = input.at<double>(1);
+    crossMat.at<double>(1,0) = input.at<double>(2);
+    crossMat.at<double>(1,2) = -input.at<double>(0);
+    crossMat.at<double>(2,0) = -input.at<double>(1);
+    crossMat.at<double>(2,1) = input.at<double>(0);
     return crossMat;
 }
 
-void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2, std::string windowName) {
+void rectify(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, Mat image1, Mat image2, std::string windowName) {
     Mat H1, H2, rectified1, rectified2;
     if(stereoRectifyUncalibrated(p1, p2, F, Size(image1.cols,image1.rows), H1, H2, 2 )) {
 
@@ -190,9 +190,9 @@ void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1
     }
 }
 
-void PointsToFile(std::vector<Point2f>* points, std::string file) {
+void PointsToFile(std::vector<Point2d>* points, std::string file) {
 
-    Point2f point;
+    Point2d point;
     std::ofstream outputStream;
     outputStream.open(file.c_str());
     for (int i = 0; points->size(); i++) {
@@ -208,9 +208,9 @@ void PointsToFile(std::vector<Point2f>* points, std::string file) {
 
 Mat MatFromFile(std::string file, int rows) {
 
-    Mat matrix = Mat::zeros(0,0,CV_32FC1);
+    Mat matrix = Mat::zeros(0,0,CV_64FC1);
     std::ifstream inputStream;
-    float x;
+    double x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
         while(inputStream >> x) {
@@ -227,7 +227,7 @@ Mat MatFromFile(std::string file, int rows) {
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
     int values = 1;
     std::ifstream inputStream;
-    float x;
+    double x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
         while(inputStream >> x) {
@@ -251,7 +251,7 @@ bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
     }
 }
 
-double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2) {    //Reprojection error, epipolar line
+double epipolarSADError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
     std::vector<cv::Vec3f> lines1;
     std::vector<cv::Vec3f> lines2;
     double epipolarError = 0;
@@ -281,14 +281,14 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
         Mat p1homog;
         int xBoundsMin = 0;
         int xBounds = 0;
-        float l2F1a = 0, l2F1b = 0;
+        double l2F1a = 0, l2F1b = 0;
 
         int trys = 1;
         do {    //Draw random point until it's epipolar line intersects image 2
             p1homog = matVector(rand()%image.cols, rand()%image.rows, 1);
             Mat l2F1homog = F1*p1homog;
-            l2F1a = l2F1homog.at<float>(0,0) / l2F1homog.at<float>(2,0);
-            l2F1b = l2F1homog.at<float>(1,0) / l2F1homog.at<float>(2,0);
+            l2F1a = l2F1homog.at<double>(0,0) / l2F1homog.at<double>(2,0);
+            l2F1b = l2F1homog.at<double>(1,0) / l2F1homog.at<double>(2,0);
             l2F1a/=(-l2F1b);
             l2F1b=1.0/(-l2F1b);
             xBoundsMin = std::min(std::max((int)ceil(l2F1b/l2F1a),0), image.cols);
@@ -298,7 +298,7 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
 
         if(trys == MAX_SAMPLE_TRYS) return -1;
 
-        float x, y;
+        double x, y;
         if(xBounds == 0) x = xBoundsMin;
         else x = rand()%xBounds + xBoundsMin;
         y = l2F1a*x + l2F1b;
@@ -316,18 +316,18 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
     return epipolarDistSum/(2.0*numOfSamples);
 }
 
-Mat matVector(float x, float y, float z) {
-    Mat vect = Mat::zeros(3,1,CV_32FC1);
-    vect.at<float>(0,0) = x;
-    vect.at<float>(1,0) = y;
-    vect.at<float>(2,0) = z;
+Mat matVector(double x, double y, double z) {
+    Mat vect = Mat::zeros(3,1,CV_64FC1);
+    vect.at<double>(0,0) = x;
+    vect.at<double>(1,0) = y;
+    vect.at<double>(2,0) = z;
     return vect;
 }
 
-Mat matVector(Point2f p) {
-    Mat vect = Mat::zeros(3,1,CV_32FC1);
-    vect.at<float>(0,0) = p.x;
-    vect.at<float>(1,0) = p.y;
-    vect.at<float>(2,0) = 1;
+Mat matVector(Point2d p) {
+    Mat vect = Mat::zeros(3,1,CV_64FC1);
+    vect.at<double>(0,0) = p.x;
+    vect.at<double>(1,0) = p.y;
+    vect.at<double>(2,0) = 1;
     return vect;
 }

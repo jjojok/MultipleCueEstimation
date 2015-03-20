@@ -108,7 +108,7 @@ void FEstimatorPlanes::findSegments(Mat image, Mat image_color, std::string imag
 
     for (int i = 0; i < contours.size(); i++) {
         for (int j = 0; j < segmentList_temp.size(); j++) {
-            if(pointPolygonTest(contours[i], Point2f(segmentList_temp[j].startpoint.x, segmentList_temp[j].startpoint.y),false) >= 0) {
+            if(pointPolygonTest(contours[i], Point2d(segmentList_temp[j].startpoint.x, segmentList_temp[j].startpoint.y),false) >= 0) {
                 segmentStruct segment = segmentList_temp[j];
                 segment.contours_idx = i;
                 for (int k = 0; k < segmentList.size(); k++) {      //Keep only one segment per connected component

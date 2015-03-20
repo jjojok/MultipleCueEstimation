@@ -5,6 +5,8 @@
 
 //TODO:
 //- fix ground truth computation
+//- Change random point error computation: move only a small distance on the epipolar line (only one random point)
+//- use FindHomography from oopencv to use points in general position for computation
 
 //MAYBE:
 //- tweak dinamic line corresp. reduction
@@ -23,8 +25,8 @@ Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat R1w, Mat R2w, Mat T1w, Mat T2w) {    
     P2 = K2*P2;                              //P2 = K2[R12|t12]
 
     Mat P1p, C;
-    vconcat(K1.inv(DECOMP_SVD), Mat::zeros(1,3,CV_32FC1), P1p);         //Pseudo inverse of P1 (P1^t = [K1^(-1); 0^t]
-    vconcat(Mat::zeros(3,1,CV_32FC1), Mat::ones(1,1,CV_32FC1), C);      //Camera center image 1
+    vconcat(K1.inv(DECOMP_SVD), Mat::zeros(1,3,CV_64FC1), P1p);         //Pseudo inverse of P1 (P1^t = [K1^(-1); 0^t]
+    vconcat(Mat::zeros(3,1,CV_64FC1), Mat::ones(1,1,CV_64FC1), C);      //Camera center image 1
 
     if (LOG_DEBUG) {
         std::cout << "Computation of ground truth: " << std::endl;
@@ -42,9 +44,9 @@ Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat R1w, Mat R2w, Mat T1w, Mat T2w) {    
     }
 
     Mat * F = new Mat(crossProductMatrix(P2*C)*P2*P1p);     //F = [P'*C]x*P'*P^+(See Hartley, Zisserman: p. 244)
-    *F = *F / F->at<float>(2,2);
+    *F = *F / F->at<double>(2,2);
     *F = *F * 10;
-    F->at<float>(2,2) = 1.0;
+    F->at<double>(2,2) = 1.0;
     return F;
 
 }
@@ -79,7 +81,7 @@ int main(int argc, char** argv )
     } else {
 //        Mat P1w = MatFromFile(argv[4], 3); //P1 in world coords
 //        Mat P2w = MatFromFile(argv[5], 3); //P2 in world coords
-        //Mat K1 = Mat::zeros(3,3,CV_32FC1), K2 = Mat::zeros(3,3,CV_32FC1), R1w = Mat::zeros(3,3,CV_32FC1), R2w = Mat::zeros(3,3,CV_32FC1), t1w = Mat::zeros(3,1,CV_32FC1), t2w = Mat::zeros(3,1,CV_32FC1);
+        //Mat K1 = Mat::zeros(3,3,CV_64FC1), K2 = Mat::zeros(3,3,CV_64FC1), R1w = Mat::zeros(3,3,CV_64FC1), R2w = Mat::zeros(3,3,CV_64FC1), t1w = Mat::zeros(3,1,CV_64FC1), t2w = Mat::zeros(3,1,CV_64FC1);
         Mat K1, K2, R1w, R2w, t1w, t2w;
         if(ImgParamsFromFile(argv[4], K1, R1w, t1w) && ImgParamsFromFile(argv[5], K2, R2w, t2w)) {
             mce = new MultipleCueEstimation(&image_1_color, &image_2_color, computations, getGroundTruthKRt(K1, K2, R1w, R2w, t1w, t2w));

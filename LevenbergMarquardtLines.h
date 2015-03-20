@@ -42,19 +42,19 @@ struct LineFunctor : Functor<double>
 {
     int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
     {
-        Mat newH = Mat::zeros(3,3,CV_32FC1), H_T, H_invT;
+        Mat newH = Mat::zeros(3,3,CV_64FC1), H_T, H_invT;
 
-        newH.at<float>(0,0) = x(0);
-        newH.at<float>(0,1) = x(1);
-        newH.at<float>(0,2) = x(2);
+        newH.at<double>(0,0) = x(0);
+        newH.at<double>(0,1) = x(1);
+        newH.at<double>(0,2) = x(2);
 
-        newH.at<float>(1,0) = x(3);
-        newH.at<float>(1,1) = x(4);
-        newH.at<float>(1,2) = x(5);
+        newH.at<double>(1,0) = x(3);
+        newH.at<double>(1,1) = x(4);
+        newH.at<double>(1,2) = x(5);
 
-        newH.at<float>(2,0) = x(6);
-        newH.at<float>(2,1) = x(7);
-        newH.at<float>(2,2) = x(8);
+        newH.at<double>(2,0) = x(6);
+        newH.at<double>(2,1) = x(7);
+        newH.at<double>(2,2) = x(8);
 
         H_T = newH.t();
         H_invT = newH.inv(DECOMP_SVD).t();
@@ -72,8 +72,8 @@ struct LineFunctor : Functor<double>
             Mat start2 = lc.line2Start.t()*B;
             Mat end2 = lc.line2End.t()*B;
 
-            fvec(2*i) = Mat(start1+start2).at<float>(0,0);
-            fvec(2*i+1) = Mat(end1+end2).at<float>(0,0);
+            fvec(2*i) = Mat(start1+end1).at<double>(0,0);
+            fvec(2*i+1) = Mat(start2+end2).at<double>(0,0);
         }
 
         return 0;
