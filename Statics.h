@@ -31,8 +31,12 @@
 #define MIN_LENGTH_FACTOR 0.015;
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
-//defines number of subsets which are randomly picked to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
+//defines number of subsets which are randomly picked for LMedS to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
 #define NUM_LINE_PAIR_SUBSETS_FACTOR 20.0//0.25
+//Ransac confidence
+#define CONFIDENCE 0.99
+//Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
+#define LINE_OUTLIERS 0.65
 //Number of subsets for Homography computations
 #define NUM_LINE_PAIR_SUBSETS 500
 //Number of correspondencies per homography estimation
@@ -44,7 +48,7 @@
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
 //How close a H has to be at unity to be teated as unity
-#define MARGIN 0.01
+#define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
 #define MAX_H2_ESTIMATIONS 50
 //Max number of refinement steps after a first homographie was found

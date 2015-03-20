@@ -116,7 +116,6 @@ int FEstimatorLines::filterLineExtractions(float minLenght, std::vector<cv::line
 bool FEstimatorLines::compute() {
 
     extractMatches();
-
 //    lineCorrespondencies.clear();       //TODO: Remove hard coded lines for entry 8+9
 //    lineCorrespStruct lc1, lc2, lc3, lc4, lc5, lc6;
 //    lc1 = getlineCorrespStruct(1092, 617, 1069, 1225, 1510, 608, 1514, 1216);
@@ -147,7 +146,7 @@ bool FEstimatorLines::compute() {
 
     lineSubsetStruct H1;
 
-    if(!findHomography(goodLineMatches, LMEDS, H1)) {
+    if(!findHomography(goodLineMatches, LMEDS, CONFIDENCE, H1)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -174,7 +173,7 @@ bool FEstimatorLines::compute() {
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
             goodLineMatches.push_back(*it);
         }
-        if(!findHomography(goodLineMatches, RANSAC, H2)) {
+        if(!findHomography(goodLineMatches, RANSAC, CONFIDENCE, H2)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -182,7 +181,7 @@ bool FEstimatorLines::compute() {
 
         H_close_to_unitiy = isUnity(H);
         if(H_close_to_unitiy) {
-            if(LOG_DEBUG) std::cout << "-- H close to unity, repeating estimation..." << std::endl << "H = " << std::endl << H << std::endl;
+            if(LOG_DEBUG) std::cout << "-- H close to unity, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
             filterUsedLineMatches(matchedLines, goodLineMatches);
             if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matchedLines.size() <<  ", removed: " << goodLineMatches.size() << std::endl;
         }
@@ -244,13 +243,18 @@ bool FEstimatorLines::compute() {
     return true;
 }
 
-bool FEstimatorLines::findHomography(std::vector<lineCorrespStruct> &goodLineMatches, int method, lineSubsetStruct &result) {
+bool FEstimatorLines::findHomography(std::vector<lineCorrespStruct> &goodLineMatches, int method, float confidence, lineSubsetStruct &result) {
     float lastError = 0;
+    float outliers = LINE_OUTLIERS;
+    int N;
     lineSubsetStruct bestSubset;
     bestSubset.meanSquaredSymmeticTransferError = 0;
     int iteration = 0;
     int stableSolutions = 0;
     float dError = 0;
+
+    N = std::log(1.0 - confidence)/std::log(1.0 - std::pow(1.0 - outliers, NUM_CORRESP)); //See Hartley, Zisserman p119
+    bestSubset = estimateHomography(goodLineMatches, method, N);
 
     do {
 
@@ -258,74 +262,24 @@ bool FEstimatorLines::findHomography(std::vector<lineCorrespStruct> &goodLineMat
 
         if(LOG_DEBUG) std::cout << "-- Iteration: " << iteration <<"/" << MAX_REFINEMENT_ITERATIONS << ", Used number of matches: " << goodLineMatches.size() << std::endl;
 
-        if(goodLineMatches.size() < NUM_CORRESP) return false;
+        if(goodLineMatches.size() < NUM_CORRESP) {
+            if(LOG_DEBUG) std::cout << "-- To few line matches left, using last iterations solution!" << std::endl;
+            break;//return false;
+        }
 
         lastError = bestSubset.meanSquaredSymmeticTransferError;
-        bestSubset = estimateHomography(goodLineMatches, method);
 
+        levenbergMarquardt(bestSubset);
 
-
-        Eigen::VectorXd x(9);
-
-        x(0) = bestSubset.Hs.at<float>(0,0);
-        x(1) = bestSubset.Hs.at<float>(0,1);
-        x(2) = bestSubset.Hs.at<float>(0,2);
-
-        x(3) = bestSubset.Hs.at<float>(1,0);
-        x(4) = bestSubset.Hs.at<float>(1,1);
-        x(5) = bestSubset.Hs.at<float>(1,2);
-
-        x(6) = bestSubset.Hs.at<float>(2,0);
-        x(7) = bestSubset.Hs.at<float>(2,1);
-        x(8) = bestSubset.Hs.at<float>(2,2);
-
-        //std::cout << "x input: " << std::endl << x << std::endl;
-
-        LineFunctor functor;
-        functor.estimator = this;
-        functor.lines = &bestSubset;
-        Eigen::NumericalDiff<LineFunctor> numDiff(functor, 1.0e-6);
-        Eigen::LevenbergMarquardt<Eigen::NumericalDiff<LineFunctor>,double> lm(numDiff);
-
-        //FunctorNumericalLineDiff functor(1.0e-3);
-        //Eigen::LevenbergMarquardt<FunctorNumericalLineDiff> lm(functor);
-
-        lm.parameters.ftol = 1.0e-10;
-        lm.parameters.xtol = 1.0e-10;
-        //lm.parameters.epsfcn = 1.0e-3;
-        lm.parameters.maxfev = 2000; // Max iterations
-
-        Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
-        //std::cout << "LMA status: " << status << std::endl;
-
-        //std::cout << "maxfev: " << lm.parameters.maxfev << std::endl;
-        std::cout << "LMA Iterations: " << lm.iter << std::endl;
-
-        //std::cout << "LMA info: " << lm.info() << std::endl;
-
-        //std::cout << "x that minimizes the function: " << std::endl << x << std::endl;
-
-        //std::cout << "Hs: " << std::endl << bestSubset.Hs << std::endl;
-
-        bestSubset.Hs.at<float>(0,0) = x(0);
-        bestSubset.Hs.at<float>(0,1) = x(1);
-        bestSubset.Hs.at<float>(0,2) = x(2);
-
-        bestSubset.Hs.at<float>(1,0) = x(3);
-        bestSubset.Hs.at<float>(1,1) = x(4);
-        bestSubset.Hs.at<float>(1,2) = x(5);
-
-        bestSubset.Hs.at<float>(2,0) = x(6);
-        bestSubset.Hs.at<float>(2,1) = x(7);
-        bestSubset.Hs.at<float>(2,2) = x(8);
-
-        //std::cout << "Hs: " << std::endl << bestSubset.Hs << std::endl;
+        //outliers = goodLineMatches.size();
 
         goodLineMatches.clear();
 
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
             if(squaredSymmeticTransferError(bestSubset.Hs, *it) < MAX_PROJ_DIST) goodLineMatches.push_back(*it);
         }
+
+        //outliers = goodLineMatches.size() / outliers;
 
         if(iteration == MAX_REFINEMENT_ITERATIONS) return false;
 
@@ -341,10 +295,77 @@ bool FEstimatorLines::findHomography(std::vector<lineCorrespStruct> &goodLineMat
 
     bestSubset.lineCorrespondencies = goodLineMatches;
     computeHomography(bestSubset);
+    levenbergMarquardt(bestSubset);
     if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.lineCorrespondencies.size() << std::endl;
     result = bestSubset;
 
     return true;
+}
+
+float FEstimatorLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
+    Eigen::VectorXd x(9);
+
+    x(0) = bestSubset.Hs.at<float>(0,0);
+    x(1) = bestSubset.Hs.at<float>(0,1);
+    x(2) = bestSubset.Hs.at<float>(0,2);
+
+    x(3) = bestSubset.Hs.at<float>(1,0);
+    x(4) = bestSubset.Hs.at<float>(1,1);
+    x(5) = bestSubset.Hs.at<float>(1,2);
+
+    x(6) = bestSubset.Hs.at<float>(2,0);
+    x(7) = bestSubset.Hs.at<float>(2,1);
+    x(8) = bestSubset.Hs.at<float>(2,2);
+
+    //std::cout << "x input: " << std::endl << x << std::endl;
+
+    LineFunctor functor;
+    functor.estimator = this;
+    functor.lines = &bestSubset;
+    Eigen::NumericalDiff<LineFunctor> numDiff(functor, 1.0e-6); //epsilon
+    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<LineFunctor>,double> lm(numDiff);
+
+    //FunctorNumericalLineDiff functor(1.0e-3);
+    //Eigen::LevenbergMarquardt<FunctorNumericalLineDiff> lm(functor);
+
+    lm.parameters.ftol = 1.0e-10;
+    lm.parameters.xtol = 1.0e-10;
+    //lm.parameters.epsfcn = 1.0e-3;
+    lm.parameters.maxfev = 2000; // Max iterations
+
+    Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
+    //std::cout << "LMA status: " << status << std::endl;
+
+    //std::cout << "maxfev: " << lm.parameters.maxfev << std::endl;
+    if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.iter << ", Status: " << status << std::endl;
+
+    //std::cout << "LMA info: " << lm.info() << std::endl;
+
+    //std::cout << "x that minimizes the function: " << std::endl << x << std::endl;
+
+    //std::cout << "Hs: " << std::endl << bestSubset.Hs << std::endl;
+
+    bestSubset.Hs.at<float>(0,0) = x(0);
+    bestSubset.Hs.at<float>(0,1) = x(1);
+    bestSubset.Hs.at<float>(0,2) = x(2);
+
+    bestSubset.Hs.at<float>(1,0) = x(3);
+    bestSubset.Hs.at<float>(1,1) = x(4);
+    bestSubset.Hs.at<float>(1,2) = x(5);
+
+    bestSubset.Hs.at<float>(2,0) = x(6);
+    bestSubset.Hs.at<float>(2,1) = x(7);
+    bestSubset.Hs.at<float>(2,2) = x(8);
+
+    float error = 0;
+
+    for(std::vector<lineCorrespStruct>::const_iterator iter = bestSubset.lineCorrespondencies.begin(); iter != bestSubset.lineCorrespondencies.end(); ++iter) {
+        error += squaredSymmeticTransferError(bestSubset.Hs, *iter);
+    }
+
+    bestSubset.meanSquaredSymmeticTransferError = error/bestSubset.lineCorrespondencies.size();
+
+    return error;
 }
 
 bool FEstimatorLines::isUnity(Mat m) {
@@ -355,11 +376,11 @@ bool FEstimatorLines::isUnity(Mat m) {
     return true;
 }
 
-lineSubsetStruct FEstimatorLines::estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method) {
+lineSubsetStruct FEstimatorLines::estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets) {
     int numOfPairs = lineCorrespondencies.size();
-    int numOfPairSubsets = NUM_LINE_PAIR_SUBSETS_FACTOR*numOfPairs;
+    int numOfPairSubsets = sets;//NUM_LINE_PAIR_SUBSETS_FACTOR*numOfPairs;
     std::vector<lineSubsetStruct> subsets;
-    if(LOG_DEBUG) std::cout << "-- Computing Homographies" << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Computing "<< numOfPairSubsets << " Homographies" << std::endl;
     //Compute H_21 from NUM_CORRESP line correspondencies
     srand(time(NULL));  //Init random generator
     for(int i = 0; i < numOfPairSubsets; i++) {

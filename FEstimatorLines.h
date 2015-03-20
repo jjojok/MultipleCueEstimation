@@ -39,6 +39,7 @@ public:
 
 private:
 
+    float levenbergMarquardt(lineSubsetStruct &bestSubset);
     bool computeHomography(lineSubsetStruct &subset);
     double squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
     double squaredSymmeticTransferError(Mat H, lineCorrespStruct lc);
@@ -53,8 +54,8 @@ private:
     float calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
     void filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
-    bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, lineSubsetStruct &result);
-    lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method);
+    bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, float confidence, lineSubsetStruct &result);
+    lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets);
     lineCorrespStruct getlineCorrespStruct(float start1x, float start1y, float end1x, float end1y, float start2x, float start2y, float end2x, float end2y, int id);
     lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id);
     lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy);
