@@ -63,6 +63,6 @@
 //Number of points for error measure between two fundamental matrices
 #define NUM_SAMPLES_F_COMARATION 50000
 //Max trys per draw to find a point who's epipolar line intersects the other image
-#define MAX_SAMPLE_TRYS 1000
+#define MAX_SAMPLE_TRYS 5000
 
 #endif // STATICS_H
