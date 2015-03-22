@@ -11,8 +11,9 @@
 
 //Program parameters for selecting computation mathods
 #define F_FROM_POINTS 1
-#define F_FROM_LINES 2
-#define F_FROM_PLANES 4
+#define F_FROM_LINES_VIA_H 2
+#define F_FROM_POINTS_VIA_H 4
+#define F_FROM_PLANES_VIA_H 8
 
 //Points:
 //Sift features

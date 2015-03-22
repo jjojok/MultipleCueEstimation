@@ -12,7 +12,7 @@
 
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
 #include <eigen3/unsupported/Eigen/NumericalDiff>
-#include "FEstimatorLines.h"
+#include "FEstimatorHLines.h"
 
 // Generic functor
 template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
@@ -80,7 +80,7 @@ struct LineFunctor : Functor<double>
     }
 
 lineSubsetStruct *lines;
-FEstimatorLines *estimator;
+FEstimatorHLines *estimator;
 
 int inputs() const { return 9; } // There are 9 parameters of the model
 int values() const { return lines->lineCorrespondencies.size()*2; } // The number of observations

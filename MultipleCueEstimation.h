@@ -4,8 +4,8 @@
 //ESTIMATORS
 #include "FEstimationMethod.h"
 #include "FEstimatorPoints.h"
-#include "FEstimatorLines.h"
-#include "FEstimatorPlanes.h"
+#include "FEstimatorHLines.h"
+#include "FEstimatorHPlanes.h"
 
 //SYSTEM
 #include <string>

@@ -1,5 +1,5 @@
-#ifndef FESTIMATORLINES_H
-#define FESTIMATORLINES_H
+#ifndef FESTIMATORHLINES_H
+#define FESTIMATORHLINES_H
 
 #include "FEstimationMethod.h"
 #include <eigen3/Eigen/Eigenvalues>
@@ -7,7 +7,7 @@
 #include "Utility.h"
 
 struct lineCorrespStruct {
-    //cv::line_descriptor::KeyLine line1, line2;
+    //cv::Sline_descriptor::KeyLine line1, line2;
     double line1Angle, line2Angle, line1Length, line2Length;
     Mat line1StartNormalized, line1EndNormalized, line2StartNormalized, line2EndNormalized;
     Mat line1Start, line1End, line2Start, line2End;
@@ -30,10 +30,10 @@ struct lineSubsetStruct {
 
 bool compareLineCorrespErrors(lineCorrespSubsetError ls1, lineCorrespSubsetError ls2);
 
-class FEstimatorLines : public FEstimationMethod {
+class FEstimatorHLines : public FEstimationMethod {
 public:
-    FEstimatorLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);
-    ~FEstimatorLines();
+    FEstimatorHLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);
+    ~FEstimatorHLines();
     bool compute();
     int extractMatches();
 
@@ -63,7 +63,8 @@ private:
     bool filterLineMatch(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2);
     bool isUnity(Mat m);
     bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
+
     std::vector<lineCorrespStruct> matchedLines;  //Vector of consecutive normalized line startpoints and endpoints
 };
 
-#endif // FESTIMATORLINES_H
+#endif // FESTIMATORHLINES_H

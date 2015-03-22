@@ -3,15 +3,6 @@
 
 #include <ctime>
 
-void decomPoseFundamentalMat(Mat F, Mat &P1, Mat &P2) {
-    //Mat C =
-    //vconcat(Mat::zeros(3,1,CV_64FC1), Mat::ones(1,1,CV_64FC1), C);      //Camera center image 1
-}
-
-void decomPoseFundamentalMat(Mat F, Mat &K1, Mat &R12, Mat T12) {
-
-}
-
 void enforceRankTwoConstraint(Mat &F) {
     //Enforce Rank 2 constraint:
     SVD svd;
@@ -263,7 +254,7 @@ double epipolarSADError(Mat F, std::vector<Point2d> points1, std::vector<Point2d
     return epipolarError;
 }
 
-double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
     //std::srand(std::time(0));
     std::srand(1);  //Pseudo random: Try to use the same points for every image
     double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image, numOfSamples);
@@ -273,7 +264,7 @@ double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSam
     return err1 + err2;
 }
 
-double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
     double epipolarDistSum = 0;
     for(int i = 0; i < numOfSamples; i++) {
         //line: y = ax + b; a = x1/x3, b = x2/x3

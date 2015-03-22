@@ -1,6 +1,6 @@
-#include "FEstimatorPlanes.h"
+#include "FEstimatorHPlanes.h"
 
-FEstimatorPlanes::FEstimatorPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
+FEstimatorHPlanes::FEstimatorHPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
     image_1 = img1.clone();
     image_2 = img2.clone();
     image_1_color = img1_c.clone();
@@ -8,13 +8,14 @@ FEstimatorPlanes::FEstimatorPlanes(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
     this->name = name;
     std::cout << "Estimating: " << name << std::endl;
     successful = false;
+    computationType = F_FROM_PLANES_VIA_H;
 }
 
-bool FEstimatorPlanes::compute() {
+bool FEstimatorHPlanes::compute() {
     return false;
 }
 
-int FEstimatorPlanes::extractMatches() {
+int FEstimatorHPlanes::extractMatches() {
     std::vector<segmentStruct> segmentsList_1, segmentsList_2;
     Mat segments_1, segments_2;
 
@@ -34,7 +35,7 @@ int FEstimatorPlanes::extractMatches() {
 
 }
 
-void FEstimatorPlanes::findSegments(Mat image, Mat image_color, std::string image_name, std::vector<segmentStruct> &segmentList, Mat &segments) {
+void FEstimatorHPlanes::findSegments(Mat image, Mat image_color, std::string image_name, std::vector<segmentStruct> &segmentList, Mat &segments) {
     std::vector<cv::KeyPoint> keypoints;
     std::vector<segmentStruct> segmentList_temp;
 

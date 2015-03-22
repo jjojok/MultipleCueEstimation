@@ -31,6 +31,14 @@ public:
     virtual int extractMatches();
     std::string name;
     bool isSuccessful();
+    std::vector<Mat> getFeaturesImg1();
+    std::vector<Mat> getFeaturesImg2();
+    int getType();
+    std::vector<double> computeErrorVect(std::vector<FEstimationMethod> estimations);
+    std::vector<double> computeErrorVect(std::vector<FEstimationMethod> estimations, Mat inpF);
+    double computeMeanError(std::vector<FEstimationMethod> estimations);
+    double computeMeanError(std::vector<FEstimationMethod> estimations, Mat impF);
+    double getError();
 
 protected:
     virtual void init();
@@ -43,6 +51,10 @@ protected:
     Mat image_1_color, image_2_color, image_1, image_2;
 	double epipolarError;
     bool successful;
+    int computationType;
+    std::vector<Mat> featuresImg1;
+    std::vector<Mat> featuresImg2;
+    double error;
 
 private:
 
