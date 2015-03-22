@@ -132,7 +132,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
     //Select F with smallest error with respect to all features as starting point
 
     FEstimationMethod bestMethod = *estimations.begin();
-    Mat refinedF = Mat(3,3,CV_64FC1);
+    Mat refinedF = Mat::ones(3,3,CV_64FC1);
     int numValues = 0;
 
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
@@ -152,16 +152,15 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 
     x(6) = bestMethod.getF().at<double>(2,0);
     x(7) = bestMethod.getF().at<double>(2,1);
-    x(8) = bestMethod.getF().at<double>(2,2);
 
     GeneralFunctor functor;
     functor.estimations = &estimations;
     functor.numValues = numValues;
-    Eigen::NumericalDiff<GeneralFunctor> numDiff(functor, 1.0e-3); //epsilon
+    Eigen::NumericalDiff<GeneralFunctor> numDiff(functor, 1.0e-6); //epsilon
     Eigen::LevenbergMarquardt<Eigen::NumericalDiff<GeneralFunctor>,double> lm(numDiff);
 
-    lm.parameters.ftol = 1.0e-10;
-    lm.parameters.xtol = 1.0e-10;
+    lm.parameters.ftol = 1.0e-15;
+    lm.parameters.xtol = 1.0e-15;
     //lm.parameters.epsfcn = 1.0e-3;
     lm.parameters.maxfev = 4000; // Max iterations
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
@@ -178,7 +177,10 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 
     refinedF.at<double>(2,0) = x(6);
     refinedF.at<double>(2,1) = x(7);
-    refinedF.at<double>(2,2) = x(8);
+
+    refinedF /= refinedF.at<double>(2,2);
+
+    enforceRankTwoConstraint(refinedF);
 
     if (LOG_DEBUG) std::cout <<"Error: " << estimations.begin()->computeMeanError(estimations, refinedF) << std::endl;
 

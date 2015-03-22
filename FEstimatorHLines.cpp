@@ -147,7 +147,7 @@ bool FEstimatorHLines::compute() {
 
     lineSubsetStruct H1;
 
-    if(!findHomography(goodLineMatches, LMEDS, CONFIDENCE, H1)) {
+    if(!findHomography(goodLineMatches, LMEDS, CONFIDENCE, LINE_OUTLIERS, H1)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -168,12 +168,13 @@ bool FEstimatorHLines::compute() {
 
     if(LOG_DEBUG) std::cout << "-- Second estimation..." << std::endl;
 
-    filterUsedLineMatches(matchedLines, goodLineMatches);
+    double outlierReduction = filterUsedLineMatches(matchedLines, goodLineMatches);
 
     lineSubsetStruct H2;
     int estCnt = 0;
     bool H_close_to_unitiy = true;
     Mat H;
+    float outliers = LINE_OUTLIERS * outlierReduction;
 
     while(H_close_to_unitiy && matchedLines.size() > NUM_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
 
@@ -181,7 +182,7 @@ bool FEstimatorHLines::compute() {
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
             goodLineMatches.push_back(*it);
         }
-        if(!findHomography(goodLineMatches, RANSAC, CONFIDENCE, H2)) {
+        if(!findHomography(goodLineMatches, RANSAC, CONFIDENCE, outliers, H2)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -191,8 +192,7 @@ bool FEstimatorHLines::compute() {
         H_close_to_unitiy = isUnity(H);
         if(H_close_to_unitiy) {
             if(LOG_DEBUG) std::cout << "-- H close to unity, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
-            filterUsedLineMatches(matchedLines, goodLineMatches);
-            if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matchedLines.size() <<  ", removed: " << goodLineMatches.size() << std::endl;
+            outliers = outliers * filterUsedLineMatches(matchedLines, goodLineMatches);
         }
         estCnt++;
     }
@@ -228,10 +228,10 @@ bool FEstimatorHLines::compute() {
     eigen2cv(solver.eigenvectors(), eigenvectors);
 
     if(LOG_DEBUG) {
-        std::cout << "H1*H2^-1 = " << std::endl << H << std::endl;
+        std::cout << "-- H1*H2^-1 = " << std::endl << H << std::endl;
 
         for(int i = 0; i < eigenvalues.rows; i++) {
-            std::cout << i+1 << "th Eigenvalue: " << eigenvalues.at<double>(i,0) << ", Eigenvector = " << std::endl << eigenvectors.col(i) << std::endl;
+            std::cout << "-- " << i+1 << "th Eigenvalue: " << eigenvalues.at<double>(i,0) << ", Eigenvector = " << std::endl << eigenvectors.col(i) << std::endl;
         }
     }
 
@@ -260,9 +260,8 @@ bool FEstimatorHLines::compute() {
     return true;
 }
 
-bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMatches, int method, double confidence, lineSubsetStruct &result) {
+bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMatches, int method, double confidence, double outliers, lineSubsetStruct &result) {
     double lastError = 0;
-    double outliers = LINE_OUTLIERS;
     int N;
     std::vector<lineCorrespStruct> lastIterLineMatches;
     lineSubsetStruct bestSubset;
@@ -270,6 +269,8 @@ bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMa
     int iteration = 0;
     int stableSolutions = 0;
     double dError = 0;
+
+    if(LOG_DEBUG) std::cout << "-- findHomography: confidence = " << confidence << ", relative outliers = " << outliers << std::endl;
 
     N = std::log(1.0 - confidence)/std::log(1.0 - std::pow(1.0 - outliers, NUM_CORRESP)); //See Hartley, Zisserman p119
     bestSubset = estimateHomography(goodLineMatches, method, N);
@@ -338,21 +339,20 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
 
     x(6) = bestSubset.Hs.at<double>(2,0);
     x(7) = bestSubset.Hs.at<double>(2,1);
-    x(8) = bestSubset.Hs.at<double>(2,2);
 
     //std::cout << "x input: " << std::endl << x << std::endl;
 
     LineFunctor functor;
     functor.estimator = this;
     functor.lines = &bestSubset;
-    Eigen::NumericalDiff<LineFunctor> numDiff(functor, 1.0e-3); //epsilon
+    Eigen::NumericalDiff<LineFunctor> numDiff(functor, 1.0e-6); //epsilon
     Eigen::LevenbergMarquardt<Eigen::NumericalDiff<LineFunctor>,double> lm(numDiff);
 
     //FunctorNumericalLineDiff functor(1.0e-3);
     //Eigen::LevenbergMarquardt<FunctorNumericalLineDiff> lm(functor);
 
-    lm.parameters.ftol = 1.0e-10;
-    lm.parameters.xtol = 1.0e-10;
+    lm.parameters.ftol = 1.0e-15;
+    lm.parameters.xtol = 1.0e-15;
     //lm.parameters.epsfcn = 1.0e-3;
     lm.parameters.maxfev = 4000; // Max iterations
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
@@ -377,7 +377,6 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
 
     bestSubset.Hs.at<double>(2,0) = x(6);
     bestSubset.Hs.at<double>(2,1) = x(7);
-    bestSubset.Hs.at<double>(2,2) = x(8);
 
     double error = 0;
 
@@ -462,8 +461,9 @@ bool FEstimatorHLines::isUniqe(std::vector<int> subsetsIdx, int newIdx) {
     return true;
 }
 
-void FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches) {
+double FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches) {
     std::vector<lineCorrespStruct>::iterator it= matches.begin();
+    double reduction = 1.0 - ((double)usedMatches.size())/((double)matches.size());
     while (it!=matches.end()) {
         bool remove = false;
         for(std::vector<lineCorrespStruct>::const_iterator used = usedMatches.begin(); used != usedMatches.end(); ++used) {
@@ -477,7 +477,8 @@ void FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &mat
             it++;
         }
     }
-    if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matches.size() <<  ", removed: " << usedMatches.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matches.size() <<  ", removed: " << usedMatches.size() << " Ratio: " << reduction << std::endl;
+    return reduction;
 }
 
 void FEstimatorHLines::visualizeMatches(std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name) {

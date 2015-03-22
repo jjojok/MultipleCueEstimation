@@ -53,8 +53,8 @@ private:
     lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies);
     double calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
-    void filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
-    bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, lineSubsetStruct &result);
+    double filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
+    bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, double outliers, lineSubsetStruct &result);
     lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets);
     lineCorrespStruct getlineCorrespStruct(double start1x, double start1y, double end1x, double end1y, double start2x, double start2y, double end2x, double end2y, int id);
     lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id);
@@ -64,7 +64,7 @@ private:
     bool isUnity(Mat m);
     bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
 
-    std::vector<lineCorrespStruct> matchedLines;  //Vector of consecutive normalized line startpoints and endpoints
+    std::vector<lineCorrespStruct> matchedLines;  //Vector of corresponing line segments (start & endpoints)
 };
 
 #endif // FESTIMATORHLINES_H

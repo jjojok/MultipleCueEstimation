@@ -158,7 +158,7 @@ void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, 
     //#############################################################################
 }
 
-Mat crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
+Mat crossProductMatrix(Mat input) {    //3 Vector to cross product matrix
     Mat crossMat = Mat::zeros(3,3, input.type());
     crossMat.at<double>(0,1) = -input.at<double>(2);
     crossMat.at<double>(0,2) = input.at<double>(1);
@@ -261,51 +261,93 @@ double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSam
     if(err1 == -1) return -1;
     double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image, numOfSamples);
     if(err2 == -1) return -1;
-    return err1 + err2;
+    return (err1 + err2)/2.0;
 }
 
 double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
     double epipolarDistSum = 0;
+    int imgWidth = image.cols;
+    int imgHeight = image.rows;
     for(int i = 0; i < numOfSamples; i++) {
         //line: y = ax + b; a = x1/x3, b = x2/x3
 
         Mat p1homog;
-        int xBoundsMin = 0;
-        int xBounds = 0;
+        int xMin;
+        int xMax;
         double l2F1a = 0, l2F1b = 0;
 
         int trys = 1;
         do {    //Draw random point until it's epipolar line intersects image 2
-            p1homog = matVector(rand()%image.cols, rand()%image.rows, 1);
+            p1homog = matVector(rand()%(imgWidth-20)+10, rand()%(imgHeight-20)+10, 1);
             Mat l2F1homog = F1*p1homog;
             l2F1a = l2F1homog.at<double>(0,0) / l2F1homog.at<double>(2,0);
             l2F1b = l2F1homog.at<double>(1,0) / l2F1homog.at<double>(2,0);
-            l2F1a/=(-l2F1b);
-            l2F1b=1.0/(-l2F1b);
-            xBoundsMin = std::min(std::max((int)ceil(l2F1b/l2F1a),0), image.cols);
-            xBounds = std::min((int)floor(image.rows*l2F1b/l2F1a), image.cols) - xBoundsMin;
+            xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
+            xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
             trys++;
-        } while((xBounds < 0 || xBoundsMin > image.cols) && (trys < MAX_SAMPLE_TRYS));
+        } while((xMin > xMax) && (trys < MAX_SAMPLE_TRYS));
 
-        if(trys == MAX_SAMPLE_TRYS) return -1;
+        if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
 
         double x, y;
-        if(xBounds == 0) x = xBoundsMin;
-        else x = rand()%xBounds + xBoundsMin;
+        x = (rand()%(xMax-xMin)) + xMin;
         y = l2F1a*x + l2F1b;
 
         //Compute distance of chosen random point to epipolar line of F2
         Mat p2homog = matVector(x, y, 1);
         Mat l2F2homog = F2*p1homog;
-        epipolarDistSum+=fabs(p2homog.dot(l2F2homog));
+        epipolarDistSum+=fabs(Mat(p2homog.t()*l2F2homog).at<double>(0,0));
 
         //Compute distance of point1 to epipolar line from random point using F2^T in image 1
         Mat l1F2homog = F2.t()*p2homog;
-        epipolarDistSum+=fabs(p1homog.dot(l1F2homog));
+        epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
 
     }
     return epipolarDistSum/(2.0*numOfSamples);
 }
+
+//double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
+//    double epipolarDistSum = 0;
+//    for(int i = 0; i < numOfSamples; i++) {
+//        //line: y = ax + b; a = x1/x3, b = x2/x3
+
+//        Mat p1homog;
+//        int xBoundsMin = 0;
+//        int xBounds = 0;
+//        double l2F1a = 0, l2F1b = 0;
+
+//        int trys = 1;
+//        do {    //Draw random point until it's epipolar line intersects image 2
+//            p1homog = matVector(rand()%image.cols, rand()%image.rows, 1);
+//            Mat l2F1homog = F1*p1homog;
+//            l2F1a = l2F1homog.at<double>(0,0) / l2F1homog.at<double>(2,0);
+//            l2F1b = l2F1homog.at<double>(1,0) / l2F1homog.at<double>(2,0);
+//            l2F1a/=(-l2F1b);
+//            l2F1b=1.0/(-l2F1b);
+//            xBoundsMin = std::min(std::max((int)ceil(l2F1b/l2F1a),0), image.cols);
+//            xBounds = std::min((int)floor(image.rows*l2F1b/l2F1a), image.cols) - xBoundsMin;
+//            trys++;
+//        } while((xBounds < 0 || xBoundsMin > image.cols) && (trys < MAX_SAMPLE_TRYS));
+
+//        if(trys == MAX_SAMPLE_TRYS) return -1;
+
+//        double x, y;
+//        if(xBounds == 0) x = xBoundsMin;
+//        else x = rand()%xBounds + xBoundsMin;
+//        y = l2F1a*x + l2F1b;
+
+//        //Compute distance of chosen random point to epipolar line of F2
+//        Mat p2homog = matVector(x, y, 1);
+//        Mat l2F2homog = F2*p1homog;
+//        epipolarDistSum+=fabs(p2homog.dot(l2F2homog));
+
+//        //Compute distance of point1 to epipolar line from random point using F2^T in image 1
+//        Mat l1F2homog = F2.t()*p2homog;
+//        epipolarDistSum+=fabs(p1homog.dot(l1F2homog));
+
+//    }
+//    return epipolarDistSum/(2.0*numOfSamples);
+//}
 
 Mat matVector(double x, double y, double z) {
     Mat vect = Mat::zeros(3,1,CV_64FC1);

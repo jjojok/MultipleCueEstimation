@@ -29,7 +29,7 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.012;
+#define MIN_LENGTH_FACTOR 0.010;
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
 //defines number of subsets which are randomly picked for LMedS to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
@@ -41,7 +41,7 @@
 //Number of correspondencies per homography estimation
 #define NUM_CORRESP 6
 //Max hemming distance of binary matchig
-#define MAX_HEMMING_DIST 18
+#define MAX_HEMMING_DIST 16
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
 //Factor for selecting wrong matches in refinement step after first homography estimation

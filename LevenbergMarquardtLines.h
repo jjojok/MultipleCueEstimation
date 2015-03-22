@@ -42,7 +42,7 @@ struct LineFunctor : Functor<double>
 {
     int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
     {
-        Mat newH = Mat::zeros(3,3,CV_64FC1), H_T, H_invT;
+        Mat newH = Mat::ones(3,3,CV_64FC1), H_T, H_invT;
 
         newH.at<double>(0,0) = x(0);
         newH.at<double>(0,1) = x(1);
@@ -54,7 +54,6 @@ struct LineFunctor : Functor<double>
 
         newH.at<double>(2,0) = x(6);
         newH.at<double>(2,1) = x(7);
-        newH.at<double>(2,2) = x(8);
 
         H_T = newH.t();
         H_invT = newH.inv(DECOMP_SVD).t();
@@ -82,7 +81,7 @@ struct LineFunctor : Functor<double>
 lineSubsetStruct *lines;
 FEstimatorHLines *estimator;
 
-int inputs() const { return 9; } // There are 9 parameters of the model
+int inputs() const { return 8; } // There are 9 parameters of the model
 int values() const { return lines->lineCorrespondencies.size()*2; } // The number of observations
 };
 
