@@ -12,7 +12,7 @@
 
 #include <eigen3/unsupported/Eigen/NonLinearOptimization>
 #include <eigen3/unsupported/Eigen/NumericalDiff>
-#include "FEstimationMethod.h"
+#include "Utility.h"
 
 // Generic functor
 template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
@@ -58,7 +58,7 @@ struct GeneralFunctor : Functor<double>
 
         FEstimationMethod est = *estimations->begin();
 
-        std::vector<double> errorVect = est.computeErrorVect(*estimations, F);
+        std::vector<double> errorVect = computeCombinedErrorVect(*estimations, F);
 
         for(int i = 0; i < errorVect.size(); i++) {
             fvec(i) = errorVect.at(i);

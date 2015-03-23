@@ -28,11 +28,12 @@ void MultipleCueEstimation::run() {
             estimations.push_back(*points);
         }
         if(computations & F_FROM_LINES_VIA_H) {
-            FEstimationMethod* lines = calcFfromLines();
+            FEstimationMethod* lines = calcFfromHLines();
             if(lines->isSuccessful()) estimations.push_back(*lines);
         }
-        if(computations & F_FROM_PLANES_VIA_H) {
-            estimations.push_back(*calcFfromPlanes());
+        if(computations & F_FROM_POINTS_VIA_H) {
+            FEstimationMethod* Hpoints = calcFfromHPoints();
+            if(Hpoints->isSuccessful()) estimations.push_back(*Hpoints);
         }
 
         if (compareWithGroundTruth) {
@@ -50,7 +51,7 @@ void MultipleCueEstimation::run() {
             if (compareWithGroundTruth) {
                 double error1 = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
                 double error2 = squaredError(Fgt, it->getF());
-                std::cout << "Random sample epipolar error: " << error1 << ", Squated distance: " << error2 << std::endl;
+                std::cout << "Random sample epipolar error: " << error1 << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getSymmetricTransferError() << std::endl;
             }
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
@@ -75,6 +76,12 @@ int MultipleCueEstimation::checkData() {
     if(!image_1_color.data || !image_2_color.data)
     {
         std::cerr << "No image data!" << std::endl;
+        return 0;
+    }
+
+    if(image_1_color.cols != image_2_color.cols || image_1_color.rows != image_2_color.rows)
+    {
+        std::cerr << "Image sizes do not match!" << std::endl;
         return 0;
     }
 
@@ -105,14 +112,20 @@ FEstimationMethod* MultipleCueEstimation::calcFfromPoints() {
     return estimatorPoints;
 }
 
-FEstimationMethod* MultipleCueEstimation::calcFfromLines() {     // From Paper: "Robust line matching in image pairs of scenes with dominant planes", Sagúes C., Guerrero J.J.
-    FEstimatorHLines* estomatorLines = new FEstimatorHLines(image_1, image_2, image_1_color, image_2_color, "F_lines");
+FEstimationMethod* MultipleCueEstimation::calcFfromHLines() {     // From Paper: "Robust line matching in image pairs of scenes with dominant planes", Sagúes C., Guerrero J.J.
+    FEstimatorHLines* estomatorLines = new FEstimatorHLines(image_1, image_2, image_1_color, image_2_color, "F_Hlines");
     estomatorLines->compute();
     return estomatorLines;
 }
 
-FEstimationMethod* MultipleCueEstimation::calcFfromPlanes() {    // From: 1. two Homographies (one in each image), 2. Planes as additinal point information (point-plane dualism)
-    FEstimatorHPlanes* estomatorPlanes = new FEstimatorHPlanes(image_1, image_2, image_1_color, image_2_color, "F_Planes");
+FEstimationMethod* MultipleCueEstimation::calcFfromHPoints() {    // From: two Homographies (one in each image) computed from points in general position
+    FEstimatorHPoints* estomatorHPoints = new FEstimatorHPoints(image_1, image_2, image_1_color, image_2_color, "F_HPoints");
+    estomatorHPoints->compute();
+    return estomatorHPoints;
+}
+
+FEstimationMethod* MultipleCueEstimation::calcFfromHPlanes() {    // From: two Homographies (one in each image)
+    FEstimatorHPlanes* estomatorPlanes = new FEstimatorHPlanes(image_1, image_2, image_1_color, image_2_color, "F_HPlanes");
     estomatorPlanes->compute();
     return estomatorPlanes;
 }
@@ -134,9 +147,14 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
     FEstimationMethod bestMethod = *estimations.begin();
     Mat refinedF = Mat::ones(3,3,CV_64FC1);
     int numValues = 0;
+    double bestError = 99999999;
 
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-        if(estimationIter->computeMeanError(estimations) < bestMethod.getError()) bestMethod = *estimationIter;
+        double estimationIterError = computeCombinedMeanSquaredError(estimations, estimationIter->getF());
+        if(estimationIterError < bestError) {
+            bestMethod = *estimationIter;
+            bestError = estimationIterError;
+        }
         numValues += estimationIter->getFeaturesImg1().size();
     }
 
@@ -182,7 +200,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 
     enforceRankTwoConstraint(refinedF);
 
-    if (LOG_DEBUG) std::cout <<"Error: " << estimations.begin()->computeMeanError(estimations, refinedF) << std::endl;
+    if (LOG_DEBUG) std::cout <<"sqared symmetic transfer error: " << computeCombinedMeanSquaredError(estimations, refinedF) << std::endl;
 
     return refinedF;
 }

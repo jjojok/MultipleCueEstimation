@@ -2,10 +2,11 @@
 #define MCE_H
 
 //ESTIMATORS
-#include "FEstimationMethod.h"
+#include "Utility.h"
 #include "FEstimatorPoints.h"
 #include "FEstimatorHLines.h"
 #include "FEstimatorHPlanes.h"
+#include "FEstimatorHPoints.h"
 
 //SYSTEM
 #include <string>
@@ -36,8 +37,9 @@ private:
 
     int checkData();
     FEstimationMethod* calcFfromPoints();
-    FEstimationMethod* calcFfromLines();
-    FEstimationMethod* calcFfromPlanes();
+    FEstimationMethod* calcFfromHPoints();
+    FEstimationMethod* calcFfromHLines();
+    FEstimationMethod* calcFfromHPlanes();
     FEstimationMethod* calcFfromConics();
     FEstimationMethod* calcFfromCurves();
     Mat refineF(std::vector<FEstimationMethod> estimations);

@@ -1,14 +1,8 @@
 #ifndef FESTIMATORHPLANES_H
 #define FESTIMATORHPLANES_H
 
-#include "FEstimationMethod.h"
-
-struct segmentStruct {
-    int id;
-    int area;
-    Point startpoint;
-    int contours_idx;
-};
+#include "Utility.h"
+#include "DataStructs.h"
 
 class FEstimatorHPlanes : public FEstimationMethod {
 public:

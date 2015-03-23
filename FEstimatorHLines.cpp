@@ -1,5 +1,6 @@
 #include "FEstimatorHLines.h"
 #include "LevenbergMarquardtLines.h"
+#include "FeatureMatchers.h"
 
 FEstimatorHLines::FEstimatorHLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
     image_1 = img1.clone();
@@ -17,101 +18,7 @@ FEstimatorHLines::~FEstimatorHLines() {
 }
 
 int FEstimatorHLines::extractMatches() {
-    /********************************************************************
-     * From: http://docs.opencv.org/trunk/modules/line_descriptor/doc/tutorial.html
-     * ******************************************************************/
-
-    /* create binary masks */
-    cv::Mat mask1 = Mat::ones( image_1.size(), CV_8UC1 );
-    cv::Mat mask2 = Mat::ones( image_2.size(), CV_8UC1 );
-
-    /* create a pointer to a BinaryDescriptor object with default parameters */
-    Ptr<cv::line_descriptor::BinaryDescriptor> bd = cv::line_descriptor::BinaryDescriptor::createBinaryDescriptor();
-
-    bd->setNumOfOctaves(OCTAVES);
-    bd->setReductionRatio(SCALING);
-    bd->setWidthOfBand(9);
-
-    Ptr<cv::line_descriptor::LSDDetector> lsd = cv::line_descriptor::LSDDetector::createLSDDetector();
-
-    /* lines */
-    std::vector<cv::line_descriptor::KeyLine> keylines1, keylines2;
-
-    /* extract lines */
-    lsd->detect( image_1, keylines1, OCTAVES, SCALING, mask1 );
-    lsd->detect( image_2, keylines2, OCTAVES, SCALING, mask2 );
-
-    //Filter detected lines:
-    double minLenght = sqrt(image_1.cols*image_1.cols + image_1.rows*image_1.rows)*MIN_LENGTH_FACTOR;
-    if(LOG_DEBUG) std::cout << "-- Min line segment length: " << minLenght << std::endl;
-    int filtered1 = filterLineExtractions(minLenght, keylines1);
-    int filtered2 = filterLineExtractions(minLenght, keylines2);
-
-    if(LOG_DEBUG) {
-        std::cout << "-- First image: " << keylines1.size() << " filtered: " << filtered1 << std::endl;
-        std::cout << "-- Second image: " << keylines2.size() << " filtered: " << filtered2 << std::endl;
-    }
-
-    std::vector<DMatch> matches;
-
-    /* compute descriptors */
-    cv::Mat descr1, descr2;
-    bd->compute( image_1, keylines1, descr1 );
-    bd->compute( image_2, keylines2, descr2 );
-
-    /* create a BinaryDescriptorMatcher object */
-    Ptr<cv::line_descriptor::BinaryDescriptorMatcher> bdm = cv::line_descriptor::BinaryDescriptorMatcher::createBinaryDescriptorMatcher();
-
-    /* require match */
-    bdm->match( descr1, descr2, matches );
-
-    /************************************************************************/
-
-    cv::line_descriptor::KeyLine l1, l2;
-    int filteredMatches = 0;
-    int id = 0;
-    //Reduce max hemming distance if number of matches are high
-    int maxHemmingDist = MAX_HEMMING_DIST;//= MIN_HEMMING_DIST + std::min((int)((MAX_HEMMING_DIST - MIN_HEMMING_DIST)*1400.0/matches.size()), (MAX_HEMMING_DIST - MIN_HEMMING_DIST));
-    if(LOG_DEBUG) std::cout << "-- Min match hemming dist: " << maxHemmingDist << std::endl;
-
-    for (std::vector<DMatch>::const_iterator it= matches.begin(); it!=matches.end(); ++it) {
-
-        l1 = keylines1[it->queryIdx];
-        l2 = keylines2[it->trainIdx];
-
-        if (it->distance > maxHemmingDist || filterLineMatch(l1,l2)) {  //Bad match
-            filteredMatches++;
-        } else {    //Good match, add to correspondence list
-            lineCorrespStruct lc = getlineCorrespStruct(l1,l2, id);
-            id++;
-            matchedLines.push_back(lc);
-        }
-    }
-
-    if(LOG_DEBUG) {
-        std::cout << "-- Number of matches : " << matchedLines.size() << " filtered: " << filteredMatches << std::endl;
-    }
-
-    if(VISUAL_DEBUG) visualizeMatches(matchedLines, 2, true, "Line matches");
-    return matchedLines.size();
-    if(LOG_DEBUG) std::cout << std::endl;
-}
-
-bool FEstimatorHLines::filterLineMatch(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2) {
-    if(smallestRelAngle(l1.angle, l2.angle) > MAX_LINE_ANGLE) return true;
-    return false;
-}
-
-int FEstimatorHLines::filterLineExtractions(double minLenght, std::vector<cv::line_descriptor::KeyLine> &keylines) {
-    int filtered = 0;
-    std::vector<cv::line_descriptor::KeyLine>::iterator it= keylines.begin();
-    while (it!=keylines.end()) {
-        if ((it->octave > 0 && it->octave*SCALING*it->lineLength < minLenght) || (it->octave == 0 && it->lineLength < minLenght)) {
-            keylines.erase(it);
-            filtered++;
-        } else it++;
-    }
-    return filtered;
+    extractLineMatches(image_1, image_2, matchedLines);
 }
 
 bool FEstimatorHLines::compute() {
@@ -162,7 +69,7 @@ bool FEstimatorHLines::compute() {
 
     if(VISUAL_DEBUG) {
         visualizeHomography(H1.Hs, image_1, image_2, "H21");
-        visualizeMatches(H1.lineCorrespondencies, 8, true, "H21 used Matches");
+        visualizeMatches(image_1_color, image_2_color, H1.lineCorrespondencies, 8, true, "H21 used Matches");
         visualizeProjectedLines(H1, 8, true, "H21 used lines projected to image 2");
     }
 
@@ -212,50 +119,31 @@ bool FEstimatorHLines::compute() {
 
     if(VISUAL_DEBUG) {
         visualizeHomography(H2.Hs, image_1, image_2, "H21_2");
-        visualizeMatches(H2.lineCorrespondencies, 8, true, "H21_2 used Matches");
+        visualizeMatches(image_1_color, image_2_color, H2.lineCorrespondencies, 8, true, "H21_2 used Matches");
         visualizeProjectedLines(H2, 8, true, "H21_2 used lines projected to image 2");
     }
 
-    // Map the OpenCV matrix with Eigen:
-    Eigen::Matrix3d HEigen;
-    cv2eigen(H, HEigen);
-    //http://eigen.tuxfamily.org/dox/classEigen_1_1EigenSolver.html#a8c287af80cfd71517094b75dcad2a31b
-    Eigen::EigenSolver<Eigen::Matrix3d> solver;
-    solver.compute(HEigen);
+    Mat e = computeUniqeEigenvector(H);
 
-    Mat eigenvalues = Mat::zeros(CV_64FC1, 3, 1), eigenvectors = Mat::zeros(CV_64FC1, 3, 3);
-    eigen2cv(solver.eigenvalues(), eigenvalues);
-    eigen2cv(solver.eigenvectors(), eigenvectors);
-
-    if(LOG_DEBUG) {
-        std::cout << "-- H1*H2^-1 = " << std::endl << H << std::endl;
-
-        for(int i = 0; i < eigenvalues.rows; i++) {
-            std::cout << "-- " << i+1 << "th Eigenvalue: " << eigenvalues.at<double>(i,0) << ", Eigenvector = " << std::endl << eigenvectors.col(i) << std::endl;
-        }
-    }
-
-    double dist[eigenvalues.rows];
-    double lastDist = 0;
-    int col = 0;
-    for(int i = 0; i < eigenvalues.rows; i ++) {        //find non-unary eigenvalue & its eigenvector
-        Mat eig = eigenvalues.row(i);
-        dist[i] = 0;
-        for(int j = 0; j < eigenvalues.rows; j ++) {
-            dist[i] += squaredError(eig, eigenvalues.row(j));
-        }
-        if(dist[i] > lastDist) {
-            col = i;
-            lastDist = dist[i];
-        }
-    }
-
-    std::vector<Mat> e;
-    split(eigenvectors.col(col),e); //Remove channel for imaginary part
-    if(LOG_DEBUG) std::cout << "e = " << std::endl << e.at(0) << std::endl;
-    F = crossProductMatrix(e.at(0))*H1.Hs;
+    F = crossProductMatrix(e)*H1.Hs;
     enforceRankTwoConstraint(F);
+
+    meanSymmetricTranferError = 0;
+    Mat H_t = H1.Hs.t();
+    Mat H_invT = H1.Hs.inv(DECOMP_SVD).t();
+    for(std::vector<lineCorrespStruct>::iterator it = H1.lineCorrespondencies.begin() ; it != H1.lineCorrespondencies.end(); ++it) {
+        meanSymmetricTranferError += squaredSymmeticTransferError(H_invT, H_t, *it);
+    }
+    H_t = H2.Hs.t();
+    H_invT = H2.Hs.inv(DECOMP_SVD).t();
+    for(std::vector<lineCorrespStruct>::iterator it = H2.lineCorrespondencies.begin() ; it != H2.lineCorrespondencies.end(); ++it) {
+        meanSymmetricTranferError += squaredSymmeticTransferError(H_invT, H_t, *it);
+    }
+    meanSymmetricTranferError /= (H1.lineCorrespondencies.size() + H2.lineCorrespondencies.size());
+
     successful = true;
+
+    if(LOG_DEBUG) std::cout << std::endl << std::endl;
 
     return true;
 }
@@ -300,7 +188,7 @@ bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMa
 
         goodLineMatches.clear();
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
-            if(squaredSymmeticTransferError(bestSubset.Hs, *it) < MAX_PROJ_DIST) goodLineMatches.push_back(*it);
+            if(squaredSymmeticTransferError(bestSubset.Hs, *it) < MAX_TRANSFER_DIST) goodLineMatches.push_back(*it);
         }
 
         //outliers = goodLineMatches.size() / outliers;
@@ -320,6 +208,7 @@ bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMa
     bestSubset.lineCorrespondencies = goodLineMatches;
     computeHomography(bestSubset);
     levenbergMarquardt(bestSubset);
+
     if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.lineCorrespondencies.size() << std::endl;
     result = bestSubset;
 
@@ -387,14 +276,6 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
     bestSubset.meanSquaredSymmeticTransferError = error/bestSubset.lineCorrespondencies.size();
 
     return error;
-}
-
-bool FEstimatorHLines::isUnity(Mat m) {
-    Mat diff = abs(m - Mat::eye(m.rows, m.cols, CV_64FC1));
-    for(int i = 0; i < m.cols; i++) {
-        if(diff.at<double>(i,i) > MARGIN) return false;
-    }
-    return true;
 }
 
 lineSubsetStruct FEstimatorHLines::estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets) {
@@ -479,20 +360,6 @@ double FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &m
     }
     if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matches.size() <<  ", removed: " << usedMatches.size() << " Ratio: " << reduction << std::endl;
     return reduction;
-}
-
-void FEstimatorHLines::visualizeMatches(std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name) {
-    Mat img;
-    hconcat(image_1_color.clone(), image_2_color.clone(), img);
-    for(std::vector<lineCorrespStruct>::iterator it = correspondencies.begin() ; it != correspondencies.end(); ++it) {
-        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
-        cv::line(img, cvPoint2D32f(it->line1Start.at<double>(0,0), it->line1Start.at<double>(1,0)), cvPoint2D32f(it->line1End.at<double>(0,0), it->line1End.at<double>(1,0)), color, lineWidth);
-        cv::line(img, cvPoint2D32f(it->line2Start.at<double>(0,0) + image_1_color.cols, it->line2Start.at<double>(1,0)), cvPoint2D32f(it->line2End.at<double>(0,0) + image_1_color.cols, it->line2End.at<double>(1,0)), color, lineWidth);
-        if(drawConnections) {
-            cv::line(img, cvPoint2D32f(it->line1Start.at<double>(0,0), it->line1Start.at<double>(1,0)), cvPoint2D32f(it->line2Start.at<double>(0,0) + image_1_color.cols, it->line2Start.at<double>(1,0)), color, lineWidth);
-        }
-    }
-    showImage(name, img, WINDOW_NORMAL, 1600);
 }
 
 void FEstimatorHLines::visualizeProjectedLines(lineSubsetStruct subset, int lineWidth, bool drawConnections, std::string name) {
@@ -677,66 +544,6 @@ Mat* FEstimatorHLines::normalizeLines(std::vector<lineCorrespStruct> &correspond
     }
 
     return normalizationMats;
-}
-
-lineCorrespStruct FEstimatorHLines::getlineCorrespStruct(lineCorrespStruct lcCopy) {
-    lineCorrespStruct* lc = new lineCorrespStruct;
-    lc->line1Angle = lcCopy.line1Angle;
-    lc->line2Angle = lcCopy.line2Angle;
-
-    lc->line1Length = lcCopy.line1Length;
-    lc->line2Length = lcCopy.line2Length;
-
-    lc->line1Start = lcCopy.line1Start.clone();
-    lc->line2Start = lcCopy.line2Start.clone();
-    lc->line1End = lcCopy.line1End.clone();
-    lc->line2End = lcCopy.line2End.clone();
-
-    lc->id = lcCopy.id;
-
-    return *lc;
-}
-
-lineCorrespStruct FEstimatorHLines::getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id) {
-    lineCorrespStruct* lc = new lineCorrespStruct;
-    double scaling = 1;
-    if(l1.octave > 0) { //TODO: OpenCV bug: coordinates are from downscaled versions of image pyramid
-        scaling = l1.octave*SCALING;
-    }
-
-    lc->line1Angle = l1.angle;
-    lc->line2Angle = l2.angle;
-
-    lc->line1Length = l1.lineLength*scaling;
-    lc->line2Length = l1.lineLength*scaling;
-
-    lc->line1Start = matVector(l1.startPointX*scaling, l1.startPointY*scaling, 1);
-    lc->line2Start = matVector(l2.startPointX*scaling, l2.startPointY*scaling, 1);
-    lc->line1End = matVector(l1.endPointX*scaling, l1.endPointY*scaling, 1);
-    lc->line2End = matVector(l2.endPointX*scaling, l2.endPointY*scaling, 1);
-
-    lc->id = id;
-
-    return *lc;
-}
-
-lineCorrespStruct FEstimatorHLines::getlineCorrespStruct(double start1x, double start1y, double end1x, double end1y, double start2x, double start2y , double end2x, double end2y, int id) {
-    lineCorrespStruct* lc = new lineCorrespStruct;
-
-    lc->line1Angle = atan2(end1y - start1y, end1x - start1x);
-    lc->line2Angle = atan2(end2y - start2y, end2x - start2x);
-
-    lc->line1Length = fnorm(start1x-end1x, start1y-end1y);
-    lc->line2Length = fnorm(start2x-end2x, start2y-end2y);
-
-    lc->line1Start = matVector(start1x, start1y, 1);
-    lc->line2Start = matVector(start2x, start2y, 1);
-    lc->line1End = matVector(end1x, end1y, 1);
-    lc->line2End = matVector(end2x, end2y, 1);
-
-    lc->id;
-
-    return *lc;
 }
 
 bool compareLineCorrespErrors(lineCorrespSubsetError ls1, lineCorrespSubsetError ls2) {

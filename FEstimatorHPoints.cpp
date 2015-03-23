@@ -16,114 +16,111 @@ FEstimatorHPoints::FEstimatorHPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c,
 }
 
 int FEstimatorHPoints::extractMatches() {
-    std::vector<cv::KeyPoint> keypoints_1;
-    std::vector<cv::KeyPoint> keypoints_2;
-
-    //SurfFeatureDetector detector(SIFT_FEATURE_COUNT);
-    Ptr<xfeatures2d::SURF> detector = xfeatures2d::SURF::create(SIFT_FEATURE_COUNT);
-
-    detector->detect(image_1, keypoints_1);
-    detector->detect(image_2, keypoints_2);
-
-    if(LOG_DEBUG) std::cout << "-- First image: " << keypoints_1.size() << std::endl;
-    if(LOG_DEBUG) std::cout << "-- Second image: " << keypoints_2.size() << std::endl;
-
-    //-- Step 2: Calculate descriptors (feature vectors)
-    Ptr<xfeatures2d::SurfDescriptorExtractor> extractor = xfeatures2d::SurfDescriptorExtractor::create();
-
-    Mat descriptors_1, descriptors_2;
-
-    extractor->compute( image_1, keypoints_1, descriptors_1 );
-    extractor->compute( image_2, keypoints_2, descriptors_2 );
-
-    //-- Step 3: Matching descriptor vectors using FLANN matcher
-    FlannBasedMatcher matcher;
-    std::vector< DMatch > matches;
-    matcher.match( descriptors_1, descriptors_2, matches );
-
-    double max_dist = 0; double min_dist = 100;
-
-    //-- Quick calculation of max and min distances between keypoints
-    for( int i = 0; i < descriptors_1.rows; i++ )
-    {
-        double dist = matches[i].distance;
-        if( dist < min_dist ) min_dist = dist;
-        if( dist > max_dist ) max_dist = dist;
-    }
-
-    if (LOG_DEBUG) {
-        std::cout << "-- Max dist : " << max_dist << std::endl;
-        std::cout << "-- Min dist : " << min_dist << std::endl;
-    }
-    //-- Draw only "good" matches (i.e. whose distance is less than 2*min_dist,
-    //-- or a small arbitary value in the event that min_dist is very
-    //-- small)
-    //-- PS.- radiusMatch can also be used here.
-    std::vector< DMatch > good_matches;
-
-    if(LOG_DEBUG) std::cout << "-- Overall matches : " << descriptors_1.rows << std::endl;
-
-    for( int i = 0; i < descriptors_1.rows; i++ )
-    {
-        if( matches[i].distance <= max(SIFT_MIN_DIST_FACTOR*min_dist, SIFT_MIN_DIST) )
-        {
-            good_matches.push_back( matches[i]);
-        }
-    }
-
-    if(LOG_DEBUG) std::cout << "-- Number of good matches: " << good_matches.size() << std::endl;
-
-    // ++++
-
-    for( int i = 0; i < good_matches.size(); i++ )
-    {
-        x1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
-        x2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
-    }
+    extractPointMatches(image_1, image_2, x1, x2);
 }
 
 bool FEstimatorHPoints::compute() {
-    std::vector<bool> mask;
-    int used = 0;
+
     extractMatches();
-    F = findFundamentalMat(x1, x2, FM_RANSAC, 3.0, 0.99, mask);
-    F.convertTo(F, CV_64FC1);
-    for(int i = 0; i < x1.size(); i++) {
+
+    if(LOG_DEBUG) std::cout << "-- First Estimation..."<< std::endl;
+
+    std::vector<int> mask;
+    Mat H1 = findHomography(x1, x2, LMEDS, RANSAC_THREDHOLD, mask, 2000, RANSAC_CONFIDENCE);
+
+    if(!H1.data) {
+        if(LOG_DEBUG) std::cout << "-- Estimation failed!  (Unable to compute H1)" << std::endl;
+        return false;
+    }
+
+    visualizeHomography(H1, image_1_color, image_2_color, "Point homography 1");
+
+    for(int i = mask.size()-1; i >= 0 ; i--) {
         if(mask.at(i)) {
             x1_used.push_back(x1.at(i));
             x2_used.push_back(x2.at(i));
             featuresImg1.push_back(matVector(x1.at(i)));
-            featuresImg1.push_back(matVector(x2.at(i)));
-            used++;
+            featuresImg2.push_back(matVector(x2.at(i)));
+            x1.erase(x1.begin()+i);
+            x2.erase(x2.begin()+i);
         }
     }
-    if(LOG_DEBUG) std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
 
-    if(x1_used.size() < 8) {
-        return false;
-    }
+    if(LOG_DEBUG) std::cout << "-- Used matches: " << x1_used.size() << std::endl;
 
-    if(VISUAL_DEBUG) visualizeMatches(x1_used, x2_used, 3, true, "Used point matches");
+    int estCnt = 0;
+    bool H_close_to_unitiy = true;
+    Mat H, H2;
 
-    if(LOG_DEBUG) std::cout << std::endl;
+    std::vector<Point2d> goodX1, goodX2;
 
-    successful = true;
+    while(H_close_to_unitiy) {
 
-    return true;
-}
+        if(LOG_DEBUG) std::cout << "-- First Estimation..."<< std::endl;
 
-void FEstimatorHPoints::visualizeMatches(std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name) {
-    Mat img;
-    hconcat(image_1_color.clone(), image_2_color.clone(), img);
-    for(int i = 0; i < p1.size(); i++) {
-        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
-        cv::circle(img, p1.at(i), 2, color, lineWidth);
-        cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), 2, color, lineWidth);
-        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
-        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
-        if(drawConnections) {
-            cv::line(img, p1.at(i), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        estCnt++;
+
+        goodX1.clear();
+        goodX2.clear();
+        mask.clear();
+        for(int i = 0; i < x1.size(); i++) {
+            goodX1.push_back(x1.at(i));
+            goodX2.push_back(x2.at(i));
+        }
+
+        if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << goodX1.size() << std::endl;
+
+        H2 = findHomography(goodX1, goodX2, CV_RANSAC, RANSAC_THREDHOLD, mask, 2000, RANSAC_CONFIDENCE);
+
+        if(!H2.data) {
+            if(LOG_DEBUG) std::cout << "-- Estimation failed! (Unable to compute H2)" << std::endl;
+            return false;
+        }
+
+        H = H1*H2.inv(DECOMP_SVD); // H = (H1*H2⁻1)
+
+        H_close_to_unitiy = isUnity(H);
+        if(H_close_to_unitiy) {
+            if(LOG_DEBUG) std::cout << "-- H close to unity, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
+            for(int i = mask.size()-1; i >= 0 ; i--) {
+                if(mask.at(i)) {
+                    x1.erase(x1.begin()+i);
+                    x2.erase(x2.begin()+i);
+                }
+            }
+        }
+
+        if(MAX_H2_ESTIMATIONS < estCnt) {   //Not able to find a second homographie
+            if(LOG_DEBUG) std::cout << "-- Estimation failed!" << std::endl;
+            return false;
         }
     }
-    showImage(name, img, WINDOW_NORMAL, 1600);
+
+    visualizeHomography(H2, image_1_color, image_2_color, "Point homography 2");
+
+    for(int i = 0; i < mask.size(); i++) {
+        if(mask.at(i)) {
+            x1_used.push_back(x1.at(i));
+            x2_used.push_back(x2.at(i));
+            featuresImg1.push_back(matVector(x1.at(i)));
+            featuresImg2.push_back(matVector(x2.at(i)));
+        }
+    }
+
+    Mat e = computeUniqeEigenvector(H);
+
+    F = crossProductMatrix(e)*H1;
+    enforceRankTwoConstraint(F);
+
+    if(LOG_DEBUG) std::cout << "-- Used matches: " << x1_used.size() << std::endl;
+
+    if(x1_used.size() >= 16) successful = true;
+
+    meanSymmetricTranferError = meanSquaredSymmeticTransferError(F, x1_used, x2_used);
+
+    if(VISUAL_DEBUG) visualizeMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Point Homography used point matches");
+
+    if(LOG_DEBUG) std::cout << std::endl << std::endl;
+
+    return successful;
 }

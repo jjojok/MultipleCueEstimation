@@ -34,11 +34,7 @@ public:
     std::vector<Mat> getFeaturesImg1();
     std::vector<Mat> getFeaturesImg2();
     int getType();
-    std::vector<double> computeErrorVect(std::vector<FEstimationMethod> estimations);
-    std::vector<double> computeErrorVect(std::vector<FEstimationMethod> estimations, Mat inpF);
-    double computeMeanError(std::vector<FEstimationMethod> estimations);
-    double computeMeanError(std::vector<FEstimationMethod> estimations, Mat impF);
-    double getError();
+    double getSymmetricTransferError();
 
 protected:
     virtual void init();
@@ -54,7 +50,7 @@ protected:
     int computationType;
     std::vector<Mat> featuresImg1;
     std::vector<Mat> featuresImg2;
-    double error;
+    double meanSymmetricTranferError;
 
 private:
 

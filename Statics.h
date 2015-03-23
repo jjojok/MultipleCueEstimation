@@ -22,6 +22,10 @@
 #define SIFT_MIN_DIST 0.06
 //Factor of min Sift distance from all generated points where correspondence is still acceptable
 #define SIFT_MIN_DIST_FACTOR 3.0
+//Ransac thredshold
+#define RANSAC_THREDHOLD 2.0
+//Ransac confidence
+#define RANSAC_CONFIDENCE 0.999
 
 //Lines:
 //Number of segements for image pyramid
@@ -35,7 +39,7 @@
 //defines number of subsets which are randomly picked for LMedS to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
 //#define NUM_LINE_PAIR_SUBSETS_FACTOR 20.0//0.25
 //Ransac confidence
-#define CONFIDENCE 0.99
+#define CONFIDENCE 0.999
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define LINE_OUTLIERS 0.65
 //Number of correspondencies per homography estimation
@@ -54,8 +58,8 @@
 #define MAX_REFINEMENT_ITERATIONS 300
 //Max Angle difference for lines being parallel
 #define MAX_ANGLE_DIFF M_PI/30.0
-//Max squared distance of projected lines to be considered as a correct projection (pixel)
-#define MAX_PROJ_DIST 1.25
+//Max squared distance of lines to be considered as a correct projection (pixel)
+#define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to beconsidered as stable
 #define MAX_ERROR_CHANGE 0.1
 

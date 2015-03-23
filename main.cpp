@@ -121,7 +121,6 @@ int main(int argc, char** argv )
         Mat K1, K2, R1w, R2w, t1w, t2w;
         Mat K12, K22, R1w2, R2w2, t1w2, t2w2;
         if(ImgParamsFromFile(argv[4], K1, R1w, t1w) && ImgParamsFromFile(argv[5], K2, R2w, t2w)) {
-            getGroundTruthKRt(K1, K2, R1w, R2w, t1w, t2w);
             ImgParamsFromFile(argv[5], K22, R2w2, t2w2);
             ImgParamsFromFile(argv[4], K12, R1w2, t1w2);
             getGroundTruthP(K12, K22, R1w2, R2w2, t1w2, t2w2);

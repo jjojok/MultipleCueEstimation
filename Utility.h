@@ -11,8 +11,20 @@
 //OPENCV
 #include <opencv2/opencv.hpp>
 #include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <opencv2/line_descriptor.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/imgproc.hpp>
+
+#include "Utility.h"
+#include "Statics.h"
+#include "DataStructs.h"
+#include "FEstimationMethod.h"
+
+#include <eigen3/Eigen/Eigenvalues>
+#include <opencv2/core/eigen.hpp>
+
+#include <ctime>
 
 using namespace cv;
 
@@ -27,7 +39,8 @@ void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, 
 std::string getType(Mat m);
 int calcMatRank(Mat M);
 int calcNumberOfSolutions(Mat linEq);
-double epipolarSADError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
+double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
+double symmeticTransferError(Mat F, Mat x1, Mat x2);
 Mat matVector(double x, double y, double z);
 Mat matVector(Point2d p);
 double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples);
@@ -35,5 +48,14 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t);
 double fnorm(double x, double y);
 void enforceRankTwoConstraint(Mat &F);
+lineCorrespStruct getlineCorrespStruct(double start1x, double start1y, double end1x, double end1y, double start2x, double start2y, double end2x, double end2y, int id);
+lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id);
+lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy);
+void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name);
+void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name);
+bool isUnity(Mat m);
+Mat computeUniqeEigenvector(Mat H);
+std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F);
+double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimations, Mat F);
 
 #endif // UTILITY_H

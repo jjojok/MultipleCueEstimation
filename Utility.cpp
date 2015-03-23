@@ -1,7 +1,4 @@
 #include "Utility.h"
-#include "Statics.h"
-
-#include <ctime>
 
 void enforceRankTwoConstraint(Mat &F) {
     //Enforce Rank 2 constraint:
@@ -242,16 +239,12 @@ bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
     }
 }
 
-double epipolarSADError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
-    std::vector<cv::Vec3f> lines1;
-    std::vector<cv::Vec3f> lines2;
-    double epipolarError = 0;
-    cv::computeCorrespondEpilines(points1, 1, F, lines2);
-    cv::computeCorrespondEpilines(points2, 2, F, lines1);
+double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
+    double error = 0;
     for(int i = 0; i < points1.size(); i++) {
-        epipolarError+=abs(matVector(points1.at(i)).dot(lines2.at(i))) + abs(matVector(points2.at(i)).dot(lines1.at(i)));
+        error+=std::pow(symmeticTransferError(F, matVector(points1.at(i)), matVector(points2.at(i))),2);
     }
-    return epipolarError;
+    return error/points1.size();
 }
 
 double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
@@ -269,8 +262,7 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
     int imgWidth = image.cols;
     int imgHeight = image.rows;
     for(int i = 0; i < numOfSamples; i++) {
-        //line: y = ax + b; a = x1/x3, b = x2/x3
-
+        //line ax + by + c = 0 <-> ax + c = -by <-> (-a/b)x + (-c/b) = y; (-a/b) = -l1/l2, (-c/b) = -l3/l2
         Mat p1homog;
         int xMin;
         int xMax;
@@ -278,10 +270,12 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
 
         int trys = 1;
         do {    //Draw random point until it's epipolar line intersects image 2
-            p1homog = matVector(rand()%(imgWidth-20)+10, rand()%(imgHeight-20)+10, 1);
+            int x = rand()%(imgWidth-20)+10;
+            int y = rand()%(imgHeight-20)+10;
+            p1homog = matVector(x, y, 1);
             Mat l2F1homog = F1*p1homog;
-            l2F1a = l2F1homog.at<double>(0,0) / l2F1homog.at<double>(2,0);
-            l2F1b = l2F1homog.at<double>(1,0) / l2F1homog.at<double>(2,0);
+            l2F1a = -l2F1homog.at<double>(0,0) / l2F1homog.at<double>(1,0);
+            l2F1b = -l2F1homog.at<double>(2,0) / l2F1homog.at<double>(1,0);
             xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
             xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
             trys++;
@@ -290,7 +284,8 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
         if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
 
         double x, y;
-        x = (rand()%(xMax-xMin)) + xMin;
+        if(xMax == xMin) x = xMax;
+        else x = (rand()%(xMax-xMin)) + xMin;
         y = l2F1a*x + l2F1b;
 
         //Compute distance of chosen random point to epipolar line of F2
@@ -306,49 +301,6 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
     return epipolarDistSum/(2.0*numOfSamples);
 }
 
-//double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
-//    double epipolarDistSum = 0;
-//    for(int i = 0; i < numOfSamples; i++) {
-//        //line: y = ax + b; a = x1/x3, b = x2/x3
-
-//        Mat p1homog;
-//        int xBoundsMin = 0;
-//        int xBounds = 0;
-//        double l2F1a = 0, l2F1b = 0;
-
-//        int trys = 1;
-//        do {    //Draw random point until it's epipolar line intersects image 2
-//            p1homog = matVector(rand()%image.cols, rand()%image.rows, 1);
-//            Mat l2F1homog = F1*p1homog;
-//            l2F1a = l2F1homog.at<double>(0,0) / l2F1homog.at<double>(2,0);
-//            l2F1b = l2F1homog.at<double>(1,0) / l2F1homog.at<double>(2,0);
-//            l2F1a/=(-l2F1b);
-//            l2F1b=1.0/(-l2F1b);
-//            xBoundsMin = std::min(std::max((int)ceil(l2F1b/l2F1a),0), image.cols);
-//            xBounds = std::min((int)floor(image.rows*l2F1b/l2F1a), image.cols) - xBoundsMin;
-//            trys++;
-//        } while((xBounds < 0 || xBoundsMin > image.cols) && (trys < MAX_SAMPLE_TRYS));
-
-//        if(trys == MAX_SAMPLE_TRYS) return -1;
-
-//        double x, y;
-//        if(xBounds == 0) x = xBoundsMin;
-//        else x = rand()%xBounds + xBoundsMin;
-//        y = l2F1a*x + l2F1b;
-
-//        //Compute distance of chosen random point to epipolar line of F2
-//        Mat p2homog = matVector(x, y, 1);
-//        Mat l2F2homog = F2*p1homog;
-//        epipolarDistSum+=fabs(p2homog.dot(l2F2homog));
-
-//        //Compute distance of point1 to epipolar line from random point using F2^T in image 1
-//        Mat l1F2homog = F2.t()*p2homog;
-//        epipolarDistSum+=fabs(p1homog.dot(l1F2homog));
-
-//    }
-//    return epipolarDistSum/(2.0*numOfSamples);
-//}
-
 Mat matVector(double x, double y, double z) {
     Mat vect = Mat::zeros(3,1,CV_64FC1);
     vect.at<double>(0,0) = x;
@@ -363,4 +315,173 @@ Mat matVector(Point2d p) {
     vect.at<double>(1,0) = p.y;
     vect.at<double>(2,0) = 1;
     return vect;
+}
+
+lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+    lc->line1Angle = lcCopy.line1Angle;
+    lc->line2Angle = lcCopy.line2Angle;
+
+    lc->line1Length = lcCopy.line1Length;
+    lc->line2Length = lcCopy.line2Length;
+
+    lc->line1Start = lcCopy.line1Start.clone();
+    lc->line2Start = lcCopy.line2Start.clone();
+    lc->line1End = lcCopy.line1End.clone();
+    lc->line2End = lcCopy.line2End.clone();
+
+    lc->id = lcCopy.id;
+
+    return *lc;
+}
+
+lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+    double scaling = 1;
+    if(l1.octave > 0) { //TODO: OpenCV bug: coordinates are from downscaled versions of image pyramid
+        scaling = l1.octave*SCALING;
+    }
+
+    lc->line1Angle = l1.angle;
+    lc->line2Angle = l2.angle;
+
+    lc->line1Length = l1.lineLength*scaling;
+    lc->line2Length = l1.lineLength*scaling;
+
+    lc->line1Start = matVector(l1.startPointX*scaling, l1.startPointY*scaling, 1);
+    lc->line2Start = matVector(l2.startPointX*scaling, l2.startPointY*scaling, 1);
+    lc->line1End = matVector(l1.endPointX*scaling, l1.endPointY*scaling, 1);
+    lc->line2End = matVector(l2.endPointX*scaling, l2.endPointY*scaling, 1);
+
+    lc->id = id;
+
+    return *lc;
+}
+
+lineCorrespStruct getlineCorrespStruct(double start1x, double start1y, double end1x, double end1y, double start2x, double start2y , double end2x, double end2y, int id) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+
+    lc->line1Angle = atan2(end1y - start1y, end1x - start1x);
+    lc->line2Angle = atan2(end2y - start2y, end2x - start2x);
+
+    lc->line1Length = fnorm(start1x-end1x, start1y-end1y);
+    lc->line2Length = fnorm(start2x-end2x, start2y-end2y);
+
+    lc->line1Start = matVector(start1x, start1y, 1);
+    lc->line2Start = matVector(start2x, start2y, 1);
+    lc->line1End = matVector(end1x, end1y, 1);
+    lc->line2End = matVector(end2x, end2y, 1);
+
+    lc->id;
+
+    return *lc;
+}
+
+void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name) {
+    Mat img;
+    hconcat(image_1_color.clone(), image_2_color.clone(), img);
+    for(std::vector<lineCorrespStruct>::iterator it = correspondencies.begin() ; it != correspondencies.end(); ++it) {
+        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        cv::line(img, cvPoint2D32f(it->line1Start.at<double>(0,0), it->line1Start.at<double>(1,0)), cvPoint2D32f(it->line1End.at<double>(0,0), it->line1End.at<double>(1,0)), color, lineWidth);
+        cv::line(img, cvPoint2D32f(it->line2Start.at<double>(0,0) + image_1_color.cols, it->line2Start.at<double>(1,0)), cvPoint2D32f(it->line2End.at<double>(0,0) + image_1_color.cols, it->line2End.at<double>(1,0)), color, lineWidth);
+        if(drawConnections) {
+            cv::line(img, cvPoint2D32f(it->line1Start.at<double>(0,0), it->line1Start.at<double>(1,0)), cvPoint2D32f(it->line2Start.at<double>(0,0) + image_1_color.cols, it->line2Start.at<double>(1,0)), color, lineWidth);
+        }
+    }
+    showImage(name, img, WINDOW_NORMAL, 1600);
+}
+
+void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name) {
+    Mat img;
+    hconcat(image_1_color.clone(), image_2_color.clone(), img);
+    for(int i = 0; i < p1.size(); i++) {
+        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        cv::circle(img, p1.at(i), 2, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), 2, color, lineWidth);
+        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
+        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        if(drawConnections) {
+            cv::line(img, p1.at(i), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        }
+    }
+    showImage(name, img, WINDOW_NORMAL, 1600);
+}
+
+bool isUnity(Mat m) {       //Check main diagonal for being close to 1
+    Mat diff = abs(m - Mat::eye(m.rows, m.cols, CV_64FC1));
+    for(int i = 0; i < m.cols; i++) {
+        if(diff.at<double>(i,i) > MARGIN) return false;
+    }
+    return true;
+}
+
+Mat computeUniqeEigenvector(Mat H) {
+    // Map the OpenCV matrix with Eigen:
+    Eigen::Matrix3d HEigen;
+    cv2eigen(H, HEigen);
+    //http://eigen.tuxfamily.org/dox/classEigen_1_1EigenSolver.html#a8c287af80cfd71517094b75dcad2a31b
+    Eigen::EigenSolver<Eigen::Matrix3d> solver;
+    solver.compute(HEigen);
+
+    Mat eigenvalues = Mat::zeros(CV_64FC1, 3, 1), eigenvectors = Mat::zeros(CV_64FC1, 3, 3);
+    eigen2cv(solver.eigenvalues(), eigenvalues);
+    eigen2cv(solver.eigenvectors(), eigenvectors);
+
+    if(LOG_DEBUG) {
+        std::cout << "-- H1*H2^-1 = " << std::endl << H << std::endl;
+
+        for(int i = 0; i < eigenvalues.rows; i++) {
+            std::cout << "-- " << i+1 << "th Eigenvalue: " << eigenvalues.at<double>(i,0) << ", Eigenvector = " << std::endl << eigenvectors.col(i) << std::endl;
+        }
+    }
+
+    double dist[eigenvalues.rows];
+    double lastDist = 0;
+    int col = 0;
+    for(int i = 0; i < eigenvalues.rows; i ++) {        //find non-unary eigenvalue & its eigenvector
+        Mat eig = eigenvalues.row(i);
+        dist[i] = 0;
+        for(int j = 0; j < eigenvalues.rows; j ++) {
+            dist[i] += squaredError(eig, eigenvalues.row(j));
+        }
+        if(dist[i] > lastDist) {
+            col = i;
+            lastDist = dist[i];
+        }
+    }
+
+    std::vector<Mat> e;
+    split(eigenvectors.col(col),e); //Remove channel for imaginary part
+    if(LOG_DEBUG) std::cout << "e = " << std::endl << e.at(0) << std::endl;
+
+    return e.at(0);
+}
+
+double symmeticTransferError(Mat F, Mat x1, Mat x2) {
+    return Mat(x2.t()*F*x1 + x1.t()*F.t()*x2).at<double>(0,0);
+}
+
+std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F) {
+
+    std::vector<double> *errorVect = new std::vector<double>();
+
+    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
+        for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
+        {
+            Mat x1 = estimationIter->getFeaturesImg1().at(i);
+            Mat x2 = estimationIter->getFeaturesImg2().at(i);
+
+            errorVect->push_back(symmeticTransferError(F, x1, x2));
+        }
+    }
+    return *errorVect;
+}
+
+double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimations, Mat impF) {
+    std::vector<double> errorVect = computeCombinedErrorVect(estimations, impF);
+    double combinedError = 0;
+    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
+        combinedError += std::pow(*errorIter,2);
+    }
+    return combinedError/errorVect.size();
 }
