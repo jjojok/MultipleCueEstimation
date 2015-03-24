@@ -10,6 +10,7 @@
 //- Optimize only the 7 parameters of F
 //- Discard global optimization if result is worse then one of the intermediate results
 //- Fix selection of eigenvectors???
+//- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar
 
 //MAYBE:
 //- Find a way to incooperate line segments better into global error computation
