@@ -31,7 +31,10 @@ public:
     MultipleCueEstimation(Mat *img1, Mat *img2, int comp);
     MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat *F_groudtruth);
 
-    void run();
+    Mat compute();
+    double getMeanSquaredRSSTError();
+    double getMeanSquaredCSTError();
+    std::vector<FEstimationMethod> getEstimations();
 
 private:
 
@@ -47,12 +50,18 @@ private:
     int arguments;
     unsigned int computations;
     bool compareWithGroundTruth;
+    double meanSquaredRSSTError;    //Mean squared random sample symmetic transfer error
+    double meanSquaredCSTError;     //Mean squared symmetic transfer error of combined matches
+    Mat F;                          //Final Fundamental Matrix
 
     Mat image_1, image_2;
     Mat image_1_color, image_2_color;
     Mat Fgt;    //Ground truth
-    std::vector<Point2d> x1, x2;   //corresponding points in image 1 and 2
+    std::vector<Point2d> x1, x2;   //corresponding points in image 1 and 2 (for debug only)
+    std::vector<FEstimationMethod> estimations;
 
 };
+
+
 
 #endif // MCE_MAIN_H

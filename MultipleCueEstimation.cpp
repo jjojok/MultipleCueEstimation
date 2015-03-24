@@ -20,8 +20,7 @@ MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat
     Fgt = F_groudtruth->clone();
 }
 
-void MultipleCueEstimation::run() {
-    std::vector<FEstimationMethod> estimations;
+Mat MultipleCueEstimation::compute() {
     if (checkData()) {
         if(computations & F_FROM_POINTS) {
             FEstimationMethod* points = calcFfromPoints();
@@ -49,9 +48,9 @@ void MultipleCueEstimation::run() {
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
             std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
             if (compareWithGroundTruth) {
-                double error1 = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
+                it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
                 double error2 = squaredError(Fgt, it->getF());
-                std::cout << "Random sample epipolar error: " << error1 << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getSymmetricTransferError() << std::endl;
+                if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << it->meanSquaredRSSTError << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getSymmetricTransferError() << std::endl;
             }
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
@@ -59,17 +58,22 @@ void MultipleCueEstimation::run() {
             }
         }
 
-        Mat F = refineF(estimations);
+        F = refineF(estimations);
         std::cout << "Refined F = " << std::endl << F << std::endl;
         if (compareWithGroundTruth) {
-            double error1 = randomSampleSymmeticTransferError(Fgt, F, image_1, NUM_SAMPLES_F_COMARATION);
+            meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, F, image_1, NUM_SAMPLES_F_COMARATION);
             double error2 = squaredError(Fgt, F);
-            std::cout << "Random sample epipolar error: " << error1 << ", Squated distance: " << error2 << std::endl;
+            if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << meanSquaredRSSTError << ", Squated distance: " << error2 << std::endl;
+        }
+        if(VISUAL_DEBUG) {
+            //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
+            drawEpipolarLines(x1,x2, F, image_1, image_2, "Refined F");
+            waitKey(0);
         }
 
-        waitKey(0);
+        if(LOG_DEBUG) std::cout << "done." << std::endl;
     }
-
+    return F;
 }
 
 int MultipleCueEstimation::checkData() {
@@ -109,6 +113,8 @@ int MultipleCueEstimation::checkData() {
 FEstimationMethod* MultipleCueEstimation::calcFfromPoints() {
     FEstimatorPoints* estimatorPoints = new FEstimatorPoints(image_1, image_2, image_1_color, image_2_color, "F_points");
     estimatorPoints->compute();
+    x1 = estimatorPoints->getUsedX1();
+    x2 = estimatorPoints->getUsedX2();
     return estimatorPoints;
 }
 
@@ -147,16 +153,17 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
     FEstimationMethod bestMethod = *estimations.begin();
     Mat refinedF = Mat::ones(3,3,CV_64FC1);
     int numValues = 0;
-    double bestError = 99999999;
 
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-        double estimationIterError = computeCombinedMeanSquaredError(estimations, estimationIter->getF());
-        if(estimationIterError < bestError) {
+        estimationIter->meanSquaredCSTError = computeCombinedMeanSquaredError(estimations, estimationIter->getF());
+        if (LOG_DEBUG) std::cout << "Computing meanSquaredCSTError for " << estimationIter->name << ": " << estimationIter->meanSquaredCSTError << std::endl;
+        if(bestMethod.meanSquaredCSTError > estimationIter->meanSquaredCSTError) {
             bestMethod = *estimationIter;
-            bestError = estimationIterError;
         }
         numValues += estimationIter->getFeaturesImg1().size();
     }
+
+    if (LOG_DEBUG) std::cout << "Starting point for optimization: " << bestMethod.name << std::endl;
 
     Eigen::VectorXd x(9);
 
@@ -196,14 +203,24 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
     refinedF.at<double>(2,0) = x(6);
     refinedF.at<double>(2,1) = x(7);
 
-    refinedF /= refinedF.at<double>(2,2);
-
     enforceRankTwoConstraint(refinedF);
 
-    if (LOG_DEBUG) std::cout <<"sqared symmetic transfer error: " << computeCombinedMeanSquaredError(estimations, refinedF) << std::endl;
+    meanSquaredCSTError = computeCombinedMeanSquaredError(estimations, refinedF);
+
+    if (LOG_DEBUG) std::cout <<"sqared symmetic transfer error: " << meanSquaredCSTError << std::endl;
 
     return refinedF;
 }
 
+double MultipleCueEstimation::getMeanSquaredCSTError() {
+    return meanSquaredCSTError;
+}
 
+double MultipleCueEstimation::getMeanSquaredRSSTError() {
+    return meanSquaredRSSTError;
+}
+
+std::vector<FEstimationMethod> MultipleCueEstimation::getEstimations() {
+    return estimations;
+}
 

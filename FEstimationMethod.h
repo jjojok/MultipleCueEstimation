@@ -35,6 +35,11 @@ public:
     std::vector<Mat> getFeaturesImg2();
     int getType();
     double getSymmetricTransferError();
+    double getMeanSquaredCSTError();
+    double getMeanSquaredRSSTError();
+
+    double meanSquaredCSTError;
+    double meanSquaredRSSTError;
 
 protected:
     virtual void init();

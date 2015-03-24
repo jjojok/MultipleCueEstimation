@@ -33,7 +33,10 @@ bool FEstimatorHPoints::compute() {
         return false;
     }
 
-    visualizeHomography(H1, image_1_color, image_2_color, "Point homography 1");
+    if(VISUAL_DEBUG) {
+        visualizeMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Point Homography 1 matches");
+        visualizeHomography(H1, image_1_color, image_2_color, "Point homography 1");
+    }
 
     for(int i = mask.size()-1; i >= 0 ; i--) {
         if(mask.at(i)) {
@@ -96,15 +99,23 @@ bool FEstimatorHPoints::compute() {
         }
     }
 
-    visualizeHomography(H2, image_1_color, image_2_color, "Point homography 2");
+    std::vector<Point2d> x1_temp;
+    std::vector<Point2d> x2_temp;
 
     for(int i = 0; i < mask.size(); i++) {
         if(mask.at(i)) {
             x1_used.push_back(x1.at(i));
             x2_used.push_back(x2.at(i));
+            x1_temp.push_back(x1.at(i));
+            x2_temp.push_back(x2.at(i));
             featuresImg1.push_back(matVector(x1.at(i)));
             featuresImg2.push_back(matVector(x2.at(i)));
         }
+    }
+
+    if(VISUAL_DEBUG) {
+        visualizeMatches(image_1_color, image_2_color, x1_temp, x2_temp, 3, true, "Point Homography 2 matches");
+        visualizeHomography(H2, image_1_color, image_2_color, "Point homography 2");
     }
 
     Mat e = computeUniqeEigenvector(H);

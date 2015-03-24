@@ -7,7 +7,7 @@
 //Show debug messages
 #define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG true
+#define VISUAL_DEBUG false
 
 //Program parameters for selecting computation mathods
 #define F_FROM_POINTS 1
@@ -23,7 +23,7 @@
 //Factor of min Sift distance from all generated points where correspondence is still acceptable
 #define SIFT_MIN_DIST_FACTOR 3.0
 //Ransac thredshold
-#define RANSAC_THREDHOLD 2.0
+#define RANSAC_THREDHOLD 1.25
 //Ransac confidence
 #define RANSAC_CONFIDENCE 0.999
 
@@ -41,7 +41,7 @@
 //Ransac confidence
 #define CONFIDENCE 0.999
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define LINE_OUTLIERS 0.65
+#define LINE_OUTLIERS 0.75
 //Number of correspondencies per homography estimation
 #define NUM_CORRESP 6
 //Max hemming distance of binary matchig
@@ -65,8 +65,8 @@
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices
-#define NUM_SAMPLES_F_COMARATION 50000
+#define NUM_SAMPLES_F_COMARATION 5000
 //Max trys per draw to find a point who's epipolar line intersects the other image
-#define MAX_SAMPLE_TRYS 5000
+#define MAX_SAMPLE_TRYS 10000
 
 #endif // STATICS_H

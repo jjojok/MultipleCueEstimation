@@ -64,3 +64,11 @@ int FEstimationMethod::getType() {
 double FEstimationMethod::getSymmetricTransferError() {
     return meanSymmetricTranferError;
 }
+
+double FEstimationMethod::getMeanSquaredCSTError() {
+    return meanSquaredCSTError;
+}
+
+double FEstimationMethod::getMeanSquaredRSSTError() {
+    return meanSquaredRSSTError;
+}

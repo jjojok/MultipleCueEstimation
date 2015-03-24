@@ -45,3 +45,11 @@ bool FEstimatorPoints::compute() {
 
     return successful;
 }
+
+std::vector<Point2d> FEstimatorPoints::getUsedX1() {
+    return x1_used;
+}
+
+std::vector<Point2d> FEstimatorPoints::getUsedX2() {
+    return x2_used;
+}

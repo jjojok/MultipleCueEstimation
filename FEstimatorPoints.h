@@ -10,6 +10,9 @@ public:
     bool compute();
     int extractMatches();
 
+    std::vector<Point2d> getUsedX1();
+    std::vector<Point2d> getUsedX2();
+
 private:
 
     std::vector<Point2d> x1_used, x2_used;

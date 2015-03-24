@@ -452,7 +452,7 @@ Mat computeUniqeEigenvector(Mat H) {
 
     std::vector<Mat> e;
     split(eigenvectors.col(col),e); //Remove channel for imaginary part
-    if(LOG_DEBUG) std::cout << "e = " << std::endl << e.at(0) << std::endl;
+    if(LOG_DEBUG) std::cout << "-- e = " << std::endl << e.at(0) << std::endl;
 
     return e.at(0);
 }
