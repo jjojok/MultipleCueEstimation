@@ -9,11 +9,12 @@
 //- Use sampson error for global optimization
 //- Optimize only the 7 parameters of F
 //- Discard global optimization if result is worse then one of the intermediate results
-//- Fix selection of eigenvectors???
 //- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar
+//- F from curves: FindContours -> compute slope for every point on contour, match slopes (include in matching: slope, point distance, color, intensety...)
+//- Refine F: Compute Projection matrices and take mean of rotations/translations (P1 = [I|0]; P2 = [[e2]xF12 | e2])
 
 //MAYBE:
-//- Find a way to incooperate line segments better into global error computation
+//- Find a way to incooperate line segments better into global error computation, see hartley, ziss p243 -> not possible
 //- Change random point error computation: move only a small distance on the epipolar line (only one random point)
 
 

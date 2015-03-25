@@ -7,7 +7,7 @@
 //Show debug messages
 #define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG false
+#define VISUAL_DEBUG true
 
 //Program parameters for selecting computation mathods
 #define F_FROM_POINTS 1
@@ -41,7 +41,7 @@
 //Ransac confidence
 #define CONFIDENCE 0.999
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define LINE_OUTLIERS 0.75
+#define LINE_OUTLIERS 0.70
 //Number of correspondencies per homography estimation
 #define NUM_CORRESP 6
 //Max hemming distance of binary matchig
@@ -50,7 +50,7 @@
 #define MIN_HEMMING_DIST 5
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
-//How close a H has to be at unity to be teated as unity
+//How close two values have to be to be considered equal
 #define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
 #define MAX_H2_ESTIMATIONS 50

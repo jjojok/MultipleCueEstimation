@@ -22,6 +22,7 @@
 #include "FEstimationMethod.h"
 
 #include <eigen3/Eigen/Eigenvalues>
+#include <eigen3/Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
 
 #include <ctime>
@@ -54,8 +55,13 @@ lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy);
 void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name);
 void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name);
 bool isUnity(Mat m);
-Mat computeUniqeEigenvector(Mat H);
+bool computeUniqeEigenvector(Mat H, Mat &e);
 std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F);
 double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimations, Mat F);
+void computeEpipoles(Mat F, Mat &e1, Mat &e2);
+Mat computeGeneralHomography(Mat F);
+//void symmeticTransferLineError(Mat H_invT, Mat H_T, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End, double *err1, double *err2);
+double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
+double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 
 #endif // UTILITY_H

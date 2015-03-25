@@ -59,13 +59,15 @@ bool FEstimatorHLines::compute() {
         return false;
     }
 
-    for(std::vector<lineCorrespStruct>::const_iterator it = goodLineMatches.begin() ; it != goodLineMatches.end(); ++it) {
-        lineCorrespStruct lc = *it;
-        featuresImg1.push_back(lc.line1Start.clone());
-        featuresImg1.push_back(lc.line1End.clone());
-        featuresImg2.push_back(lc.line2Start.clone());
-        featuresImg2.push_back(lc.line2End.clone());
-    }
+    addPointCorrespondencies(H1.Hs, goodLineMatches);
+
+//    for(std::vector<lineCorrespStruct>::const_iterator it = goodLineMatches.begin() ; it != goodLineMatches.end(); ++it) {
+//        lineCorrespStruct lc = *it;
+//        featuresImg1.push_back(lc.line1Start.clone());
+//        featuresImg1.push_back(lc.line1End.clone());
+//        featuresImg2.push_back(lc.line2Start.clone());
+//        featuresImg2.push_back(lc.line2End.clone());
+//    }
 
     if(VISUAL_DEBUG) {
         visualizeHomography(H1.Hs, image_1, image_2, "H21");
@@ -79,11 +81,12 @@ bool FEstimatorHLines::compute() {
 
     lineSubsetStruct H2;
     int estCnt = 0;
-    bool H_close_to_unitiy = true;
+    bool homographies_equal = true;
     Mat H;
+    Mat e2;
     float outliers = LINE_OUTLIERS * outlierReduction;
 
-    while(H_close_to_unitiy && matchedLines.size() > NUM_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
+    while(homographies_equal && matchedLines.size() > NUM_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
 
         goodLineMatches.clear();
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
@@ -95,27 +98,29 @@ bool FEstimatorHLines::compute() {
         }
 
         H = H1.Hs*H2.Hs.inv(DECOMP_SVD); // H = (H1*H2⁻1)
+        H /= H.at<double>(2,2);
 
-        H_close_to_unitiy = isUnity(H);
-        if(H_close_to_unitiy) {
-            if(LOG_DEBUG) std::cout << "-- H close to unity, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
+        homographies_equal = (computeUniqeEigenvector(H, e2) && isUnity(H));
+        if(homographies_equal) {
+            if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
             outliers = outliers * filterUsedLineMatches(matchedLines, goodLineMatches);
         }
         estCnt++;
     }
 
-    if(H_close_to_unitiy) {     //Not able to find a secont homographie
+    if(homographies_equal) {     //Not able to find a secont homographie
         if(LOG_DEBUG) std::cout << "-- Estimation failed!" << std::endl;
         return false;
     }
 
-    for(std::vector<lineCorrespStruct>::const_iterator it = goodLineMatches.begin() ; it != goodLineMatches.end(); ++it) {
-        lineCorrespStruct lc = *it;
-        featuresImg1.push_back(lc.line1Start.clone());
-        featuresImg1.push_back(lc.line1End.clone());
-        featuresImg2.push_back(lc.line2Start.clone());
-        featuresImg2.push_back(lc.line2End.clone());
-    }
+    addPointCorrespondencies(H2.Hs, goodLineMatches);
+//    for(std::vector<lineCorrespStruct>::const_iterator it = goodLineMatches.begin() ; it != goodLineMatches.end(); ++it) {
+//        lineCorrespStruct lc = *it;
+//        featuresImg1.push_back(lc.line1Start.clone());
+//        featuresImg1.push_back(lc.line1End.clone());
+//        featuresImg2.push_back(lc.line2Start.clone());
+//        featuresImg2.push_back(lc.line2End.clone());
+//    }
 
     if(VISUAL_DEBUG) {
         visualizeHomography(H2.Hs, image_1, image_2, "H21_2");
@@ -123,21 +128,20 @@ bool FEstimatorHLines::compute() {
         visualizeProjectedLines(H2, 8, true, "H21_2 used lines projected to image 2");
     }
 
-    Mat e = computeUniqeEigenvector(H);
+    F = crossProductMatrix(e2)*H1.Hs;
 
-    F = crossProductMatrix(e)*H1.Hs;
     enforceRankTwoConstraint(F);
 
     meanSymmetricTranferError = 0;
     Mat H_t = H1.Hs.t();
     Mat H_invT = H1.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::iterator it = H1.lineCorrespondencies.begin() ; it != H1.lineCorrespondencies.end(); ++it) {
-        meanSymmetricTranferError += squaredSymmeticTransferError(H_invT, H_t, *it);
+        meanSymmetricTranferError += squaredSymmeticTransferLineError(H_invT, H_t, *it);
     }
     H_t = H2.Hs.t();
     H_invT = H2.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::iterator it = H2.lineCorrespondencies.begin() ; it != H2.lineCorrespondencies.end(); ++it) {
-        meanSymmetricTranferError += squaredSymmeticTransferError(H_invT, H_t, *it);
+        meanSymmetricTranferError += squaredSymmeticTransferLineError(H_invT, H_t, *it);
     }
     meanSymmetricTranferError /= (H1.lineCorrespondencies.size() + H2.lineCorrespondencies.size());
 
@@ -188,7 +192,7 @@ bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMa
 
         goodLineMatches.clear();
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
-            if(squaredSymmeticTransferError(bestSubset.Hs, *it) < MAX_TRANSFER_DIST) goodLineMatches.push_back(*it);
+            if(squaredSymmeticTransferLineError(bestSubset.Hs, *it) < MAX_TRANSFER_DIST) goodLineMatches.push_back(*it);
         }
 
         //outliers = goodLineMatches.size() / outliers;
@@ -270,7 +274,7 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
     double error = 0;
 
     for(std::vector<lineCorrespStruct>::const_iterator iter = bestSubset.lineCorrespondencies.begin(); iter != bestSubset.lineCorrespondencies.end(); ++iter) {
-        error += squaredSymmeticTransferError(bestSubset.Hs, *iter);
+        error += squaredSymmeticTransferLineError(bestSubset.Hs, *iter);
     }
 
     bestSubset.meanSquaredSymmeticTransferError = error/bestSubset.lineCorrespondencies.size();
@@ -415,7 +419,7 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
         Mat H_invT = it->Hs.inv(DECOMP_SVD).t();
         it->qualityMeasure = 0;       //count inlainers
         for(int i = 0; i < lineCorrespondencies.size(); i++) {
-            error = squaredSymmeticTransferError(H_invT, H_T, lineCorrespondencies.at(i));
+            error = squaredSymmeticTransferLineError(H_invT, H_T, lineCorrespondencies.at(i));
             if(error <= threshold) {
                 it->meanSquaredSymmeticTransferError += error;
                 it->qualityMeasure++;
@@ -455,30 +459,13 @@ double FEstimatorHLines::calcMedS(lineSubsetStruct &subset, std::vector<lineCorr
     std::vector<double> errors;
     double error;
     for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
-        error = squaredSymmeticTransferError(H_invT, H_T, *it);
+        error = squaredSymmeticTransferLineError(H_invT, H_T, *it);
         errors.push_back(error);
         subset.meanSquaredSymmeticTransferError += error;
     }
     subset.meanSquaredSymmeticTransferError /= lineCorrespondencies.size();
     std::sort(errors.begin(), errors.end());
     return errors.at(errors.size()/2);
-}
-
-double FEstimatorHLines::squaredSymmeticTransferError(Mat H, lineCorrespStruct lc) {
-    Mat H_invT = H.inv(DECOMP_SVD).t();
-    Mat H_T = H.t();
-    return squaredSymmeticTransferError(H_invT, H_T, lc);
-}
-
-double FEstimatorHLines::squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc) {
-    Mat A = H_T*crossProductMatrix(lc.line2Start)*lc.line2End;
-    Mat start1 = lc.line1Start.t()*A;
-    Mat end1 = lc.line1End.t()*A;
-    Mat B = H_invT*crossProductMatrix(lc.line1Start)*lc.line1End;
-    Mat start2 = lc.line2Start.t()*B;
-    Mat end2 = lc.line2End.t()*B;
-    Mat result = (start1*start1 + end1*end1)/(A.at<double>(0,0)*A.at<double>(0,0) + A.at<double>(1,0)*A.at<double>(1,0)) + (start2*start2 + end2*end2)/(B.at<double>(0,0)*B.at<double>(0,0) + B.at<double>(1,0)*B.at<double>(1,0));
-    return result.at<double>(0,0);
 }
 
 Mat* FEstimatorHLines::normalizeLines(std::vector<lineCorrespStruct> &correspondencies) {
@@ -548,4 +535,43 @@ Mat* FEstimatorHLines::normalizeLines(std::vector<lineCorrespStruct> &correspond
 
 bool compareLineCorrespErrors(lineCorrespSubsetError ls1, lineCorrespSubsetError ls2) {
     return ls1.lineCorrespError < ls2.lineCorrespError;
+}
+
+void FEstimatorHLines::addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches) {
+    int features = featuresImg1.size();
+    for(std::vector<lineCorrespStruct>::const_iterator it = goodLineMatches.begin() ; it != goodLineMatches.end(); ++it) {
+        lineCorrespStruct lc = *it;
+        //if(LOG_DEBUG) std::cout << lc.line1Start << ", "<< lc.line2Start << std::endl;
+        //double a = std::pow(norm(lc.line2Start - H*lc.line1Start),2);
+        if(std::pow(norm(lc.line2Start - H*lc.line1Start), 2) < MAX_TRANSFER_DIST) {
+            featuresImg1.push_back(lc.line1Start.clone());
+            featuresImg2.push_back(lc.line2Start.clone());
+        }
+        //if(LOG_DEBUG) std::cout << lc.line1End << ", "<< lc.line2End << std::endl;
+        //double b = std::pow(norm(lc.line2End - H*lc.line1End), 2);
+        if(std::pow(norm(lc.line2End - H*lc.line1End), 2) < MAX_TRANSFER_DIST) {
+            featuresImg1.push_back(lc.line1End.clone());
+            featuresImg2.push_back(lc.line2End.clone());
+        }
+    }
+    if(LOG_DEBUG) std::cout << "-- Added " << (featuresImg1.size() - features) << "/" << goodLineMatches.size() << " point correspondencies to combined feature vector" << std::endl;
+}
+
+double FEstimatorHLines::squaredSymmeticTransferLineError(Mat H, lineCorrespStruct lc) {
+    Mat H_invT = H.inv(DECOMP_SVD).t();
+    Mat H_T = H.t();
+    return squaredSymmeticTransferLineError(H_invT, H_T, lc);
+}
+
+double FEstimatorHLines::squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, lineCorrespStruct lc) {
+//    Mat A = H_T*crossProductMatrix(lc.line2Start)*lc.line2End;
+//    Mat start1 = lc.line1Start.t()*A;
+//    Mat end1 = lc.line1End.t()*A;
+//    Mat B = H_invT*crossProductMatrix(lc.line1Start)*lc.line1End;
+//    Mat start2 = lc.line2Start.t()*B;
+//    Mat end2 = lc.line2End.t()*B;
+//    Mat result = (start1*start1 + end1*end1)/(A.at<double>(0,0)*A.at<double>(0,0) + A.at<double>(1,0)*A.at<double>(1,0)) + (start2*start2 + end2*end2)/(B.at<double>(0,0)*B.at<double>(0,0) + B.at<double>(1,0)*B.at<double>(1,0));
+//    return result.at<double>(0,0);
+
+    return (squaredTransferLineError(H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End) + squaredTransferLineError(H_invT, lc.line2Start, lc.line2End, lc.line1Start, lc.line1End))/2.0;
 }

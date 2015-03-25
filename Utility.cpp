@@ -415,7 +415,7 @@ bool isUnity(Mat m) {       //Check main diagonal for being close to 1
     return true;
 }
 
-Mat computeUniqeEigenvector(Mat H) {
+bool computeUniqeEigenvector(Mat H, Mat &e) {
     // Map the OpenCV matrix with Eigen:
     Eigen::Matrix3d HEigen;
     cv2eigen(H, HEigen);
@@ -423,7 +423,7 @@ Mat computeUniqeEigenvector(Mat H) {
     Eigen::EigenSolver<Eigen::Matrix3d> solver;
     solver.compute(HEigen);
 
-    Mat eigenvalues = Mat::zeros(CV_64FC1, 3, 1), eigenvectors = Mat::zeros(CV_64FC1, 3, 3);
+    Mat eigenvalues = Mat::zeros(3, 1, CV_64FC1), eigenvectors = Mat::zeros(3, 3, CV_64FC1);
     eigen2cv(solver.eigenvalues(), eigenvalues);
     eigen2cv(solver.eigenvectors(), eigenvectors);
 
@@ -435,6 +435,7 @@ Mat computeUniqeEigenvector(Mat H) {
         }
     }
 
+    bool allEigenvaluesEqual = true;
     double dist[eigenvalues.rows];
     double lastDist = 0;
     int col = 0;
@@ -444,17 +445,20 @@ Mat computeUniqeEigenvector(Mat H) {
         for(int j = 0; j < eigenvalues.rows; j ++) {
             dist[i] += squaredError(eig, eigenvalues.row(j));
         }
+        if(dist[i] > MARGIN) allEigenvaluesEqual = false;
         if(dist[i] > lastDist) {
             col = i;
             lastDist = dist[i];
         }
     }
 
-    std::vector<Mat> e;
-    split(eigenvectors.col(col),e); //Remove channel for imaginary part
-    if(LOG_DEBUG) std::cout << "-- e = " << std::endl << e.at(0) << std::endl;
+    std::vector<Mat> e2;
+    split(eigenvectors.col(col),e2); //Remove channel for imaginary part
+    if(LOG_DEBUG) std::cout << "-- e = " << std::endl << e2.at(0) << std::endl;
 
-    return e.at(0);
+    Mat(e2.at(0)).copyTo(e);
+
+    return allEigenvaluesEqual;
 }
 
 double symmeticTransferError(Mat F, Mat x1, Mat x2) {
@@ -466,12 +470,27 @@ std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> esti
     std::vector<double> *errorVect = new std::vector<double>();
 
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-        for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
-        {
-            Mat x1 = estimationIter->getFeaturesImg1().at(i);
-            Mat x2 = estimationIter->getFeaturesImg2().at(i);
 
-            errorVect->push_back(symmeticTransferError(F, x1, x2));
+        if(estimationIter->getType() == F_FROM_LINES_VIA_H) {   //Line correspondencies != point correspondencies
+            Mat H = computeGeneralHomography(F);
+            Mat H_invT = H.inv(DECOMP_SVD).t();
+            Mat H_T = H.t();
+            for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size()/2; i++)
+            {
+                double err1, err2;
+                err1 = transferLineError(H_T, estimationIter->getFeaturesImg1().at(2*i), estimationIter->getFeaturesImg1().at(2*i+1), estimationIter->getFeaturesImg2().at(2*i), estimationIter->getFeaturesImg2().at(2*i+1));
+                err2 = transferLineError(H_invT, estimationIter->getFeaturesImg2().at(2*i), estimationIter->getFeaturesImg2().at(2*i+1), estimationIter->getFeaturesImg1().at(2*i), estimationIter->getFeaturesImg1().at(2*i+1));
+                errorVect->push_back((err1 + err2)/2.0);
+            }
+        } else {
+            for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
+            {
+                Mat x1 = estimationIter->getFeaturesImg1().at(i);
+                Mat x2 = estimationIter->getFeaturesImg2().at(i);
+                //if(estimationIter->getType() != F_FROM_LINES_VIA_H || (estimationIter->getType() == F_FROM_LINES_VIA_H && symmeticTransferError(F, x1, x2) < MAX_TRANSFER_DIST)) {      //Remove line correspondencies where line tips are no point correspondencies
+                    errorVect->push_back(symmeticTransferError(F, x1, x2));
+                //}
+            }
         }
     }
     return *errorVect;
@@ -484,4 +503,75 @@ double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimation
         combinedError += std::pow(*errorIter,2);
     }
     return combinedError/errorVect.size();
+}
+
+void computeEpipoles(Mat F, Mat &e1, Mat &e2) {     //See Hartley, Ziss p.246
+
+//    SVD svd;
+//    Mat u, vt, w;
+//    svd.compute(F, w, u, vt);
+
+//    e1 = Mat(vt.row(2).t());
+//    svd.compute(F.t(), w, u, vt);
+
+//    e2 = Mat(vt.row(2).t());
+
+    /**********************************
+     * http://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
+     * ********************************/
+
+    e1 = Mat::zeros(3, 1, CV_64FC1);
+    e2 = Mat::zeros(3, 1, CV_64FC1);
+    Eigen::Matrix3d eigenF;
+    Eigen::Matrix3d eigenF_T;
+    Eigen::Vector3d b;
+    b << 0,0,0;
+    cv2eigen(F, eigenF);
+    cv2eigen(F.t(), eigenF_T);
+    Eigen::FullPivLU<Eigen::Matrix3d> lu_decomp(eigenF);
+    Eigen::FullPivLU<Eigen::Matrix3d> lu_decompT(eigenF_T);
+    Eigen::Vector3d eigenE1 = lu_decomp.kernel();
+    Eigen::Vector3d eigenE2 = lu_decompT.kernel();
+    eigen2cv(eigenE1, e1);
+    eigen2cv(eigenE2, e2);
+}
+
+Mat computeGeneralHomography(Mat F) {       //See Hartley, Ziss p.243
+    Mat e1, e2;
+
+    computeEpipoles(F, e1, e2);
+    Mat H = crossProductMatrix(e2).inv(DECOMP_SVD)*F;
+    H /= H.at<double>(2,2);
+    //if(LOG_DEBUG) std::cout << "-- computed H = " << std::endl << H << std::endl;
+
+    return H;
+}
+
+//void symmeticTransferLineError(Mat H_invT, Mat H_T, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End, double *err1, double *err2) {
+////    Mat A = H_T*crossProductMatrix(line2Start)*line2End;
+////    Mat start1 = line1Start.t()*A;
+////    Mat end1 = line1End.t()*A;
+////    Mat B = H_invT*crossProductMatrix(line1Start)*line1End;
+////    Mat start2 = line2Start.t()*B;
+////    Mat end2 = line2End.t()*B;
+
+////    *err1 = Mat((start1+end1)/).at<double>(0,0);
+////    *err2 = Mat(start2+end2).at<double>(0,0);
+
+//    *err1 = squaredTransferLineError(H_T, line1Start, line1End, line2Start, line2End);
+//    *err2 = squaredTransferLineError(H_invT, line2Start, line2End, line1Start, line1End);
+//}
+
+double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    return sqrt(squaredTransferLineError(H, line1Start, line1End, line2Start, line2End));
+}
+
+double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    Mat A = H*crossProductMatrix(line2Start)*line2End;
+    Mat start1 = line1Start.t()*A;
+    Mat end1 = line1End.t()*A;
+    double Ax = std::pow(A.at<double>(0,0), 2);
+    double Ay = std::pow(A.at<double>(1,0), 2);
+    Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
+    return result.at<double>(0,0);
 }

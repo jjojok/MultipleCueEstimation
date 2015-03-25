@@ -166,3 +166,50 @@ int filterLineExtractions(double minLenght, std::vector<cv::line_descriptor::Key
     }
     return filtered;
 }
+
+int matchTangents(Mat image_1, Mat image_2, std::vector<Point2d> &x1, std::vector<Point2d> &x2) {
+////    cvtColor(img_flood,img_flood,CV_RGB2GRAY);
+////    threshold(img_flood, img_binary, 254, 255, cv::THRESH_BINARY);
+////    erode(img_binary, img_binary, kernel_opening,center_opening);
+////    dilate(img_binary, img_binary, kernel_opening,center_opening);
+////    dilate(img_binary, img_binary, kernel_closing,center_closing);
+////    erode(img_binary, img_binary, kernel_closing,center_closing);
+
+////    if(VISUAL_DEBUG) {
+////        showImage(image_name+" binary", img_binary);
+////    }
+
+//    Mat contours1, contours2;
+
+//    findContours(image_1, contours, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+
+//    Mat img_contours = Mat::zeros(image.rows, image.cols, image.type());
+
+//    for( int i = 0; i< segmentList.size(); i++ )
+//    {
+//        drawContours(img_contours, contours, segmentList[i].contours_idx, Scalar(255,255,255), 2);
+//    }
+
+//    showImage(image_name+" plane contours", img_contours);
+//    //    if(VISUAL_DEBUG) {
+//    //        showImage(image_name+" binary", img_binary);
+//    //    }
+
+//    for (int i = 0; i < contours.size(); i++) {
+//        for (int j = 0; j < segmentList_temp.size(); j++) {
+//            if(pointPolygonTest(contours[i], Point2d(segmentList_temp[j].startpoint.x, segmentList_temp[j].startpoint.y),false) >= 0) {
+//                segmentStruct segment = segmentList_temp[j];
+//                segment.contours_idx = i;
+//                for (int k = 0; k < segmentList.size(); k++) {      //Keep only one segment per connected component
+//                    if (segmentList[k].contours_idx == i) segment.contours_idx = -1;
+//                }
+
+//                if(segment.contours_idx >= 0) {
+//                    if (segmentList.size() == 0) segment.id = 1;
+//                    else segment.id = segmentList.back().id + 1;
+//                    segmentList.push_back(segment);
+//                }
+//            }
+//        }
+//    }
+}

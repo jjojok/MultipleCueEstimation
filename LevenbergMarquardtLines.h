@@ -64,15 +64,19 @@ struct LineFunctor : Functor<double>
         {
             lc = this->lines->lineCorrespondencies.at(i);
 
-            Mat A = H_T*crossProductMatrix(lc.line2Start)*lc.line2End;
-            Mat start1 = lc.line1Start.t()*A;
-            Mat end1 = lc.line1End.t()*A;
-            Mat B = H_invT*crossProductMatrix(lc.line1Start)*lc.line1End;
-            Mat start2 = lc.line2Start.t()*B;
-            Mat end2 = lc.line2End.t()*B;
+//            Mat A = H_T*crossProductMatrix(lc.line2Start)*lc.line2End;
+//            Mat start1 = lc.line1Start.t()*A;
+//            Mat end1 = lc.line1End.t()*A;
+//            Mat B = H_invT*crossProductMatrix(lc.line1Start)*lc.line1End;
+//            Mat start2 = lc.line2Start.t()*B;
+//            Mat end2 = lc.line2End.t()*B;
 
-            fvec(2*i) = Mat(start1+end1).at<double>(0,0);
-            fvec(2*i+1) = Mat(start2+end2).at<double>(0,0);
+//            fvec(2*i) = Mat(start1+end1).at<double>(0,0);
+//            fvec(2*i+1) = Mat(start2+end2).at<double>(0,0);
+
+            fvec(2*i) = transferLineError(H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+            fvec(2*i+1) = transferLineError(H_invT, lc.line2Start, lc.line2End, lc.line1Start, lc.line1End);
+
         }
 
         return 0;

@@ -32,7 +32,9 @@ private:
     bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, double outliers, lineSubsetStruct &result);
     lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets);
     bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
-
+    void addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
+    double squaredSymmeticTransferLineError(Mat H, lineCorrespStruct lc);
+    double squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
     std::vector<lineCorrespStruct> matchedLines;  //Vector of corresponing line segments (start & endpoints)
 };
 

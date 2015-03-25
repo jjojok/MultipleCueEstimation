@@ -52,12 +52,13 @@ bool FEstimatorHPoints::compute() {
     if(LOG_DEBUG) std::cout << "-- Used matches: " << x1_used.size() << std::endl;
 
     int estCnt = 0;
-    bool H_close_to_unitiy = true;
+    bool homographies_equal = true;
     Mat H, H2;
+    Mat e2;
 
     std::vector<Point2d> goodX1, goodX2;
 
-    while(H_close_to_unitiy) {
+    while(homographies_equal) {
 
         if(LOG_DEBUG) std::cout << "-- First Estimation..."<< std::endl;
 
@@ -82,9 +83,9 @@ bool FEstimatorHPoints::compute() {
 
         H = H1*H2.inv(DECOMP_SVD); // H = (H1*H2⁻1)
 
-        H_close_to_unitiy = isUnity(H);
-        if(H_close_to_unitiy) {
-            if(LOG_DEBUG) std::cout << "-- H close to unity, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
+        homographies_equal = (computeUniqeEigenvector(H, e2) && isUnity(H));
+        if(homographies_equal) {
+            if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
             for(int i = mask.size()-1; i >= 0 ; i--) {
                 if(mask.at(i)) {
                     x1.erase(x1.begin()+i);
@@ -118,9 +119,7 @@ bool FEstimatorHPoints::compute() {
         visualizeHomography(H2, image_1_color, image_2_color, "Point homography 2");
     }
 
-    Mat e = computeUniqeEigenvector(H);
-
-    F = crossProductMatrix(e)*H1;
+    F = crossProductMatrix(e2)*H1;
     enforceRankTwoConstraint(F);
 
     if(LOG_DEBUG) std::cout << "-- Used matches: " << x1_used.size() << std::endl;
