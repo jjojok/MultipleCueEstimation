@@ -56,9 +56,8 @@ struct GeneralFunctor : Functor<double>
         F.at<double>(2,0) = x(6);
         F.at<double>(2,1) = x(7);
 
-        FEstimationMethod est = *estimations->begin();
-
-        std::vector<double> errorVect = computeCombinedErrorVect(*estimations, F);
+        //std::vector<double> errorVect = computeCombinedErrorVect(*estimations, F);
+        std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, F);
 
         for(int i = 0; i < errorVect.size(); i++) {
             fvec(i) = errorVect.at(i);
@@ -102,7 +101,9 @@ struct GeneralFunctor : Functor<double>
         return 0;
     }
 
-std::vector<FEstimationMethod> *estimations;
+//std::vector<FEstimationMethod> *estimations;
+std::vector<Mat> x1;
+std::vector<Mat> x2;
 int numValues;
 
 int inputs() const { return 8; } // There are 9 parameters of the model

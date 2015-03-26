@@ -40,7 +40,7 @@ bool FEstimatorHLines::compute() {
 //    lineCorrespondencies.push_back(lc6);
 //    if(VISUAL_DEBUG) visualizeMatches(lineCorrespondencies, 8, true, "Line matches");
 
-    if(matchedLines.size() < 2*NUM_CORRESP) {
+    if(matchedLines.size() < 2*NUM_LINE_CORRESP) {
         if(LOG_DEBUG) std::cout << "-- Estimation failed, not enough line correspondencies!" << std::endl;
         return false;
     }
@@ -86,7 +86,7 @@ bool FEstimatorHLines::compute() {
     Mat e2;
     float outliers = LINE_OUTLIERS * outlierReduction;
 
-    while(homographies_equal && matchedLines.size() > NUM_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
+    while(homographies_equal && matchedLines.size() > NUM_LINE_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
 
         goodLineMatches.clear();
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
@@ -164,7 +164,7 @@ bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMa
 
     if(LOG_DEBUG) std::cout << "-- findHomography: confidence = " << confidence << ", relative outliers = " << outliers << std::endl;
 
-    N = std::log(1.0 - confidence)/std::log(1.0 - std::pow(1.0 - outliers, NUM_CORRESP)); //See Hartley, Zisserman p119
+    N = std::log(1.0 - confidence)/std::log(1.0 - std::pow(1.0 - outliers, NUM_LINE_CORRESP)); //See Hartley, Zisserman p119
     bestSubset = estimateHomography(goodLineMatches, method, N);
 
     do {
@@ -173,7 +173,7 @@ bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMa
 
         if(LOG_DEBUG) std::cout << "-- Iteration: " << iteration <<"/" << MAX_REFINEMENT_ITERATIONS << ", Used number of matches: " << goodLineMatches.size() << std::endl;
 
-        if(goodLineMatches.size() < NUM_CORRESP) {
+        if(goodLineMatches.size() < NUM_LINE_CORRESP) {
             if(LOG_DEBUG) std::cout << "-- To few line matches left! Using second best solution..." << std::endl;
             goodLineMatches = lastIterLineMatches;
             break;
@@ -293,7 +293,7 @@ lineSubsetStruct FEstimatorHLines::estimateHomography(std::vector<lineCorrespStr
         std::vector<int> subsetsIdx;
         lineSubsetStruct subset;
 
-        for(int j = 0; j < NUM_CORRESP; j++) {
+        for(int j = 0; j < NUM_LINE_CORRESP; j++) {
             int subsetIdx = 0;
 
             do {        //Generate NUM_CORRESP uniqe random indices for line pairs where not 3 are parallel

@@ -247,20 +247,20 @@ double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std
     return error/points1.size();
 }
 
-double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
+double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
     //std::srand(std::time(0));
     std::srand(1);  //Pseudo random: Try to use the same points for every image
-    double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image, numOfSamples);
+    double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image1, image2, numOfSamples);
     if(err1 == -1) return -1;
-    double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image, numOfSamples);
+    double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image1, image2, numOfSamples);
     if(err2 == -1) return -1;
     return (err1 + err2)/2.0;
 }
 
-double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
+double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
     double epipolarDistSum = 0;
-    int imgWidth = image.cols;
-    int imgHeight = image.rows;
+    int imgWidth = image1.cols;
+    int imgHeight = image1.rows;
     for(int i = 0; i < numOfSamples; i++) {
         //line ax + by + c = 0 <-> ax + c = -by <-> (-a/b)x + (-c/b) = y; (-a/b) = -l1/l2, (-c/b) = -l3/l2
         Mat p1homog;
@@ -268,17 +268,41 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
         int xMax;
         double l2F1a = 0, l2F1b = 0;
 
+        Mat l2F1homog;
+       //Mat img1;
+
         int trys = 1;
         do {    //Draw random point until it's epipolar line intersects image 2
             int x = rand()%(imgWidth-20)+10;
             int y = rand()%(imgHeight-20)+10;
             p1homog = matVector(x, y, 1);
-            Mat l2F1homog = F1*p1homog;
+            l2F1homog = F1*p1homog;
             l2F1a = -l2F1homog.at<double>(0,0) / l2F1homog.at<double>(1,0);
             l2F1b = -l2F1homog.at<double>(2,0) / l2F1homog.at<double>(1,0);
-            xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
-            xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
+            if(l2F1a > 0) {
+                xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
+                xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
+            } else if(l2F1a < 0) {
+                xMax = std::min(imgWidth, (int)std::floor(-l2F1b/l2F1a));
+                xMin = std::max(0, (int)std::ceil((imgHeight-l2F1b)/l2F1a));
+            } else {
+                xMax = imgWidth;
+                xMin = 0;
+            }
+
             trys++;
+
+//            if(trys > 20) {
+//            img1 = image1.clone();
+//            circle(img1, cvPoint(x,y), 5, Scalar(255,255,255), 3);
+//            circle(img1, cvPoint(x,y), 30, Scalar(255,255,255), 6);
+//            Mat img2 = image2.clone();
+//            cv::line(img2,cv::Point(0,-l2F1homog.at<double>(2,0)/l2F1homog.at<double>(1,0)), cv::Point(image1.cols,-(l2F1homog.at<double>(2,0)+l2F1homog.at<double>(0,0)*image1.cols)/l2F1homog.at<double>(1,0)),cv::Scalar(255,255,255), 2);
+//            Mat img;
+//            hconcat(img1, img2, img);
+//            showImage("test 1, 2", img);
+//            waitKey(0);}
+
         } while((xMin > xMax) && (trys < MAX_SAMPLE_TRYS));
 
         if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
@@ -288,14 +312,30 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOf
         else x = (rand()%(xMax-xMin)) + xMin;
         y = l2F1a*x + l2F1b;
 
+        Mat img2 = image2.clone();
+        circle(img2, cvPoint(x,y), 5, Scalar(255,255,255), 3);
+        circle(img2, cvPoint(x,y), 30, Scalar(255,255,255), 6);
+
+ //       cv::line(img2,cv::Point(0,-l2F1homog.at<double>(2,0)/l2F1homog.at<double>(1,0)), cv::Point(image1.cols,-(l2F1homog.at<double>(2,0)+l2F1homog.at<double>(0,0)*image1.cols)/l2F1homog.at<double>(1,0)),cv::Scalar(255,0,0), 2);
+
         //Compute distance of chosen random point to epipolar line of F2
         Mat p2homog = matVector(x, y, 1);
         Mat l2F2homog = F2*p1homog;
+        l2F2homog /= l2F2homog.at<double>(1,0);
         epipolarDistSum+=fabs(Mat(p2homog.t()*l2F2homog).at<double>(0,0));
+
+//        cv::line(img2,cv::Point(0,-l2F2homog.at<double>(2,0)/l2F2homog.at<double>(1,0)), cv::Point(image1.cols,-(l2F2homog.at<double>(2,0)+l2F2homog.at<double>(0,0)*image1.cols)/l2F2homog.at<double>(1,0)),cv::Scalar(255,255,255), 2);
 
         //Compute distance of point1 to epipolar line from random point using F2^T in image 1
         Mat l1F2homog = F2.t()*p2homog;
+        l1F2homog /= l1F2homog.at<double>(1,0);
         epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
+
+//        cv::line(img1,cv::Point(0,-l1F2homog.at<double>(2,0)/l1F2homog.at<double>(1,0)), cv::Point(image1.cols,-(l1F2homog.at<double>(2,0)+l1F2homog.at<double>(0,0)*image1.cols)/l1F2homog.at<double>(1,0)),cv::Scalar(255,255,255), 2);
+
+//        showImage("test1_", img1);
+//        showImage("test2", img2);
+//        waitKey(0);
 
     }
     return epipolarDistSum/(2.0*numOfSamples);
@@ -496,6 +536,18 @@ std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> esti
     return *errorVect;
 }
 
+std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Mat> x2, Mat F) {
+
+    std::vector<double> *errorVect = new std::vector<double>();
+
+    for(int i = 0; i < x1.size(); i++) {
+        Mat p1 = x1.at(i);
+        Mat p2 = x2.at(i);
+        errorVect->push_back(symmeticTransferError(F, p1, p2));
+    }
+    return *errorVect;
+}
+
 double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimations, Mat impF) {
     std::vector<double> errorVect = computeCombinedErrorVect(estimations, impF);
     double combinedError = 0;
@@ -503,6 +555,26 @@ double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimation
         combinedError += std::pow(*errorIter,2);
     }
     return combinedError/errorVect.size();
+}
+
+double computeCombinedMeanSquaredError(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF) {
+    std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, impF);
+    double combinedError = 0;
+    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
+        combinedError += std::pow(*errorIter,2);
+    }
+    return combinedError/errorVect.size();
+}
+
+void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist) {
+    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
+        for(int i = 0; i < estimationIter->getFeaturesImg1().size(); i++) {
+            if(symmeticTransferError(F, estimationIter->getFeaturesImg1().at(i), estimationIter->getFeaturesImg2().at(i)) < maxDist) {
+                x1.push_back(estimationIter->getFeaturesImg1().at(i));
+                x2.push_back(estimationIter->getFeaturesImg2().at(i));
+            }
+        }
+    }
 }
 
 void computeEpipoles(Mat F, Mat &e1, Mat &e2) {     //See Hartley, Ziss p.246

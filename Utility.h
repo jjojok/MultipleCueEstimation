@@ -44,8 +44,8 @@ double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std
 double symmeticTransferError(Mat F, Mat x1, Mat x2);
 Mat matVector(double x, double y, double z);
 Mat matVector(Point2d p);
-double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples);
-double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples);
+double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples);
+double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples);
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t);
 double fnorm(double x, double y);
 void enforceRankTwoConstraint(Mat &F);
@@ -57,11 +57,15 @@ void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d>
 bool isUnity(Mat m);
 bool computeUniqeEigenvector(Mat H, Mat &e);
 std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F);
+std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1_vect, std::vector<Mat> x2_vect, Mat F);
 double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimations, Mat F);
+double computeCombinedMeanSquaredError(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF);
+void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist);
 void computeEpipoles(Mat F, Mat &e1, Mat &e2);
 Mat computeGeneralHomography(Mat F);
 //void symmeticTransferLineError(Mat H_invT, Mat H_T, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End, double *err1, double *err2);
 double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
+double squaredTransferPointError(Mat H, Mat p1, Mat p2);
 
 #endif // UTILITY_H

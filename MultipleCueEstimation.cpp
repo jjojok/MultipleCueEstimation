@@ -48,7 +48,7 @@ Mat MultipleCueEstimation::compute() {
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
             std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
             if (compareWithGroundTruth) {
-                it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1, NUM_SAMPLES_F_COMARATION);
+                it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
                 double error2 = squaredError(Fgt, it->getF());
                 if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << it->meanSquaredRSSTError << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getSymmetricTransferError() << std::endl;
             }
@@ -61,7 +61,7 @@ Mat MultipleCueEstimation::compute() {
         F = refineF(estimations);
         std::cout << "Refined F = " << std::endl << F << std::endl;
         if (compareWithGroundTruth) {
-            meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, F, image_1, NUM_SAMPLES_F_COMARATION);
+            meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, F, image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
             double error2 = squaredError(Fgt, F);
             if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << meanSquaredRSSTError << ", Squated distance: " << error2 << std::endl;
         }
@@ -163,51 +163,75 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
         numValues += estimationIter->getFeaturesImg1().size();
     }
 
+    refinedF = bestMethod.getF().clone();
+
     if (LOG_DEBUG) std::cout << "Starting point for optimization: " << bestMethod.name << std::endl;
+    double lastError = 0;
+    int stableSolutions = 0;
+    int iterations = 1;
 
-    Eigen::VectorXd x(9);
+    do {
 
-    x(0) = bestMethod.getF().at<double>(0,0);
-    x(1) = bestMethod.getF().at<double>(0,1);
-    x(2) = bestMethod.getF().at<double>(0,2);
+        Eigen::VectorXd x(9);
 
-    x(3) = bestMethod.getF().at<double>(1,0);
-    x(4) = bestMethod.getF().at<double>(1,1);
-    x(5) = bestMethod.getF().at<double>(1,2);
+        x(0) = refinedF.at<double>(0,0);
+        x(1) = refinedF.at<double>(0,1);
+        x(2) = refinedF.at<double>(0,2);
 
-    x(6) = bestMethod.getF().at<double>(2,0);
-    x(7) = bestMethod.getF().at<double>(2,1);
+        x(3) = refinedF.at<double>(1,0);
+        x(4) = refinedF.at<double>(1,1);
+        x(5) = refinedF.at<double>(1,2);
 
-    GeneralFunctor functor;
-    functor.estimations = &estimations;
-    functor.numValues = numValues;
-    Eigen::NumericalDiff<GeneralFunctor> numDiff(functor, 1.0e-6); //epsilon
-    Eigen::LevenbergMarquardt<Eigen::NumericalDiff<GeneralFunctor>,double> lm(numDiff);
+        x(6) = refinedF.at<double>(2,0);
+        x(7) = refinedF.at<double>(2,1);
 
-    lm.parameters.ftol = 1.0e-15;
-    lm.parameters.xtol = 1.0e-15;
-    //lm.parameters.epsfcn = 1.0e-3;
-    lm.parameters.maxfev = 4000; // Max iterations
-    Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
+        std::vector<Mat> goodCombindX1;
+        std::vector<Mat> goodCombindX2;
+        findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, 0.01);
+        if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << ", Refined feature count: " << goodCombindX1.size() << "/" << numValues << std::endl;
 
-    if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.nfev << ", Status: " << status << std::endl;
+        GeneralFunctor functor;
+        //functor.estimations = &estimations;
+        functor.x1 = goodCombindX1;
+        functor.x2 = goodCombindX2;
+        functor.numValues = goodCombindX1.size();
+        //functor.numValues = numValues;
+        Eigen::NumericalDiff<GeneralFunctor> numDiff(functor, 1.0e-6); //epsilon
+        Eigen::LevenbergMarquardt<Eigen::NumericalDiff<GeneralFunctor>,double> lm(numDiff);
+        lm.parameters.ftol = 1.0e-15;
+        lm.parameters.xtol = 1.0e-15;
+        //lm.parameters.epsfcn = 1.0e-3;
+        lm.parameters.maxfev = 4000; // Max iterations
+        Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
 
-    refinedF.at<double>(0,0) = x(0);
-    refinedF.at<double>(0,1) = x(1);
-    refinedF.at<double>(0,2) = x(2);
+        if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.nfev << ", Status: " << status << std::endl;
 
-    refinedF.at<double>(1,0) = x(3);
-    refinedF.at<double>(1,1) = x(4);
-    refinedF.at<double>(1,2) = x(5);
+        refinedF.at<double>(0,0) = x(0);
+        refinedF.at<double>(0,1) = x(1);
+        refinedF.at<double>(0,2) = x(2);
 
-    refinedF.at<double>(2,0) = x(6);
-    refinedF.at<double>(2,1) = x(7);
+        refinedF.at<double>(1,0) = x(3);
+        refinedF.at<double>(1,1) = x(4);
+        refinedF.at<double>(1,2) = x(5);
 
-    enforceRankTwoConstraint(refinedF);
+        refinedF.at<double>(2,0) = x(6);
+        refinedF.at<double>(2,1) = x(7);
 
-    meanSquaredCSTError = computeCombinedMeanSquaredError(estimations, refinedF);
+        enforceRankTwoConstraint(refinedF);
 
-    if (LOG_DEBUG) std::cout <<"sqared symmetic transfer error: " << meanSquaredCSTError << std::endl;
+        //meanSquaredCSTError = computeCombinedMeanSquaredError(estimations, refinedF);
+        meanSquaredCSTError = computeCombinedMeanSquaredError(goodCombindX1, goodCombindX2, refinedF);
+
+        if((lastError - meanSquaredCSTError)/meanSquaredCSTError < 0.01) stableSolutions++;
+        else stableSolutions = 0;
+
+        if (LOG_DEBUG) std::cout <<"Mean sqared symmetic transfer error: " << meanSquaredCSTError << ", rel. error change: " << (lastError - meanSquaredCSTError)/meanSquaredCSTError << ", stable solutions: " << stableSolutions << std::endl;
+
+        lastError = meanSquaredCSTError;
+
+        iterations++;
+
+    } while(stableSolutions < 3 && iterations < MAX_REFINEMENT_ITERATIONS);
 
     return refinedF;
 }

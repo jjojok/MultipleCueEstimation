@@ -24,6 +24,14 @@ struct lineSubsetStruct {
     Mat Hs, Hs_normalized;
 };
 
+struct pointSubsetStruct {
+    std::vector<Point2d> x1;
+    std::vector<Point2d> x2;
+    double qualityMeasure;
+    double meanSquaredSymmeticTransferError;
+    Mat Hs, Hs_normalized;
+};
+
 struct segmentStruct {
     int id;
     int area;
