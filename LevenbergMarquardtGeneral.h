@@ -1,0 +1,118 @@
+#ifndef LMA_LINES_H
+#define LMA_LINES_H
+
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+* Code partially from: https://github.com/daviddoria/Examples/blob/master/c%2B%2B/Eigen/LevenbergMarquardt/CurveFitting.cpp
+* +++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+#include <iostream>
+
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Sparse>
+
+#include <eigen3/unsupported/Eigen/NonLinearOptimization>
+#include <eigen3/unsupported/Eigen/NumericalDiff>
+#include "Utility.h"
+
+// Generic functor
+template<typename _Scalar, int NX = Eigen::Dynamic, int NY = Eigen::Dynamic>
+struct Functor
+{
+    typedef _Scalar Scalar;
+    enum {
+        InputsAtCompileTime = NX,
+        ValuesAtCompileTime = NY
+    };
+    typedef Eigen::Matrix<Scalar,InputsAtCompileTime,1> InputType;
+    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,1> ValueType;
+    typedef Eigen::Matrix<Scalar,ValuesAtCompileTime,InputsAtCompileTime> JacobianType;
+
+    int m_inputs, m_values;
+
+    Functor() : m_inputs(InputsAtCompileTime), m_values(ValuesAtCompileTime) {}
+    Functor(int inputs, int values) : m_inputs(inputs), m_values(values) {}
+
+    int inputs() const { return m_inputs; }
+    int values() const { return m_values; }
+
+};
+
+
+struct GeneralFunctor : Functor<double>
+{
+    int operator()(const Eigen::VectorXd &x, Eigen::VectorXd &fvec) const
+    {
+
+        Mat F = Mat::ones(3,3,CV_64FC1);
+
+        F.at<double>(0,0) = x(0);
+        F.at<double>(0,1) = x(1);
+        F.at<double>(0,2) = x(2);
+
+        F.at<double>(1,0) = x(3);
+        F.at<double>(1,1) = x(4);
+        F.at<double>(1,2) = x(5);
+
+        F.at<double>(2,0) = x(6);
+        F.at<double>(2,1) = x(7);
+
+        FEstimationMethod est = *estimations->begin();
+
+        std::vector<double> errorVect = computeCombinedErrorVect(*estimations, F);
+
+        for(int i = 0; i < errorVect.size(); i++) {
+            fvec(i) = errorVect.at(i);
+        }
+
+//        for(std::vector<FEstimationMethod>::const_iterator estimationIter = methods->begin(); estimationIter != methods->end(); ++estimationIter) {
+
+//            if(estimationIter->getType() == F_FROM_LINES_VIA_H) {
+
+//                for(unsigned int i = 0; i < estimationIter->featuresImg1.size()/2; i++)
+//                {
+//                    Mat line1Start = estimationIter->featuresImg1.at(2*i);
+//                    Mat line1End = estimationIter->featuresImg1.at(2*i+1);
+
+//                    Mat line2Start = estimationIter->featuresImg2.at(2*i);
+//                    Mat line2End = estimationIter->featuresImg2.at(2*i+1);
+
+//                    Mat A = F*crossProductMatrix(line2Start)*line2End;
+//                    Mat start1 = line1Start.t()*A;
+//                    Mat end1 = line1End.t()*A;
+//                    Mat B = F_T*crossProductMatrix(line1Start)*line1End;
+//                    Mat start2 = line2Start.t()*B;
+//                    Mat end2 = line2End.t()*B;
+
+//                    fvec(fvecPos++) = Mat(start1+end1).at<double>(0,0);
+//                    fvec(fvecPos++) = Mat(start2+end2).at<double>(0,0);
+//                }
+//            }
+//            if(estimationIter->getType() == F_FROM_POINTS) {
+//                for(unsigned int i = 0; i < estimationIter->featuresImg1.size(); i++)   //Distance form features to correspondig epipolarline in other image
+//                {
+//                    Mat x1 = estimationIter->featuresImg1.at(i);
+//                    Mat x2 = estimationIter->featuresImg2.at(i);
+
+//                    fvec(fvecPos++) = Mat(x2.t()*F*x1).at<double>(0,0);
+//                    fvec(fvecPos++) = Mat(x1.t()*F.t()*x2).at<double>(0,0);
+//                }
+//            }
+//        }
+
+        return 0;
+    }
+
+std::vector<FEstimationMethod> *estimations;
+int numValues;
+
+int inputs() const { return 8; } // There are 9 parameters of the model
+int values() const {
+//    int numValues = 0;
+//    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations->begin(); estimationIter != estimations->end(); ++estimationIter) {
+//        numValues += estimationIter->getFeaturesImg1().size();
+//    }
+    return numValues;
+} // The number of observations
+};
+
+#endif // LMA_LINES_H

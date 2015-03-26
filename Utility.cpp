@@ -1,30 +1,18 @@
 #include "Utility.h"
-#include "Statics.h"
-
-#include <ctime>
-
-void decomPoseFundamentalMat(Mat F, Mat &P1, Mat &P2) {
-    //Mat C =
-    //vconcat(Mat::zeros(3,1,CV_32FC1), Mat::ones(1,1,CV_32FC1), C);      //Camera center image 1
-}
-
-void decomPoseFundamentalMat(Mat F, Mat &K1, Mat &R12, Mat T12) {
-
-}
 
 void enforceRankTwoConstraint(Mat &F) {
     //Enforce Rank 2 constraint:
     SVD svd;
     Mat u, vt, w;
     svd.compute(F, w, u, vt);
-    Mat newW = Mat::zeros(3,3,CV_32FC1);
-    newW.at<float>(0,0) = w.at<float>(0,0);
-    newW.at<float>(1,1) = w.at<float>(1,0);
+    Mat newW = Mat::zeros(3,3,CV_64FC1);
+    newW.at<double>(0,0) = w.at<double>(0,0);
+    newW.at<double>(1,1) = w.at<double>(1,0);
     F = u*newW*vt;
-    F /= F.at<float>(2,2);
+    F /= F.at<double>(2,2);
 }
 
-float fnorm(float x, float y) {
+double fnorm(double x, double y) {
     return sqrt(pow(x, 2) + pow(y, 2));
 }
 
@@ -36,18 +24,18 @@ void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name) {
     showImage(name, result, WINDOW_NORMAL, 1600);
 }
 
-float smallestRelAngle(float ang1, float ang2) {
-    float diff = fabs(ang1 - ang2);
+double smallestRelAngle(double ang1, double ang2) {
+    double diff = fabs(ang1 - ang2);
     if(diff > M_PI) diff = (2*M_PI) - diff;
     return diff;
 }
 
 void showImage(std::string name, Mat image, int type, int width, int height) {
-    float tx = 0;
-    float ty = 0;
+    double tx = 0;
+    double ty = 0;
     Mat resized;
-    if (width > 0) tx= (float)width/image.cols; {
-        if (height > 0) ty= (float)height/image.rows;
+    if (width > 0) tx= (double)width/image.cols; {
+        if (height > 0) ty= (double)height/image.rows;
         else ty= tx;
     }
     namedWindow(name, type);
@@ -68,7 +56,7 @@ int calcMatRank(Mat M) {
     if (W.cols < W.rows) diag = W.cols;
     else diag = W.rows;
     for(int i = 0; i < diag; i++) {
-        if(fabs(W.at<float>(i,i)) > 10^(-10)) {
+        if(fabs(W.at<double>(i,i)) > 10^(-10)) {
             rank++;
         }
     }
@@ -102,7 +90,7 @@ std::string getType(Mat m) {
     return type;
 }
 
-void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat img1, Mat img2, std::string name) {
+void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, Mat img1, Mat img2, std::string name) {
 
     if(p1.size() == 0 || p2.size() == 0) return;
 
@@ -113,9 +101,9 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
     //From: http://opencv-cookbook.googlecode.com/svn/trunk/Chapter%2009/estimateF.cpp
     //#################################################################################
 
-    std::vector<cv::Vec3f> lines1, lines2;
+    std::vector<cv::Vec3d> lines1, lines2;
     cv::computeCorrespondEpilines(p1, 1, F, lines1);
-    for (std::vector<cv::Vec3f>::const_iterator it= lines1.begin();
+    for (std::vector<cv::Vec3d>::const_iterator it= lines1.begin();
          it!=lines1.end(); ++it) {
 
              cv::line(image2,cv::Point(0,-(*it)[2]/(*it)[1]),
@@ -124,7 +112,7 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
     }
 
     cv::computeCorrespondEpilines(p2,2,F,lines2);
-    for (std::vector<cv::Vec3f>::const_iterator it= lines2.begin();
+    for (std::vector<cv::Vec3d>::const_iterator it= lines2.begin();
          it!=lines2.end(); ++it) {
 
              cv::line(image1,cv::Point(0,-(*it)[2]/(*it)[1]),
@@ -133,7 +121,7 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
     }
 
     // Draw points
-    std::vector<cv::Point2f>::const_iterator itPts= p1.begin();
+    std::vector<cv::Point2d>::const_iterator itPts= p1.begin();
     //std::vector<uchar>::const_iterator itIn= inliers.begin();
     while (itPts!=p1.end()) {
 
@@ -167,18 +155,18 @@ void drawEpipolarLines(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, 
     //#############################################################################
 }
 
-Mat crossProductMatrix(Mat input) {    //3 Vector to cross procut matrix
+Mat crossProductMatrix(Mat input) {    //3 Vector to cross product matrix
     Mat crossMat = Mat::zeros(3,3, input.type());
-    crossMat.at<float>(0,1) = -input.at<float>(2);
-    crossMat.at<float>(0,2) = input.at<float>(1);
-    crossMat.at<float>(1,0) = input.at<float>(2);
-    crossMat.at<float>(1,2) = -input.at<float>(0);
-    crossMat.at<float>(2,0) = -input.at<float>(1);
-    crossMat.at<float>(2,1) = input.at<float>(0);
+    crossMat.at<double>(0,1) = -input.at<double>(2);
+    crossMat.at<double>(0,2) = input.at<double>(1);
+    crossMat.at<double>(1,0) = input.at<double>(2);
+    crossMat.at<double>(1,2) = -input.at<double>(0);
+    crossMat.at<double>(2,0) = -input.at<double>(1);
+    crossMat.at<double>(2,1) = input.at<double>(0);
     return crossMat;
 }
 
-void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1, Mat image2, std::string windowName) {
+void rectify(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, Mat image1, Mat image2, std::string windowName) {
     Mat H1, H2, rectified1, rectified2;
     if(stereoRectifyUncalibrated(p1, p2, F, Size(image1.cols,image1.rows), H1, H2, 2 )) {
 
@@ -190,9 +178,9 @@ void rectify(std::vector<Point2f> p1, std::vector<Point2f> p2, Mat F, Mat image1
     }
 }
 
-void PointsToFile(std::vector<Point2f>* points, std::string file) {
+void PointsToFile(std::vector<Point2d>* points, std::string file) {
 
-    Point2f point;
+    Point2d point;
     std::ofstream outputStream;
     outputStream.open(file.c_str());
     for (int i = 0; points->size(); i++) {
@@ -208,9 +196,9 @@ void PointsToFile(std::vector<Point2f>* points, std::string file) {
 
 Mat MatFromFile(std::string file, int rows) {
 
-    Mat matrix = Mat::zeros(0,0,CV_32FC1);
+    Mat matrix = Mat::zeros(0,0,CV_64FC1);
     std::ifstream inputStream;
-    float x;
+    double x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
         while(inputStream >> x) {
@@ -227,7 +215,7 @@ Mat MatFromFile(std::string file, int rows) {
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
     int values = 1;
     std::ifstream inputStream;
-    float x;
+    double x;
     inputStream.open(file.c_str());
     if (inputStream.is_open()) {
         while(inputStream >> x) {
@@ -251,83 +239,339 @@ bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
     }
 }
 
-double epipolarSADError(Mat F, std::vector<Point2f> points1, std::vector<Point2f> points2) {    //Reprojection error, epipolar line
-    std::vector<cv::Vec3f> lines1;
-    std::vector<cv::Vec3f> lines2;
-    double epipolarError = 0;
-    cv::computeCorrespondEpilines(points1, 1, F, lines2);
-    cv::computeCorrespondEpilines(points2, 2, F, lines1);
+double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
+    double error = 0;
     for(int i = 0; i < points1.size(); i++) {
-        epipolarError+=abs(matVector(points1.at(i)).dot(lines2.at(i))) + abs(matVector(points2.at(i)).dot(lines1.at(i)));
+        error+=std::pow(symmeticTransferError(F, matVector(points1.at(i)), matVector(points2.at(i))),2);
     }
-    return epipolarError;
+    return error/points1.size();
 }
 
-double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
     //std::srand(std::time(0));
     std::srand(1);  //Pseudo random: Try to use the same points for every image
     double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image, numOfSamples);
     if(err1 == -1) return -1;
     double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image, numOfSamples);
     if(err2 == -1) return -1;
-    return err1 + err2;
+    return (err1 + err2)/2.0;
 }
 
-double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p185
+double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
     double epipolarDistSum = 0;
+    int imgWidth = image.cols;
+    int imgHeight = image.rows;
     for(int i = 0; i < numOfSamples; i++) {
-        //line: y = ax + b; a = x1/x3, b = x2/x3
-
+        //line ax + by + c = 0 <-> ax + c = -by <-> (-a/b)x + (-c/b) = y; (-a/b) = -l1/l2, (-c/b) = -l3/l2
         Mat p1homog;
-        int xBoundsMin = 0;
-        int xBounds = 0;
-        float l2F1a = 0, l2F1b = 0;
+        int xMin;
+        int xMax;
+        double l2F1a = 0, l2F1b = 0;
 
         int trys = 1;
         do {    //Draw random point until it's epipolar line intersects image 2
-            p1homog = matVector(rand()%image.cols, rand()%image.rows, 1);
+            int x = rand()%(imgWidth-20)+10;
+            int y = rand()%(imgHeight-20)+10;
+            p1homog = matVector(x, y, 1);
             Mat l2F1homog = F1*p1homog;
-            l2F1a = l2F1homog.at<float>(0,0) / l2F1homog.at<float>(2,0);
-            l2F1b = l2F1homog.at<float>(1,0) / l2F1homog.at<float>(2,0);
-            l2F1a/=(-l2F1b);
-            l2F1b=1.0/(-l2F1b);
-            xBoundsMin = std::min(std::max((int)ceil(l2F1b/l2F1a),0), image.cols);
-            xBounds = std::min((int)floor(image.rows*l2F1b/l2F1a), image.cols) - xBoundsMin;
+            l2F1a = -l2F1homog.at<double>(0,0) / l2F1homog.at<double>(1,0);
+            l2F1b = -l2F1homog.at<double>(2,0) / l2F1homog.at<double>(1,0);
+            xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
+            xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
             trys++;
-        } while((xBounds < 0 || xBoundsMin > image.cols) && (trys < MAX_SAMPLE_TRYS));
+        } while((xMin > xMax) && (trys < MAX_SAMPLE_TRYS));
 
-        if(trys == MAX_SAMPLE_TRYS) return -1;
+        if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
 
-        float x, y;
-        if(xBounds == 0) x = xBoundsMin;
-        else x = rand()%xBounds + xBoundsMin;
+        double x, y;
+        if(xMax == xMin) x = xMax;
+        else x = (rand()%(xMax-xMin)) + xMin;
         y = l2F1a*x + l2F1b;
 
         //Compute distance of chosen random point to epipolar line of F2
         Mat p2homog = matVector(x, y, 1);
         Mat l2F2homog = F2*p1homog;
-        epipolarDistSum+=fabs(p2homog.dot(l2F2homog));
+        epipolarDistSum+=fabs(Mat(p2homog.t()*l2F2homog).at<double>(0,0));
 
         //Compute distance of point1 to epipolar line from random point using F2^T in image 1
         Mat l1F2homog = F2.t()*p2homog;
-        epipolarDistSum+=fabs(p1homog.dot(l1F2homog));
+        epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
 
     }
     return epipolarDistSum/(2.0*numOfSamples);
 }
 
-Mat matVector(float x, float y, float z) {
-    Mat vect = Mat::zeros(3,1,CV_32FC1);
-    vect.at<float>(0,0) = x;
-    vect.at<float>(1,0) = y;
-    vect.at<float>(2,0) = z;
+Mat matVector(double x, double y, double z) {
+    Mat vect = Mat::zeros(3,1,CV_64FC1);
+    vect.at<double>(0,0) = x;
+    vect.at<double>(1,0) = y;
+    vect.at<double>(2,0) = z;
     return vect;
 }
 
-Mat matVector(Point2f p) {
-    Mat vect = Mat::zeros(3,1,CV_32FC1);
-    vect.at<float>(0,0) = p.x;
-    vect.at<float>(1,0) = p.y;
-    vect.at<float>(2,0) = 1;
+Mat matVector(Point2d p) {
+    Mat vect = Mat::zeros(3,1,CV_64FC1);
+    vect.at<double>(0,0) = p.x;
+    vect.at<double>(1,0) = p.y;
+    vect.at<double>(2,0) = 1;
     return vect;
+}
+
+lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+    lc->line1Angle = lcCopy.line1Angle;
+    lc->line2Angle = lcCopy.line2Angle;
+
+    lc->line1Length = lcCopy.line1Length;
+    lc->line2Length = lcCopy.line2Length;
+
+    lc->line1Start = lcCopy.line1Start.clone();
+    lc->line2Start = lcCopy.line2Start.clone();
+    lc->line1End = lcCopy.line1End.clone();
+    lc->line2End = lcCopy.line2End.clone();
+
+    lc->id = lcCopy.id;
+
+    return *lc;
+}
+
+lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+    double scaling = 1;
+    if(l1.octave > 0) { //TODO: OpenCV bug: coordinates are from downscaled versions of image pyramid
+        scaling = l1.octave*SCALING;
+    }
+
+    lc->line1Angle = l1.angle;
+    lc->line2Angle = l2.angle;
+
+    lc->line1Length = l1.lineLength*scaling;
+    lc->line2Length = l1.lineLength*scaling;
+
+    lc->line1Start = matVector(l1.startPointX*scaling, l1.startPointY*scaling, 1);
+    lc->line2Start = matVector(l2.startPointX*scaling, l2.startPointY*scaling, 1);
+    lc->line1End = matVector(l1.endPointX*scaling, l1.endPointY*scaling, 1);
+    lc->line2End = matVector(l2.endPointX*scaling, l2.endPointY*scaling, 1);
+
+    lc->id = id;
+
+    return *lc;
+}
+
+lineCorrespStruct getlineCorrespStruct(double start1x, double start1y, double end1x, double end1y, double start2x, double start2y , double end2x, double end2y, int id) {
+    lineCorrespStruct* lc = new lineCorrespStruct;
+
+    lc->line1Angle = atan2(end1y - start1y, end1x - start1x);
+    lc->line2Angle = atan2(end2y - start2y, end2x - start2x);
+
+    lc->line1Length = fnorm(start1x-end1x, start1y-end1y);
+    lc->line2Length = fnorm(start2x-end2x, start2y-end2y);
+
+    lc->line1Start = matVector(start1x, start1y, 1);
+    lc->line2Start = matVector(start2x, start2y, 1);
+    lc->line1End = matVector(end1x, end1y, 1);
+    lc->line2End = matVector(end2x, end2y, 1);
+
+    lc->id;
+
+    return *lc;
+}
+
+void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name) {
+    Mat img;
+    hconcat(image_1_color.clone(), image_2_color.clone(), img);
+    for(std::vector<lineCorrespStruct>::iterator it = correspondencies.begin() ; it != correspondencies.end(); ++it) {
+        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        cv::line(img, cvPoint2D32f(it->line1Start.at<double>(0,0), it->line1Start.at<double>(1,0)), cvPoint2D32f(it->line1End.at<double>(0,0), it->line1End.at<double>(1,0)), color, lineWidth);
+        cv::line(img, cvPoint2D32f(it->line2Start.at<double>(0,0) + image_1_color.cols, it->line2Start.at<double>(1,0)), cvPoint2D32f(it->line2End.at<double>(0,0) + image_1_color.cols, it->line2End.at<double>(1,0)), color, lineWidth);
+        if(drawConnections) {
+            cv::line(img, cvPoint2D32f(it->line1Start.at<double>(0,0), it->line1Start.at<double>(1,0)), cvPoint2D32f(it->line2Start.at<double>(0,0) + image_1_color.cols, it->line2Start.at<double>(1,0)), color, lineWidth);
+        }
+    }
+    showImage(name, img, WINDOW_NORMAL, 1600);
+}
+
+void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name) {
+    Mat img;
+    hconcat(image_1_color.clone(), image_2_color.clone(), img);
+    for(int i = 0; i < p1.size(); i++) {
+        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        cv::circle(img, p1.at(i), 2, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), 2, color, lineWidth);
+        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
+        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        if(drawConnections) {
+            cv::line(img, p1.at(i), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        }
+    }
+    showImage(name, img, WINDOW_NORMAL, 1600);
+}
+
+bool isUnity(Mat m) {       //Check main diagonal for being close to 1
+    Mat diff = abs(m - Mat::eye(m.rows, m.cols, CV_64FC1));
+    for(int i = 0; i < m.cols; i++) {
+        if(diff.at<double>(i,i) > MARGIN) return false;
+    }
+    return true;
+}
+
+bool computeUniqeEigenvector(Mat H, Mat &e) {
+    // Map the OpenCV matrix with Eigen:
+    Eigen::Matrix3d HEigen;
+    cv2eigen(H, HEigen);
+    //http://eigen.tuxfamily.org/dox/classEigen_1_1EigenSolver.html#a8c287af80cfd71517094b75dcad2a31b
+    Eigen::EigenSolver<Eigen::Matrix3d> solver;
+    solver.compute(HEigen);
+
+    Mat eigenvalues = Mat::zeros(3, 1, CV_64FC1), eigenvectors = Mat::zeros(3, 3, CV_64FC1);
+    eigen2cv(solver.eigenvalues(), eigenvalues);
+    eigen2cv(solver.eigenvectors(), eigenvectors);
+
+    if(LOG_DEBUG) {
+        std::cout << "-- H1*H2^-1 = " << std::endl << H << std::endl;
+
+        for(int i = 0; i < eigenvalues.rows; i++) {
+            std::cout << "-- " << i+1 << "th Eigenvalue: " << eigenvalues.at<double>(i,0) << ", Eigenvector = " << std::endl << eigenvectors.col(i) << std::endl;
+        }
+    }
+
+    bool allEigenvaluesEqual = true;
+    double dist[eigenvalues.rows];
+    double lastDist = 0;
+    int col = 0;
+    for(int i = 0; i < eigenvalues.rows; i ++) {        //find non-unary eigenvalue & its eigenvector
+        Mat eig = eigenvalues.row(i);
+        dist[i] = 0;
+        for(int j = 0; j < eigenvalues.rows; j ++) {
+            dist[i] += squaredError(eig, eigenvalues.row(j));
+        }
+        if(dist[i] > MARGIN) allEigenvaluesEqual = false;
+        if(dist[i] > lastDist) {
+            col = i;
+            lastDist = dist[i];
+        }
+    }
+
+    std::vector<Mat> e2;
+    split(eigenvectors.col(col),e2); //Remove channel for imaginary part
+    if(LOG_DEBUG) std::cout << "-- e = " << std::endl << e2.at(0) << std::endl;
+
+    Mat(e2.at(0)).copyTo(e);
+
+    return allEigenvaluesEqual;
+}
+
+double symmeticTransferError(Mat F, Mat x1, Mat x2) {
+    return Mat(x2.t()*F*x1 + x1.t()*F.t()*x2).at<double>(0,0);
+}
+
+std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F) {
+
+    std::vector<double> *errorVect = new std::vector<double>();
+
+    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
+
+        if(estimationIter->getType() == F_FROM_LINES_VIA_H) {   //Line correspondencies != point correspondencies
+            Mat H = computeGeneralHomography(F);
+            Mat H_invT = H.inv(DECOMP_SVD).t();
+            Mat H_T = H.t();
+            for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size()/2; i++)
+            {
+                double err1, err2;
+                err1 = transferLineError(H_T, estimationIter->getFeaturesImg1().at(2*i), estimationIter->getFeaturesImg1().at(2*i+1), estimationIter->getFeaturesImg2().at(2*i), estimationIter->getFeaturesImg2().at(2*i+1));
+                err2 = transferLineError(H_invT, estimationIter->getFeaturesImg2().at(2*i), estimationIter->getFeaturesImg2().at(2*i+1), estimationIter->getFeaturesImg1().at(2*i), estimationIter->getFeaturesImg1().at(2*i+1));
+                errorVect->push_back((err1 + err2)/2.0);
+            }
+        } else {
+            for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
+            {
+                Mat x1 = estimationIter->getFeaturesImg1().at(i);
+                Mat x2 = estimationIter->getFeaturesImg2().at(i);
+                //if(estimationIter->getType() != F_FROM_LINES_VIA_H || (estimationIter->getType() == F_FROM_LINES_VIA_H && symmeticTransferError(F, x1, x2) < MAX_TRANSFER_DIST)) {      //Remove line correspondencies where line tips are no point correspondencies
+                    errorVect->push_back(symmeticTransferError(F, x1, x2));
+                //}
+            }
+        }
+    }
+    return *errorVect;
+}
+
+double computeCombinedMeanSquaredError(std::vector<FEstimationMethod> estimations, Mat impF) {
+    std::vector<double> errorVect = computeCombinedErrorVect(estimations, impF);
+    double combinedError = 0;
+    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
+        combinedError += std::pow(*errorIter,2);
+    }
+    return combinedError/errorVect.size();
+}
+
+void computeEpipoles(Mat F, Mat &e1, Mat &e2) {     //See Hartley, Ziss p.246
+
+//    SVD svd;
+//    Mat u, vt, w;
+//    svd.compute(F, w, u, vt);
+
+//    e1 = Mat(vt.row(2).t());
+//    svd.compute(F.t(), w, u, vt);
+
+//    e2 = Mat(vt.row(2).t());
+
+    /**********************************
+     * http://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
+     * ********************************/
+
+    e1 = Mat::zeros(3, 1, CV_64FC1);
+    e2 = Mat::zeros(3, 1, CV_64FC1);
+    Eigen::Matrix3d eigenF;
+    Eigen::Matrix3d eigenF_T;
+    Eigen::Vector3d b;
+    b << 0,0,0;
+    cv2eigen(F, eigenF);
+    cv2eigen(F.t(), eigenF_T);
+    Eigen::FullPivLU<Eigen::Matrix3d> lu_decomp(eigenF);
+    Eigen::FullPivLU<Eigen::Matrix3d> lu_decompT(eigenF_T);
+    Eigen::Vector3d eigenE1 = lu_decomp.kernel();
+    Eigen::Vector3d eigenE2 = lu_decompT.kernel();
+    eigen2cv(eigenE1, e1);
+    eigen2cv(eigenE2, e2);
+}
+
+Mat computeGeneralHomography(Mat F) {       //See Hartley, Ziss p.243
+    Mat e1, e2;
+
+    computeEpipoles(F, e1, e2);
+    Mat H = crossProductMatrix(e2).inv(DECOMP_SVD)*F;
+    H /= H.at<double>(2,2);
+    //if(LOG_DEBUG) std::cout << "-- computed H = " << std::endl << H << std::endl;
+
+    return H;
+}
+
+//void symmeticTransferLineError(Mat H_invT, Mat H_T, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End, double *err1, double *err2) {
+////    Mat A = H_T*crossProductMatrix(line2Start)*line2End;
+////    Mat start1 = line1Start.t()*A;
+////    Mat end1 = line1End.t()*A;
+////    Mat B = H_invT*crossProductMatrix(line1Start)*line1End;
+////    Mat start2 = line2Start.t()*B;
+////    Mat end2 = line2End.t()*B;
+
+////    *err1 = Mat((start1+end1)/).at<double>(0,0);
+////    *err2 = Mat(start2+end2).at<double>(0,0);
+
+//    *err1 = squaredTransferLineError(H_T, line1Start, line1End, line2Start, line2End);
+//    *err2 = squaredTransferLineError(H_invT, line2Start, line2End, line1Start, line1End);
+//}
+
+double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    return sqrt(squaredTransferLineError(H, line1Start, line1End, line2Start, line2End));
+}
+
+double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    Mat A = H*crossProductMatrix(line2Start)*line2End;
+    Mat start1 = line1Start.t()*A;
+    Mat end1 = line1End.t()*A;
+    double Ax = std::pow(A.at<double>(0,0), 2);
+    double Ay = std::pow(A.at<double>(1,0), 2);
+    Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
+    return result.at<double>(0,0);
 }

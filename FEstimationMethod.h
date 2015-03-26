@@ -31,11 +31,20 @@ public:
     virtual int extractMatches();
     std::string name;
     bool isSuccessful();
+    std::vector<Mat> getFeaturesImg1();
+    std::vector<Mat> getFeaturesImg2();
+    int getType();
+    double getSymmetricTransferError();
+    double getMeanSquaredCSTError();
+    double getMeanSquaredRSSTError();
+
+    double meanSquaredCSTError;
+    double meanSquaredRSSTError;
 
 protected:
     virtual void init();
     virtual Mat normalize(Mat T, Mat p);
-    virtual Mat normalize(Mat T, float x, float y, float z = 1);
+    virtual Mat normalize(Mat T, double x, double y, double z = 1);
     virtual Mat denormalize(Mat M, Mat T1, Mat T2);
 
 	Mat F;
@@ -43,6 +52,10 @@ protected:
     Mat image_1_color, image_2_color, image_1, image_2;
 	double epipolarError;
     bool successful;
+    int computationType;
+    std::vector<Mat> featuresImg1;
+    std::vector<Mat> featuresImg2;
+    double meanSymmetricTranferError;
 
 private:
 
