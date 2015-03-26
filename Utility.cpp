@@ -647,3 +647,7 @@ double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2St
     Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
     return result.at<double>(0,0);
 }
+
+double squaredTransferPointError(Mat H, Mat p1, Mat p2) {
+    return std::pow(norm(p1*H - p2));
+}

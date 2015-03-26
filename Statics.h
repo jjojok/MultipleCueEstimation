@@ -28,6 +28,8 @@
 #define RANSAC_CONFIDENCE 0.9999
 //Refinement thredshold
 #define REFINEMENT_THREDHOLD 3.0
+//Number of point correspondencies per homography estimation
+#define NUM_POINT_CORRESP 12
 
 //Lines:
 //Number of segements for image pyramid
@@ -45,7 +47,7 @@
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define LINE_OUTLIERS 0.70
 //Number of correspondencies per homography estimation
-#define NUM_CORRESP 6
+#define NUM_LINE_CORRESP 6
 //Max hemming distance of binary matchig
 #define MAX_HEMMING_DIST 8
 //Min hemming distance of binary matchig
