@@ -15,6 +15,24 @@
 #define F_FROM_POINTS_VIA_H 4
 #define F_FROM_PLANES_VIA_H 8
 
+//General:
+//Hard limit on number of computations for ransac & lmeds
+#define MAX_NUM_COMPUTATIONS 6000
+//Max number of refinement steps after a first homographie was found
+#define MAX_REFINEMENT_ITERATIONS 300
+//Max squared distance of lines to be considered as a correct projection (pixel)
+#define MAX_TRANSFER_DIST 1.25
+//max Percentage of error changing for error to beconsidered as stable
+#define MAX_ERROR_CHANGE 0.1
+//error for iteration to stop even if error still changes
+#define MIN_ERROR 1.0e-15
+//How close two values have to be to be considered equal
+#define MARGIN 0.1
+//Number of attempts to compute a second Homography if it is equal to the forst one
+#define MAX_H2_ESTIMATIONS 50
+//Max trys to find non linear point in remaining matches
+#define MAX_POINT_SEARCH 1000
+
 //Points:
 //Sift features
 #define SIFT_FEATURE_COUNT 800
@@ -29,9 +47,9 @@
 //Refinement thredshold
 #define REFINEMENT_THREDHOLD 3.0
 //Number of point correspondencies per homography estimation
-#define NUM_POINT_CORRESP 9
-//Hard limit on number of computations for ransac & lmeds
-#define MAX_NUM_COMPUTATIONS 4000
+#define NUM_POINT_CORRESP 6
+//Max distance from point to line for 3 points to be colinear
+#define MAX_COLINEAR_DIST 2.0
 
 //Number of segements for image pyramid
 #define OCTAVES 2
@@ -41,12 +59,10 @@
 #define MIN_LENGTH_FACTOR 0.006;
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
-//defines number of subsets which are randomly picked for LMedS to compute a Homography each. Homographies = Number of matches*NUM_OF_PAIR_SUBSETS_FACTOR
-//#define NUM_LINE_PAIR_SUBSETS_FACTOR 20.0//0.25
 //Ransac confidence
 #define CONFIDENCE 0.999
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define HOMOGRAPHIE_OUTLIERS 0.7
+#define HOMOGRAPHY_OUTLIERS 0.7
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 6
 //Max hemming distance of binary matchig
@@ -55,20 +71,8 @@
 #define MIN_HEMMING_DIST 5
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
-//How close two values have to be to be considered equal
-#define MARGIN 0.1
-//Number of attempts to compute a second Homography if it is equal to the forst one
-#define MAX_H2_ESTIMATIONS 50
-//Max number of refinement steps after a first homographie was found
-#define MAX_REFINEMENT_ITERATIONS 300
 //Max Angle difference for lines being parallel
-#define MAX_ANGLE_DIFF M_PI/30.0
-//Max squared distance of lines to be considered as a correct projection (pixel)
-#define MAX_TRANSFER_DIST 1.25
-//max Percentage of error changing for error to beconsidered as stable
-#define MAX_ERROR_CHANGE 0.1
-//error for iteration to stop even if error still changes
-#define MIN_ERROR 0.001
+#define MAX_ANGLE_DIFF M_PI/20.0
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

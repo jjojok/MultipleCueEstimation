@@ -19,6 +19,7 @@ struct lineCorrespStruct {
 };
 
 struct pointCorrespStruct {
+    Mat x1norm, x2norm;
     Point2d x1, x2;
     int id;
 };
@@ -40,6 +41,7 @@ struct pointSubsetStruct {
     double qualityMeasure;
     double meanSquaredSymmeticTransferError;
     Mat Hs, Hs_normalized;
+    Mat T1, T2;
 };
 
 struct segmentStruct {

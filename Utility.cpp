@@ -380,6 +380,9 @@ pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy) {
     pc->x1.x = pcCopy.x1.x;
     pc->x2.x = pcCopy.x2.x;
 
+    pc->x1norm = pcCopy.x1norm.clone();
+    pc->x2norm = pcCopy.x2norm.clone();
+
     pc->x1.y = pcCopy.x1.y;
     pc->x2.y = pcCopy.x2.y;
 
@@ -661,10 +664,26 @@ double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2St
     return result.at<double>(0,0);
 }
 
-double squaredTransferPointError(Mat H, Mat p1, Mat p2) {
-    Mat _p2 = H*p1;
-    _p2 /= _p2.at<double>(2,0);
-    return std::pow(norm(_p2 - p2), 2);
+double transferPointError(Mat H, Mat x1, Mat x2) {
+    //return Mat(crossProductMatrix(x2)*H*x1.t()).at<double>(0,0);
+    Mat __x2 = x2/x2.at<double>(2,0);
+    Mat _x2 = H*x1;
+    _x2 /= _x2.at<double>(2,0);
+    return norm(_x2 - __x2);
+}
+
+double symmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2) {
+    //return computeUnsquaredSampsonHDistance(H, H_inv, x1, x2);
+    return transferPointError(H, x1, x2) + transferPointError(H_inv, x2, x1);
+}
+
+double squaredTransferPointError(Mat H, Mat x1, Mat x2) {
+    return std::pow(transferPointError(H, x1, x2), 2);
+}
+
+double squaredSymmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2) {
+    //return sampsonHDistance(H, H_inv, x1, x2);
+    return squaredTransferPointError(H, x1, x2) + squaredTransferPointError(H_inv, x2, x1);
 }
 
 double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount) {
@@ -674,7 +693,9 @@ double computeRelativeOutliers(double generalOutliers, double uesdCorresp, doubl
 }
 
 int computeNumberOfEstimations(double confidence, double outliers, int corrspNumber) {
-    return std::min(MAX_NUM_COMPUTATIONS, (int)std::ceil((std::log(1.0 - confidence)/std::log(1.0 - std::pow(1.0 - outliers, corrspNumber))))); //See Hartley, Zisserman p119
+    int num = std::min(MAX_NUM_COMPUTATIONS, (int)std::ceil((std::log(1.0 - confidence)/std::log(1.0 - std::pow(1.0 - outliers, corrspNumber))))); //See Hartley, Zisserman p119
+    if (num < 0) return MAX_NUM_COMPUTATIONS;
+    return num;
 }
 
 bool isUniqe(std::vector<int> subsetsIdx, int newIdx) {
@@ -685,31 +706,43 @@ bool isUniqe(std::vector<int> subsetsIdx, int newIdx) {
     return true;
 }
 
-double computeSampsonFDistance(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
-    double a = Mat(x2.t()*F*x1).at<double>(0,0);
+double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2) {    //For LM optimization
+    double n = Mat(x2.t()*F*x1).at<double>(0,0);
     Mat b1 = F*x1;
     Mat b2 = F.t()*x2;
-    return std::pow(a, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2), std::pow(b2.at<double>(1,0), 2));
+    return n/sqrt(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
 }
 
-double computeSampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
+double computeUnsquaredSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {   //For LM optimization
+    double n = Mat(x2.t()*H*x1).at<double>(0,0);
+    Mat b1 = H*x1;
+    Mat b2 = H_inv*x2;
+    return n/sqrt(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
+}
+
+double sampsonFDistance(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
+    double n = Mat(x2.t()*F*x1).at<double>(0,0);
+    Mat b1 = F*x1;
+    Mat b2 = F.t()*x2;
+    return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
+}
+
+double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
     double error = 0;
     for(int i = 0; i < points1.size(); i++) {
-        error+=computeSampsonFDistance(F, matVector(points1.at(i)), matVector(points2.at(i)));
+        error+=sampsonFDistance(F, matVector(points1.at(i)), matVector(points2.at(i)));
     }
     return error/points1.size();
 }
 
-double computeSampsonHDistance(Mat H, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
-    double a = Mat(x2.t()*H*x1).at<double>(0,0);
-    Mat b1 = H*x1;
-    Mat b2 = H.inv(DECOMP_SVD)*x2;
-    return std::pow(a, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2), std::pow(b2.at<double>(1,0), 2));
+double sampsonHDistance(Mat H, Mat x1, Mat x2) {
+    return sampsonHDistance(H, H.inv(DECOMP_SVD), x1, x2);
 }
 
-double computeSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
-    double a = Mat(x2.t()*H*x1).at<double>(0,0);
+double sampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
+    double n = Mat(x2.t()*H*x1).at<double>(0,0);
     Mat b1 = H*x1;
     Mat b2 = H_inv*x2;
-    return std::pow(a, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2), std::pow(b2.at<double>(1,0), 2));
+    return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));    //Sampson
+    //return squaredTransferPointError(H, H_inv, x1, x2);
 }

@@ -60,6 +60,8 @@ private:
     std::vector<Point2d> x1, x2;   //corresponding points in image 1 and 2 (for debug only)
     std::vector<FEstimationMethod> estimations;
 
+    std::vector<FEstimationMethod> debug_estimations;
+
 };
 
 

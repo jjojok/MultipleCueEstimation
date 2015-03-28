@@ -54,7 +54,7 @@ bool FEstimatorHLines::compute() {
 
     lineSubsetStruct H1;
 
-    if(!findLineHomography(goodLineMatches, LMEDS, CONFIDENCE, HOMOGRAPHIE_OUTLIERS, H1)) {
+    if(!findLineHomography(goodLineMatches, LMEDS, CONFIDENCE, HOMOGRAPHY_OUTLIERS, H1)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -77,7 +77,7 @@ bool FEstimatorHLines::compute() {
 
     if(LOG_DEBUG) std::cout << "-- Second estimation..." << std::endl;
 
-    double outliers = computeRelativeOutliers(HOMOGRAPHIE_OUTLIERS, goodLineMatches.size(), matchedLines.size());
+    double outliers = computeRelativeOutliers(HOMOGRAPHY_OUTLIERS, goodLineMatches.size(), matchedLines.size());
     filterUsedLineMatches(matchedLines, goodLineMatches);
 
     lineSubsetStruct H2;
@@ -221,7 +221,7 @@ bool FEstimatorHLines::findLineHomography(std::vector<lineCorrespStruct> &goodLi
 }
 
 double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
-    Eigen::VectorXd x(9);
+    Eigen::VectorXd x(8);
 
     x(0) = bestSubset.Hs.at<double>(0,0);
     x(1) = bestSubset.Hs.at<double>(0,1);

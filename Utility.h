@@ -40,8 +40,6 @@ void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, 
 std::string getType(Mat m);
 int calcMatRank(Mat M);
 int calcNumberOfSolutions(Mat linEq);
-double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
-double symmeticTransferError(Mat F, Mat x1, Mat x2);
 Mat matVector(double x, double y, double z);
 Mat matVector(Point2d p);
 double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples);
@@ -64,16 +62,26 @@ void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::ve
 void computeEpipoles(Mat F, Mat &e1, Mat &e2);
 Mat computeGeneralHomography(Mat F);
 //void symmeticTransferLineError(Mat H_invT, Mat H_T, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End, double *err1, double *err2);
-double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
-double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
-double squaredTransferPointError(Mat H, Mat p1, Mat p2);
 pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy);
 double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount);
 int computeNumberOfEstimations(double confidence, double outliers, int corrspNumber);
 bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
-double computeSampsonFDistance(Mat F, Mat x1, Mat x2);
-double computeSampsonHDistance(Mat H, Mat x1, Mat x2);
-double computeSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2);
-double computeSampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
+
+//Error functions Homography:
+double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
+double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
+double squaredSymmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2);
+double sampsonHDistance(Mat H, Mat x1, Mat x2);
+double sampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2);
+double computeUnsquaredSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2);
+double transferPointError(Mat H, Mat p1, Mat p2);
+double symmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2);
+double squaredTransferPointError(Mat H, Mat x1, Mat x2);
+//Error functions Fundamental mat:
+double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2);
+double sampsonFDistance(Mat F, Mat x1, Mat x2);
+double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
+double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
+double symmeticTransferError(Mat F, Mat x1, Mat x2);
 
 #endif // UTILITY_H

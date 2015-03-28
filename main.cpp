@@ -6,10 +6,10 @@
 #include <fstream>
 
 //TODO:
-//- Use sampson error for global optimization
+//- Use sampson error (Hartley, Ziss: p98 (Homography), p287 (Fundamental)
 //- Optimize only the 7 parameters of F
 //- Discard global optimization if result is worse then one of the intermediate results
-//- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar
+//- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar and http://users.ics.forth.gr/~lourakis/homest/
 //- F from curves: FindContours -> compute slope for every point on contour, match slopes (include in matching: slope, point distance, color, intensety...)
 //- Refine F: Compute Projection matrices and take mean of rotations/translations (P1 = [I|0]; P2 = [[e2]xF12 | e2])
 
@@ -99,7 +99,10 @@ int main(int argc, char** argv )
                 file << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getMeanSquaredRSSTError() << ",";
                 for(int i = 0; i < mce->getEstimations().size(); i++){
                     FEstimationMethod estimation = mce->getEstimations().at(i);
-                    file << estimation.name << "," << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.getError() << ",";
+
+                    file << estimation.name << ",";
+                    if(!estimation.isSuccessful()) file << " , , , ";
+                    else file << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.getError() << ",";
                 }
                 file << std::endl;
                 file.flush();

@@ -3,6 +3,7 @@
 
 #include "Utility.h"
 #include "FeatureMatchers.h"
+#include "LevenbergMarquardtPoints.h"
 
 class FEstimatorHPoints : public FEstimationMethod {
 public:
@@ -13,16 +14,20 @@ public:
 private:
 
     std::vector<pointCorrespStruct> pointCorrespondencies; //corresponding points in image 1 and 2
-    pointSubsetStruct estimateHomography(std::vector<pointCorrespStruct> pointCorresp, int method, int sets);
+    bool estimateHomography(pointSubsetStruct &result, std::vector<pointCorrespStruct> pointCorresp, int method, int sets);
     pointSubsetStruct calcRANSAC(std::vector<pointSubsetStruct> &subsets, double threshold, std::vector<pointCorrespStruct> pointCorresp);
     pointSubsetStruct calcLMedS(std::vector<pointSubsetStruct> &subsets, std::vector<pointCorrespStruct> pointCorresp);
     double calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp);
     bool findPointHomography(std::vector<pointCorrespStruct> &pointCorresp, int method, double confidence, double outliers, pointSubsetStruct &result);
-    double sampsonDistance(Mat H, pointCorrespStruct pointCorresp);
-    double sampsonDistance(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
-    double sampsonDistance(Mat H, std::vector<pointCorrespStruct> pointCorresp);
-    void filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp);
-    void findHomography(pointSubsetStruct &subset);
+    double squaredTransferPointError_(Mat H, pointCorrespStruct pointCorresp);
+    double squaredSymmetricTransferPointError_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
+    double meanSquaredSymmetricTransferPointError_(Mat H, std::vector<pointCorrespStruct> pointCorresp);
+    int filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp);
+    void computeHomography(pointSubsetStruct &subset);
+    int filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold);
+    bool isColinear(std::vector<pointCorrespStruct> fixedCorresp, pointCorrespStruct pcNew);
+    double levenbergMarquardt(pointSubsetStruct &bestSubset);
+    Mat* normalizePoints(std::vector<pointCorrespStruct> &correspondencies);
 };
 
 #endif // FESTIMATORHPOINTS_H

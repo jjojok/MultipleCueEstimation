@@ -36,6 +36,8 @@ int extractPointMatches(Mat image_1, Mat image_2, std::vector<Point2d> &x1, std:
         if( dist > max_dist ) max_dist = dist;
     }
 
+    min_dist = max(min_dist*SIFT_MIN_DIST_FACTOR, SIFT_MIN_DIST);
+
     if (LOG_DEBUG) {
         std::cout << "-- Max dist : " << max_dist << std::endl;
         std::cout << "-- Min dist : " << min_dist << std::endl;
@@ -50,7 +52,7 @@ int extractPointMatches(Mat image_1, Mat image_2, std::vector<Point2d> &x1, std:
 
     for( int i = 0; i < descriptors_1.rows; i++ )
     {
-        if( matches[i].distance <= max(SIFT_MIN_DIST_FACTOR*min_dist, SIFT_MIN_DIST) )
+        if( matches[i].distance <= min_dist )
         {
             good_matches.push_back( matches[i]);
         }
