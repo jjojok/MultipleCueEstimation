@@ -39,7 +39,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_
 
 #ADD_EXECUTABLE( MultipleCueEstimation main.cpp MCE.cpp MCE.h LineMatcher.cpp LineMatcher.h)
 #TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} ${BIAS_LIBRARIES} ${CMAKE_SOURCE_DIR}/LineMatchingSourceCode/build/libLineMatching.so)
-ADD_EXECUTABLE( MultipleCueEstimation main.cpp MultipleCueEstimation.cpp MultipleCueEstimation.h FEstimatorPoints.cpp FEstimatorPoints.h FEstimatorHPoints.cpp FEstimatorHPoints.h FEstimatorHLines.cpp FEstimatorHLines.h FEstimatorHPlanes.cpp FEstimatorHPlanes.h Utility.cpp Utility.h FEstimationMethod.cpp FEstimationMethod.h Statics.h LevenbergMarquardtLines.h LevenbergMarquardtGeneral.h FeatureMatchers.cpp FeatureMatchers.h DataStructs.h)
+ADD_EXECUTABLE( MultipleCueEstimation main.cpp MultipleCueEstimation.cpp MultipleCueEstimation.h FEstimatorPoints.cpp FEstimatorPoints.h FEstimatorHPoints.cpp FEstimatorHPoints.h FEstimatorHLines.cpp FEstimatorHLines.h FEstimatorHPlanes.cpp FEstimatorHPlanes.h Utility.cpp Utility.h FEstimationMethod.cpp FEstimationMethod.h Statics.h LevenbergMarquardtLines.h LevenbergMarquardtGeneral.h FeatureMatchers.cpp FeatureMatchers.h DataStructs.h LevenbergMarquardtPoints.h)
 TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} )
 #MESSAGE(MultipleCueEstimation: ${CMAKE_CURRENT_SOURCE_DIR})
 

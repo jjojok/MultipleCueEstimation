@@ -375,6 +375,19 @@ lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy) {
     return *lc;
 }
 
+pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy) {
+    pointCorrespStruct* pc = new pointCorrespStruct;
+    pc->x1.x = pcCopy.x1.x;
+    pc->x2.x = pcCopy.x2.x;
+
+    pc->x1.y = pcCopy.x1.y;
+    pc->x2.y = pcCopy.x2.y;
+
+    pc->id = pcCopy.id;
+
+    return *pc;
+}
+
 lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id) {
     lineCorrespStruct* lc = new lineCorrespStruct;
     double scaling = 1;
@@ -649,5 +662,54 @@ double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2St
 }
 
 double squaredTransferPointError(Mat H, Mat p1, Mat p2) {
-    return std::pow(norm(p1*H - p2));
+    Mat _p2 = H*p1;
+    _p2 /= _p2.at<double>(2,0);
+    return std::pow(norm(_p2 - p2), 2);
+}
+
+double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount) {
+    double outliers = generalOutliers*(uesdCorresp/correspCount);
+    if(LOG_DEBUG) std::cout << "-- Filtering matches, new outlier/matches ratio: " << outliers << std::endl;
+    return outliers;
+}
+
+int computeNumberOfEstimations(double confidence, double outliers, int corrspNumber) {
+    return std::min(MAX_NUM_COMPUTATIONS, (int)std::ceil((std::log(1.0 - confidence)/std::log(1.0 - std::pow(1.0 - outliers, corrspNumber))))); //See Hartley, Zisserman p119
+}
+
+bool isUniqe(std::vector<int> subsetsIdx, int newIdx) {
+    if(subsetsIdx.size() == 0) return true;
+    for(std::vector<int>::const_iterator iter = subsetsIdx.begin(); iter != subsetsIdx.end(); ++iter) {
+        if(*iter == newIdx) return false;
+    }
+    return true;
+}
+
+double computeSampsonFDistance(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
+    double a = Mat(x2.t()*F*x1).at<double>(0,0);
+    Mat b1 = F*x1;
+    Mat b2 = F.t()*x2;
+    return std::pow(a, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2), std::pow(b2.at<double>(1,0), 2));
+}
+
+double computeSampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
+    double error = 0;
+    for(int i = 0; i < points1.size(); i++) {
+        error+=computeSampsonFDistance(F, matVector(points1.at(i)), matVector(points2.at(i)));
+    }
+    return error/points1.size();
+}
+
+double computeSampsonHDistance(Mat H, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
+    double a = Mat(x2.t()*H*x1).at<double>(0,0);
+    Mat b1 = H*x1;
+    Mat b2 = H.inv(DECOMP_SVD)*x2;
+    return std::pow(a, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2), std::pow(b2.at<double>(1,0), 2));
+}
+
+double computeSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
+    double a = Mat(x2.t()*H*x1).at<double>(0,0);
+    Mat b1 = H*x1;
+    Mat b2 = H_inv*x2;
+    return std::pow(a, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2), std::pow(b2.at<double>(1,0), 2));
 }

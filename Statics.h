@@ -7,7 +7,7 @@
 //Show debug messages
 #define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG false
+#define VISUAL_DEBUG true
 
 //Program parameters for selecting computation mathods
 #define F_FROM_POINTS 1
@@ -29,9 +29,10 @@
 //Refinement thredshold
 #define REFINEMENT_THREDHOLD 3.0
 //Number of point correspondencies per homography estimation
-#define NUM_POINT_CORRESP 12
+#define NUM_POINT_CORRESP 9
+//Hard limit on number of computations for ransac & lmeds
+#define MAX_NUM_COMPUTATIONS 4000
 
-//Lines:
 //Number of segements for image pyramid
 #define OCTAVES 2
 //Scaling factor per segement
@@ -45,7 +46,7 @@
 //Ransac confidence
 #define CONFIDENCE 0.999
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define LINE_OUTLIERS 0.70
+#define HOMOGRAPHIE_OUTLIERS 0.7
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 6
 //Max hemming distance of binary matchig
@@ -66,6 +67,8 @@
 #define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to beconsidered as stable
 #define MAX_ERROR_CHANGE 0.1
+//error for iteration to stop even if error still changes
+#define MIN_ERROR 0.001
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

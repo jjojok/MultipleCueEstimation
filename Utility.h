@@ -67,5 +67,13 @@ Mat computeGeneralHomography(Mat F);
 double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double squaredTransferPointError(Mat H, Mat p1, Mat p2);
+pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy);
+double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount);
+int computeNumberOfEstimations(double confidence, double outliers, int corrspNumber);
+bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
+double computeSampsonFDistance(Mat F, Mat x1, Mat x2);
+double computeSampsonHDistance(Mat H, Mat x1, Mat x2);
+double computeSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2);
+double computeSampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 
 #endif // UTILITY_H

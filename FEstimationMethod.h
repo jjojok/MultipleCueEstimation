@@ -34,7 +34,7 @@ public:
     std::vector<Mat> getFeaturesImg1();
     std::vector<Mat> getFeaturesImg2();
     int getType();
-    double getSymmetricTransferError();
+    double getError();
     double getMeanSquaredCSTError();
     double getMeanSquaredRSSTError();
 
@@ -55,7 +55,7 @@ protected:
     int computationType;
     std::vector<Mat> featuresImg1;
     std::vector<Mat> featuresImg2;
-    double meanSymmetricTranferError;
+    double error;
 
 private:
 

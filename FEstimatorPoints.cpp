@@ -37,7 +37,7 @@ bool FEstimatorPoints::compute() {
 
     if(featuresImg1.size() >= 7) successful = true;
 
-    meanSymmetricTranferError = meanSquaredSymmeticTransferError(F, x1_used, x2_used);
+    error = meanSquaredSymmeticTransferError(F, x1_used, x2_used);
 
     if(VISUAL_DEBUG) visualizeMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Used point matches");
 

@@ -12,13 +12,17 @@ public:
 
 private:
 
-    std::vector<Point2d> x1_used, x2_used;
-    std::vector<Point2d> x1, x2;    //corresponding points in image 1 and 2
-    lineSubsetStruct estimateHomography(std::vector<Point2d> x1, std::vector<Point2d> x2, int method, int sets);
-    pointSubsetStruct calcRANSAC(std::vector<pointSubsetStruct> &subsets, double threshold, std::vector<Point2d> x1, std::vector<Point2d> x2);
-    pointSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<Point2d> x1, std::vector<Point2d> x2);
-    double calcMedS(pointSubsetStruct &subset, std::vector<Point2d> x1, std::vector<Point2d> x2);
-    double squaredSymmeticTransferPointError(Mat H, Point2d x1, Point2d x2);
+    std::vector<pointCorrespStruct> pointCorrespondencies; //corresponding points in image 1 and 2
+    pointSubsetStruct estimateHomography(std::vector<pointCorrespStruct> pointCorresp, int method, int sets);
+    pointSubsetStruct calcRANSAC(std::vector<pointSubsetStruct> &subsets, double threshold, std::vector<pointCorrespStruct> pointCorresp);
+    pointSubsetStruct calcLMedS(std::vector<pointSubsetStruct> &subsets, std::vector<pointCorrespStruct> pointCorresp);
+    double calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp);
+    bool findPointHomography(std::vector<pointCorrespStruct> &pointCorresp, int method, double confidence, double outliers, pointSubsetStruct &result);
+    double sampsonDistance(Mat H, pointCorrespStruct pointCorresp);
+    double sampsonDistance(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
+    double sampsonDistance(Mat H, std::vector<pointCorrespStruct> pointCorresp);
+    void filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp);
+    void findHomography(pointSubsetStruct &subset);
 };
 
 #endif // FESTIMATORHPOINTS_H

@@ -61,8 +61,8 @@ int FEstimationMethod::getType() {
     return computationType;
 }
 
-double FEstimationMethod::getSymmetricTransferError() {
-    return meanSymmetricTranferError;
+double FEstimationMethod::getError() {
+    return error;
 }
 
 double FEstimationMethod::getMeanSquaredCSTError() {

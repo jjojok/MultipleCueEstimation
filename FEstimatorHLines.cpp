@@ -54,7 +54,7 @@ bool FEstimatorHLines::compute() {
 
     lineSubsetStruct H1;
 
-    if(!findHomography(goodLineMatches, LMEDS, CONFIDENCE, LINE_OUTLIERS, H1)) {
+    if(!findLineHomography(goodLineMatches, LMEDS, CONFIDENCE, HOMOGRAPHIE_OUTLIERS, H1)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -77,14 +77,14 @@ bool FEstimatorHLines::compute() {
 
     if(LOG_DEBUG) std::cout << "-- Second estimation..." << std::endl;
 
-    double outlierReduction = filterUsedLineMatches(matchedLines, goodLineMatches);
+    double outliers = computeRelativeOutliers(HOMOGRAPHIE_OUTLIERS, goodLineMatches.size(), matchedLines.size());
+    filterUsedLineMatches(matchedLines, goodLineMatches);
 
     lineSubsetStruct H2;
     int estCnt = 0;
     bool homographies_equal = true;
     Mat H;
     Mat e2;
-    float outliers = LINE_OUTLIERS * outlierReduction;
 
     while(homographies_equal && matchedLines.size() > NUM_LINE_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
 
@@ -92,7 +92,7 @@ bool FEstimatorHLines::compute() {
         for(std::vector<lineCorrespStruct>::const_iterator it = matchedLines.begin() ; it != matchedLines.end(); ++it) {
             goodLineMatches.push_back(*it);
         }
-        if(!findHomography(goodLineMatches, RANSAC, CONFIDENCE, outliers, H2)) {
+        if(!findLineHomography(goodLineMatches, RANSAC, CONFIDENCE, outliers, H2)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -103,7 +103,8 @@ bool FEstimatorHLines::compute() {
         homographies_equal = (computeUniqeEigenvector(H, e2) && isUnity(H));
         if(homographies_equal) {
             if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
-            outliers = outliers * filterUsedLineMatches(matchedLines, goodLineMatches);
+            outliers = computeRelativeOutliers(outliers, goodLineMatches.size(), matchedLines.size());
+            filterUsedLineMatches(matchedLines, goodLineMatches);
         }
         estCnt++;
     }
@@ -132,18 +133,18 @@ bool FEstimatorHLines::compute() {
 
     enforceRankTwoConstraint(F);
 
-    meanSymmetricTranferError = 0;
+    error = 0;
     Mat H_t = H1.Hs.t();
     Mat H_invT = H1.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::iterator it = H1.lineCorrespondencies.begin() ; it != H1.lineCorrespondencies.end(); ++it) {
-        meanSymmetricTranferError += squaredSymmeticTransferLineError(H_invT, H_t, *it);
+        error += squaredSymmeticTransferLineError(H_invT, H_t, *it);
     }
     H_t = H2.Hs.t();
     H_invT = H2.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::iterator it = H2.lineCorrespondencies.begin() ; it != H2.lineCorrespondencies.end(); ++it) {
-        meanSymmetricTranferError += squaredSymmeticTransferLineError(H_invT, H_t, *it);
+        error += squaredSymmeticTransferLineError(H_invT, H_t, *it);
     }
-    meanSymmetricTranferError /= (H1.lineCorrespondencies.size() + H2.lineCorrespondencies.size());
+    error /= (H1.lineCorrespondencies.size() + H2.lineCorrespondencies.size());
 
     successful = true;
 
@@ -152,7 +153,7 @@ bool FEstimatorHLines::compute() {
     return true;
 }
 
-bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMatches, int method, double confidence, double outliers, lineSubsetStruct &result) {
+bool FEstimatorHLines::findLineHomography(std::vector<lineCorrespStruct> &goodLineMatches, int method, double confidence, double outliers, lineSubsetStruct &result) {
     double lastError = 0;
     int N;
     std::vector<lineCorrespStruct> lastIterLineMatches;
@@ -207,13 +208,13 @@ bool FEstimatorHLines::findHomography(std::vector<lineCorrespStruct> &goodLineMa
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
-    } while(stableSolutions < 3 && bestSubset.meanSquaredSymmeticTransferError > 0.001);
+    } while(stableSolutions < 3 && bestSubset.meanSquaredSymmeticTransferError > MIN_ERROR);
 
     bestSubset.lineCorrespondencies = goodLineMatches;
     computeHomography(bestSubset);
     levenbergMarquardt(bestSubset);
 
-    if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.lineCorrespondencies.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.lineCorrespondencies.size() << ", Mean squared symmetric transfer error: " << bestSubset.meanSquaredSymmeticTransferError << std::endl;
     result = bestSubset;
 
     return true;
@@ -338,17 +339,8 @@ bool FEstimatorHLines::hasGeneralPosition(std::vector<int> subsetsIdx, int newId
     return true;
 }
 
-bool FEstimatorHLines::isUniqe(std::vector<int> subsetsIdx, int newIdx) {
-    if(subsetsIdx.size() == 0) return true;
-    for(std::vector<int>::const_iterator iter = subsetsIdx.begin(); iter != subsetsIdx.end(); ++iter) {
-        if(*iter == newIdx) return false;
-    }
-    return true;
-}
-
-double FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches) {
+void FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches) {
     std::vector<lineCorrespStruct>::iterator it= matches.begin();
-    double reduction = 1.0 - ((double)usedMatches.size())/((double)matches.size());
     while (it!=matches.end()) {
         bool remove = false;
         for(std::vector<lineCorrespStruct>::const_iterator used = usedMatches.begin(); used != usedMatches.end(); ++used) {
@@ -362,8 +354,7 @@ double FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &m
             it++;
         }
     }
-    if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matches.size() <<  ", removed: " << usedMatches.size() << " Ratio: " << reduction << std::endl;
-    return reduction;
+    if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << matches.size() <<  ", removed: " << usedMatches.size() << std::endl;
 }
 
 void FEstimatorHLines::visualizeProjectedLines(lineSubsetStruct subset, int lineWidth, bool drawConnections, std::string name) {

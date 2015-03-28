@@ -99,7 +99,7 @@ int main(int argc, char** argv )
                 file << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getMeanSquaredRSSTError() << ",";
                 for(int i = 0; i < mce->getEstimations().size(); i++){
                     FEstimationMethod estimation = mce->getEstimations().at(i);
-                    file << estimation.name << "," << estimation.getSymmetricTransferError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.getSymmetricTransferError() << ",";
+                    file << estimation.name << "," << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.getError() << ",";
                 }
                 file << std::endl;
                 file.flush();

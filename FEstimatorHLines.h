@@ -28,10 +28,9 @@ private:
     lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies);
     double calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
-    double filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
-    bool findHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, double outliers, lineSubsetStruct &result);
+    void filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
+    bool findLineHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, double outliers, lineSubsetStruct &result);
     lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets);
-    bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
     void addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
     double squaredSymmeticTransferLineError(Mat H, lineCorrespStruct lc);
     double squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
