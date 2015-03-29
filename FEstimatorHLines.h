@@ -20,7 +20,7 @@ private:
     double squaredSymmeticTransferError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
     double squaredSymmeticTransferError(Mat H, lineCorrespStruct lc);
     void visualizeProjectedLines(lineSubsetStruct subset, int lineWidth, bool drawConnections, std::string name);
-    bool hasGeneralPosition(std::vector<int> subsetsIdx, int newIdx, std::vector<lineCorrespStruct> lineCorrespondencies);
+    bool isParallel(std::vector<lineCorrespStruct> fixedCorresp, lineCorrespStruct lcNew);
     lineSubsetStruct calcRANSAC(std::vector<lineSubsetStruct> &subsets, double threshold, std::vector<lineCorrespStruct> lineCorrespondencies);
     //int filterLineMatches(std::vector<DMatch> &matches);
     void fillHLinEq(Mat &linEq, std::vector<lineCorrespStruct> correspondencies);
@@ -28,12 +28,13 @@ private:
     lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies);
     double calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
-    void filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
+    int filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
     bool findLineHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, double outliers, lineSubsetStruct &result);
-    lineSubsetStruct estimateHomography(std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets);
+    bool estimateHomography(lineSubsetStruct &result, std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets);
     void addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
     double squaredSymmeticTransferLineError(Mat H, lineCorrespStruct lc);
     double squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, lineCorrespStruct lc);
+    int filterBadLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &lineCorresp, double threshold);
     std::vector<lineCorrespStruct> matchedLines;  //Vector of corresponing line segments (start & endpoints)
 };
 

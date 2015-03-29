@@ -93,20 +93,12 @@ int main(int argc, char** argv )
     if(mce != 0) {
         mce->compute();
         if(argc == 6) {
-            std::ofstream file;
-            file.open ("result.csv", std::ios_base::out | std::ios_base::app);
-            if(file.is_open()) {
-                file << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getMeanSquaredRSSTError() << ",";
-                for(int i = 0; i < mce->getEstimations().size(); i++){
-                    FEstimationMethod estimation = mce->getEstimations().at(i);
-
-                    file << estimation.name << ",";
-                    if(!estimation.isSuccessful()) file << " , , , ";
-                    else file << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.getError() << ",";
-                }
-                file << std::endl;
-                file.flush();
-                file.close();
+            std::cout << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getMeanSquaredRSSTError() << ",";
+            for(int i = 0; i < mce->getEstimations().size(); i++){
+                FEstimationMethod estimation = mce->getEstimations().at(i);
+                std::cout << estimation.name << ",";
+                if(!estimation.isSuccessful()) std::cout << " , , , ";
+                else std::cout << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.getError() << ",";
             }
         }
     }

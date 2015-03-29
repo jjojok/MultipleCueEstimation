@@ -27,6 +27,7 @@ struct LineFunctor : Functor<double>
 
         newH.at<double>(2,0) = x(6);
         newH.at<double>(2,1) = x(7);
+        newH.at<double>(2,2) = x(8);
 
         H_T = newH.t();
         H_invT = newH.inv(DECOMP_SVD).t();
@@ -47,8 +48,8 @@ struct LineFunctor : Functor<double>
 //            fvec(2*i) = Mat(start1+end1).at<double>(0,0);
 //            fvec(2*i+1) = Mat(start2+end2).at<double>(0,0);
 
-            fvec(2*i) = transferLineError(H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
-            fvec(2*i+1) = transferLineError(H_invT, lc.line2Start, lc.line2End, lc.line1Start, lc.line1End);
+            fvec(2*i) = transferLineError(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized);
+            fvec(2*i+1) = transferLineError(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
 
         }
 
@@ -58,7 +59,7 @@ struct LineFunctor : Functor<double>
 lineSubsetStruct *lines;
 FEstimatorHLines *estimator;
 
-int inputs() const { return 8; } // There are 9 parameters of the model
+int inputs() const { return 9; } // There are 9 parameters of the model
 int values() const { return lines->lineCorrespondencies.size()*2; } // The number of observations
 };
 

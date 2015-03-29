@@ -17,7 +17,7 @@
 
 //General:
 //Hard limit on number of computations for ransac & lmeds
-#define MAX_NUM_COMPUTATIONS 6000
+#define MAX_NUM_COMPUTATIONS 15000
 //Max number of refinement steps after a first homographie was found
 #define MAX_REFINEMENT_ITERATIONS 300
 //Max squared distance of lines to be considered as a correct projection (pixel)
@@ -47,7 +47,7 @@
 //Refinement thredshold
 #define REFINEMENT_THREDHOLD 3.0
 //Number of point correspondencies per homography estimation
-#define NUM_POINT_CORRESP 6
+#define NUM_POINT_CORRESP 4//6
 //Max distance from point to line for 3 points to be colinear
 #define MAX_COLINEAR_DIST 2.0
 
@@ -64,7 +64,7 @@
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define HOMOGRAPHY_OUTLIERS 0.7
 //Number of correspondencies per homography estimation
-#define NUM_LINE_CORRESP 6
+#define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig
 #define MAX_HEMMING_DIST 8
 //Min hemming distance of binary matchig
@@ -76,7 +76,7 @@
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices
-#define NUM_SAMPLES_F_COMARATION 5000
+#define NUM_SAMPLES_F_COMARATION 1000
 //Max trys per draw to find a point who's epipolar line intersects the other image
 #define MAX_SAMPLE_TRYS 1000
 

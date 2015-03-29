@@ -83,5 +83,7 @@ double sampsonFDistance(Mat F, Mat x1, Mat x2);
 double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double symmeticTransferError(Mat F, Mat x1, Mat x2);
+void homogVect(Mat &m);
+void homogMat(Mat &m);
 
 #endif // UTILITY_H

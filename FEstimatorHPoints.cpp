@@ -212,9 +212,6 @@ bool FEstimatorHPoints::findPointHomography(std::vector<pointCorrespStruct> &goo
         }
     }
     computeHomography(bestSubset);
-
-    //bestSubset.meanSquaredSymmeticTransferError = meanSquaredSymmetricTransferPointError_(bestSubset.Hs, bestSubset.pointCorrespondencies);
-
     levenbergMarquardt(bestSubset);
 
     bestSubset.Hs = denormalize(bestSubset.Hs, normT1, normT2);
@@ -226,12 +223,11 @@ bool FEstimatorHPoints::findPointHomography(std::vector<pointCorrespStruct> &goo
 
 bool FEstimatorHPoints::estimateHomography(pointSubsetStruct &result, std::vector<pointCorrespStruct> pointCorresp, int method, int sets) {
     int numOfPairs = pointCorresp.size();
-    int numOfPairSubsets = sets;//NUM_LINE_PAIR_SUBSETS_FACTOR*numOfPairs;
     std::vector<pointSubsetStruct> subsets;
-    if(LOG_DEBUG) std::cout << "-- Computing "<< numOfPairSubsets << " Homographies, using " << NUM_POINT_CORRESP << " point correspondencies each" << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Computing "<< sets << " Homographies, using " << NUM_POINT_CORRESP << " point correspondencies each" << std::endl;
     //Compute H_21 from NUM_CORRESP line correspondencies
     std::srand(time(NULL));  //Init random generator
-    for(int i = 0; i < numOfPairSubsets; i++) {
+    for(int i = 0; i < sets; i++) {
         std::vector<int> subsetsIdx;
         pointSubsetStruct subset;
         for(int j = 0; j < NUM_POINT_CORRESP; j++) {
@@ -305,8 +301,8 @@ void FEstimatorHPoints::computeHomography(pointSubsetStruct &subset) {     //See
 
     SVD svd;
     svd.solveZ(A, subset.Hs_normalized);
-
     subset.Hs_normalized = subset.Hs_normalized.reshape(1,3);
+    homogMat(subset.Hs_normalized);
     subset.Hs = subset.Hs_normalized.clone();
 
 }
@@ -484,6 +480,8 @@ double FEstimatorHPoints::levenbergMarquardt(pointSubsetStruct &bestSubset) {
     bestSubset.Hs.at<double>(2,0) = x(6);
     bestSubset.Hs.at<double>(2,1) = x(7);
     bestSubset.Hs.at<double>(2,2) = x(8);
+
+    homogMat(bestSubset.Hs);
 
     bestSubset.meanSquaredSymmeticTransferError = meanSquaredSymmetricTransferPointError_(bestSubset.Hs, bestSubset.pointCorrespondencies);
 

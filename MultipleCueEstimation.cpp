@@ -29,7 +29,7 @@ Mat MultipleCueEstimation::compute() {
         }
         if(computations & F_FROM_LINES_VIA_H) {
             FEstimationMethod* lines = calcFfromHLines();
-            if(lines->isSuccessful()) estimations.push_back(*calcFfromHLines());
+            if(lines->isSuccessful()) estimations.push_back(*lines);
             debug_estimations.push_back(*lines);
         }
         if(computations & F_FROM_POINTS_VIA_H) {
@@ -72,10 +72,10 @@ Mat MultipleCueEstimation::compute() {
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
                 drawEpipolarLines(x1,x2, F, image_1, image_2, "Refined F");
-                waitKey(0);
             }
         }
         if(LOG_DEBUG) std::cout << "done." << std::endl;
+        if(VISUAL_DEBUG) waitKey(0);
     }
     return F;
 }
@@ -172,12 +172,18 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
         numValues += estimationIter->getFeaturesImg1().size();
     }
 
+    if(numValues < 8) {
+        if (LOG_DEBUG) std::cout << "Not enough features!" << std::endl;
+        return Mat();
+    }
+
     refinedF = bestMethod.getF().clone();
 
     if (LOG_DEBUG) std::cout << "Starting point for optimization: " << bestMethod.name << std::endl;
     double lastError = 0;
     int stableSolutions = 0;
     int iterations = 1;
+    int lastFeatureCount = 0;
 
     do {
 
@@ -231,10 +237,12 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
         //meanSquaredCSTError = computeCombinedMeanSquaredError(estimations, refinedF);
         meanSquaredCSTError = computeCombinedMeanSquaredError(goodCombindX1, goodCombindX2, refinedF);
 
-        if((lastError - meanSquaredCSTError)/meanSquaredCSTError < 0.01) stableSolutions++;
+        if((lastError - meanSquaredCSTError)/meanSquaredCSTError < 0.01 || lastFeatureCount == goodCombindX1.size()) stableSolutions++;
         else stableSolutions = 0;
 
-        //if (LOG_DEBUG) std::cout <<"Mean sqared symmetic transfer error: " << meanSquaredCSTError << ", rel. error change: " << (lastError - meanSquaredCSTError)/meanSquaredCSTError << ", stable solutions: " << stableSolutions << std::endl;
+        lastFeatureCount = goodCombindX1.size();
+
+        if (LOG_DEBUG) std::cout <<"Mean sqared symmetic transfer error: " << meanSquaredCSTError << ", rel. error change: " << (lastError - meanSquaredCSTError)/meanSquaredCSTError << ", stable solutions: " << stableSolutions << std::endl;
 
         lastError = meanSquaredCSTError;
 

@@ -370,6 +370,11 @@ lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy) {
     lc->line1End = lcCopy.line1End.clone();
     lc->line2End = lcCopy.line2End.clone();
 
+    lc->line1StartNormalized = lcCopy.line1StartNormalized.clone();
+    lc->line2StartNormalized = lcCopy.line2StartNormalized.clone();
+    lc->line1EndNormalized = lcCopy.line1EndNormalized.clone();
+    lc->line2EndNormalized = lcCopy.line2EndNormalized.clone();
+
     lc->id = lcCopy.id;
 
     return *lc;
@@ -745,4 +750,13 @@ double sampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley 
     Mat b2 = H_inv*x2;
     return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));    //Sampson
     //return squaredTransferPointError(H, H_inv, x1, x2);
+}
+
+void homogVect(Mat &m) {
+    m /= m.at<double>(2,0);
+}
+
+
+void homogMat(Mat &m) {
+    m /= m.at<double>(2,2);
 }
