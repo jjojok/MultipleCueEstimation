@@ -18,7 +18,7 @@ private:
     pointSubsetStruct calcRANSAC(std::vector<pointSubsetStruct> &subsets, double threshold, std::vector<pointCorrespStruct> pointCorresp);
     pointSubsetStruct calcLMedS(std::vector<pointSubsetStruct> &subsets, std::vector<pointCorrespStruct> pointCorresp);
     double calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp);
-    bool findPointHomography(std::vector<pointCorrespStruct> &pointCorresp, int method, double confidence, double outliers, pointSubsetStruct &result);
+    bool findPointHomography(pointSubsetStruct &bestSubset, int method, double confidence, double outliers);
     double squaredTransferPointError_(Mat H, pointCorrespStruct pointCorresp);
     double squaredSymmetricTransferPointError_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
     double meanSquaredSymmetricTransferPointError_(Mat H, std::vector<pointCorrespStruct> pointCorresp);
@@ -28,6 +28,7 @@ private:
     bool isColinear(std::vector<pointCorrespStruct> fixedCorresp, pointCorrespStruct pcNew);
     double levenbergMarquardt(pointSubsetStruct &bestSubset);
     Mat* normalizePoints(std::vector<pointCorrespStruct> &correspondencies);
+    bool isUniqe(std::vector<pointCorrespStruct> existingCorresp, pointCorrespStruct newCorresp);
 };
 
 #endif // FESTIMATORHPOINTS_H

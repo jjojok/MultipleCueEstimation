@@ -78,12 +78,13 @@ double transferPointError(Mat H, Mat p1, Mat p2);
 double symmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2);
 double squaredTransferPointError(Mat H, Mat x1, Mat x2);
 //Error functions Fundamental mat:
+double errorWrapper(Mat F, Mat x1, Mat x2);
 double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2);
 double sampsonFDistance(Mat F, Mat x1, Mat x2);
 double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double symmeticTransferError(Mat F, Mat x1, Mat x2);
-void homogVect(Mat &m);
 void homogMat(Mat &m);
+Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1norm, std::vector<Mat> &x2norm);
 
 #endif // UTILITY_H

@@ -26,7 +26,9 @@ void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name) {
 
 double smallestRelAngle(double ang1, double ang2) {
     double diff = fabs(ang1 - ang2);
-    if(diff > M_PI) diff = (2*M_PI) - diff;
+    if(diff > 2.0*M_PI) diff = diff - 2.0*M_PI;
+    if(diff > M_PI) diff = diff - M_PI;
+    if(diff > M_PI/2.0) diff = M_PI - diff;
     return diff;
 }
 
@@ -327,6 +329,7 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat imag
 //        cv::line(img2,cv::Point(0,-l2F2homog.at<double>(2,0)/l2F2homog.at<double>(1,0)), cv::Point(image1.cols,-(l2F2homog.at<double>(2,0)+l2F2homog.at<double>(0,0)*image1.cols)/l2F2homog.at<double>(1,0)),cv::Scalar(255,255,255), 2);
 
         //Compute distance of point1 to epipolar line from random point using F2^T in image 1
+
         Mat l1F2homog = F2.t()*p2homog;
         l1F2homog /= l1F2homog.at<double>(1,0);
         epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
@@ -522,6 +525,12 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     return allEigenvaluesEqual;
 }
 
+double errorWrapper(Mat F, Mat x1, Mat x2) {
+    //return computeUnsquaredSampsonFDistance(F, x1, x2);
+    return sampsonFDistance(F, x1, x2);
+    //return symmeticTransferError(F, x1, x2);
+}
+
 double symmeticTransferError(Mat F, Mat x1, Mat x2) {
     return Mat(x2.t()*F*x1 + x1.t()*F.t()*x2).at<double>(0,0);
 }
@@ -549,7 +558,7 @@ std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> esti
                 Mat x1 = estimationIter->getFeaturesImg1().at(i);
                 Mat x2 = estimationIter->getFeaturesImg2().at(i);
                 //if(estimationIter->getType() != F_FROM_LINES_VIA_H || (estimationIter->getType() == F_FROM_LINES_VIA_H && symmeticTransferError(F, x1, x2) < MAX_TRANSFER_DIST)) {      //Remove line correspondencies where line tips are no point correspondencies
-                    errorVect->push_back(symmeticTransferError(F, x1, x2));
+                    errorVect->push_back(std::sqrt(errorWrapper(F, x1, x2)));
                 //}
             }
         }
@@ -564,7 +573,7 @@ std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Ma
     for(int i = 0; i < x1.size(); i++) {
         Mat p1 = x1.at(i);
         Mat p2 = x2.at(i);
-        errorVect->push_back(symmeticTransferError(F, p1, p2));
+        errorVect->push_back(std::sqrt(errorWrapper(F, p1, p2)));
     }
     return *errorVect;
 }
@@ -590,7 +599,7 @@ double computeCombinedMeanSquaredError(std::vector<Mat> x1, std::vector<Mat> x2,
 void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist) {
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
         for(int i = 0; i < estimationIter->getFeaturesImg1().size(); i++) {
-            if(symmeticTransferError(F, estimationIter->getFeaturesImg1().at(i), estimationIter->getFeaturesImg2().at(i)) < maxDist) {
+            if(errorWrapper(F, estimationIter->getFeaturesImg1().at(i), estimationIter->getFeaturesImg2().at(i)) < maxDist) {
                 x1.push_back(estimationIter->getFeaturesImg1().at(i));
                 x2.push_back(estimationIter->getFeaturesImg2().at(i));
             }
@@ -732,7 +741,7 @@ double sampsonFDistance(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
     return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
 }
 
-double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
+double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {
     double error = 0;
     for(int i = 0; i < points1.size(); i++) {
         error+=sampsonFDistance(F, matVector(points1.at(i)), matVector(points2.at(i)));
@@ -752,11 +761,71 @@ double sampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley 
     //return squaredTransferPointError(H, H_inv, x1, x2);
 }
 
-void homogVect(Mat &m) {
-    m /= m.at<double>(2,0);
-}
-
-
 void homogMat(Mat &m) {
-    m /= m.at<double>(2,2);
+    m /= m.at<double>(m.rows-1,m.cols-1);
 }
+
+Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1norm, std::vector<Mat> &x2norm) {
+
+    //Normalization: Hartley, Zisserman, Multiple View Geometry in Computer Vision, p. 109
+
+    Mat* normalizationMats = new Mat[2];
+    Mat sum1 = Mat::zeros(3,1,CV_64FC1), sum2 = Mat::zeros(3,1,CV_64FC1);
+    Mat mean1, mean2;
+    double N = 0;
+    double mean1x = 0, mean1y = 0, mean2x = 0, mean2y = 0, v1 = 0, v2 = 0, scale1 = 0, scale2 = 0;
+
+    for (int i = 0; i < x1.size(); i++) {
+
+        sum1 += x1.at(i);
+        sum2 += x2.at(i);
+
+    }
+
+    normalizationMats[0] = Mat::eye(3,3, CV_64FC1);
+    normalizationMats[1] = Mat::eye(3,3, CV_64FC1);
+    N = x1.size();
+
+    mean1 = sum1/N;
+    mean2 = sum2/N;
+
+    mean1x = mean1.at<double>(0,0);
+    mean1y = mean1.at<double>(1,0);
+    mean2x = mean2.at<double>(0,0);
+    mean2y = mean2.at<double>(1,0);
+
+    for (int i = 0; i < x1.size(); i++) {
+        v1 += fnorm(x1.at(i).at<double>(0,0)-mean1x, x1.at(i).at<double>(1,0)-mean1y);
+        v2 += fnorm(x2.at(i).at<double>(0,0)-mean2x, x2.at(i).at<double>(1,0)-mean2y);
+    }
+
+    v1 /= N;
+    v2 /= N;
+
+    scale1 = sqrt(2.0)/v1;
+    scale2 = sqrt(2.0)/v2;
+
+    normalizationMats[0].at<double>(0,0) = scale1;
+    normalizationMats[0].at<double>(1,1) = scale1;
+    normalizationMats[0].at<double>(0,2) = -scale1*mean1x;
+    normalizationMats[0].at<double>(1,2) = -scale1*mean1y;
+
+    normalizationMats[1].at<double>(0,0) = scale2;
+    normalizationMats[1].at<double>(1,1) = scale2;
+    normalizationMats[1].at<double>(0,2) = -scale2*mean2x;
+    normalizationMats[1].at<double>(1,2) = -scale2*mean2y;
+
+    if(LOG_DEBUG) std::cout << "-- Normalization: " << std::endl <<"-- T1 = " << std::endl << normalizationMats[0] << std::endl << "-- T2 = " << std::endl << normalizationMats[1] << std::endl;
+
+    //Carry out normalization:
+
+    for (int i = 0; i < x1.size(); i++) {
+
+        x1norm.push_back(normalizationMats[0]*x1.at(i));
+        x2norm.push_back(normalizationMats[1]*x2.at(i));
+
+    }
+
+    return normalizationMats;
+}
+

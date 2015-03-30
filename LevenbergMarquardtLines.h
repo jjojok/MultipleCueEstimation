@@ -29,6 +29,8 @@ struct LineFunctor : Functor<double>
         newH.at<double>(2,1) = x(7);
         newH.at<double>(2,2) = x(8);
 
+        homogMat(newH);
+
         H_T = newH.t();
         H_invT = newH.inv(DECOMP_SVD).t();
 

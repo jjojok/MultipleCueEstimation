@@ -44,12 +44,12 @@
 #define RANSAC_THREDHOLD 1.25
 //Ransac confidence
 #define RANSAC_CONFIDENCE 0.9999
-//Refinement thredshold
-#define REFINEMENT_THREDHOLD 3.0
+////Refinement thredshold
+//#define REFINEMENT_THREDHOLD 3.0
 //Number of point correspondencies per homography estimation
 #define NUM_POINT_CORRESP 4//6
 //Max distance from point to line for 3 points to be colinear
-#define MAX_COLINEAR_DIST 2.0
+#define MAX_COLINEAR_DIST 5.0
 
 //Number of segements for image pyramid
 #define OCTAVES 2
@@ -62,7 +62,7 @@
 //Ransac confidence
 #define CONFIDENCE 0.999
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define HOMOGRAPHY_OUTLIERS 0.7
+#define HOMOGRAPHY_OUTLIERS 0.8
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig
@@ -72,11 +72,11 @@
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
 //Max Angle difference for lines being parallel
-#define MAX_ANGLE_DIFF M_PI/20.0
+#define MAX_ANGLE_DIFF M_PI/50.0
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices
-#define NUM_SAMPLES_F_COMARATION 1000
+#define NUM_SAMPLES_F_COMARATION 2000
 //Max trys per draw to find a point who's epipolar line intersects the other image
 #define MAX_SAMPLE_TRYS 1000
 

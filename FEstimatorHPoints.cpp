@@ -46,16 +46,14 @@ bool FEstimatorHPoints::compute() {
 
     std::vector<Point2d> x1_used;
     std::vector<Point2d> x2_used;
-    std::vector<pointCorrespStruct> goodMatchesH1;
-    std::vector<pointCorrespStruct> goodMatchesH2;
 
 
-    if(!findPointHomography(goodMatchesH1, LMEDS, CONFIDENCE, HOMOGRAPHY_OUTLIERS, firstEstimation)) {
+    if(!findPointHomography(firstEstimation, LMEDS, CONFIDENCE, HOMOGRAPHY_OUTLIERS)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
 
-    for(std::vector<pointCorrespStruct>::const_iterator pointIter = goodMatchesH1.begin(); pointIter != goodMatchesH1.end(); ++pointIter) {
+    for(std::vector<pointCorrespStruct>::const_iterator pointIter = firstEstimation.pointCorrespondencies.begin(); pointIter != firstEstimation.pointCorrespondencies.end(); ++pointIter) {
         x1_used.push_back(pointIter->x1);
         x2_used.push_back(pointIter->x2);
         featuresImg1.push_back(matVector(pointIter->x1));
@@ -71,7 +69,7 @@ bool FEstimatorHPoints::compute() {
 
     int estCnt = 0;
     bool homographies_equal = true;
-    int removed = filterUsedPointMatches(pointCorrespondencies, goodMatchesH1);
+    int removed = filterUsedPointMatches(pointCorrespondencies, firstEstimation.pointCorrespondencies);
     double outliers = computeRelativeOutliers(HOMOGRAPHY_OUTLIERS, pointCorrespondencies.size(), pointCorrespondencies.size() + removed);
     Mat H;
     Mat e2;
@@ -82,7 +80,7 @@ bool FEstimatorHPoints::compute() {
 
         estCnt++;
 
-        if(!findPointHomography(goodMatchesH2, RANSAC, CONFIDENCE, outliers, secondEstimation)) {
+        if(!findPointHomography(secondEstimation, RANSAC, CONFIDENCE, outliers)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -92,8 +90,8 @@ bool FEstimatorHPoints::compute() {
         homographies_equal = (computeUniqeEigenvector(H, e2) && isUnity(H));
         if(homographies_equal) {
             if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
-            outliers = computeRelativeOutliers(outliers, goodMatchesH2.size(), pointCorrespondencies.size());
-            filterUsedPointMatches(pointCorrespondencies, goodMatchesH2);
+            outliers = computeRelativeOutliers(outliers, secondEstimation.pointCorrespondencies.size(), pointCorrespondencies.size());
+            filterUsedPointMatches(pointCorrespondencies, secondEstimation.pointCorrespondencies);
         }
 
         if(MAX_H2_ESTIMATIONS < estCnt) {   //Not able to find a second homographie
@@ -105,7 +103,7 @@ bool FEstimatorHPoints::compute() {
     std::vector<Point2d> x1_used_temp;    //debug only
     std::vector<Point2d> x2_used_temp;
 
-    for(std::vector<pointCorrespStruct>::const_iterator pointIter = goodMatchesH2.begin(); pointIter != goodMatchesH2.end(); ++pointIter) {
+    for(std::vector<pointCorrespStruct>::const_iterator pointIter = secondEstimation.pointCorrespondencies.begin(); pointIter != secondEstimation.pointCorrespondencies.end(); ++pointIter) {
         x1_used.push_back(pointIter->x1);
         x2_used.push_back(pointIter->x2);
         x1_used_temp.push_back(pointIter->x1);
@@ -135,9 +133,10 @@ bool FEstimatorHPoints::compute() {
     return successful;
 }
 
-bool FEstimatorHPoints::findPointHomography(std::vector<pointCorrespStruct> &goodMatches, int method, double confidence, double outliers, pointSubsetStruct &bestSubset) {
+bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int method, double confidence, double outliers) {
     double lastError = 0;
     int N;
+    std::vector<pointCorrespStruct> goodMatches;
     std::vector<pointCorrespStruct> lastIterLineMatches;
     bestSubset.meanSquaredSymmeticTransferError = 0;
     int iteration = 0;
@@ -207,11 +206,12 @@ bool FEstimatorHPoints::findPointHomography(std::vector<pointCorrespStruct> &goo
 
     //bestSubset.pointCorrespondencies.clear();
     for(int i = 0; i < lastIterLineMatches.size(); i++) {
-        if(!isColinear(bestSubset.pointCorrespondencies, lastIterLineMatches.at(i))) {
+        //if(!isColinear(bestSubset.pointCorrespondencies, lastIterLineMatches.at(i))) {
+        if(isUniqe(bestSubset.pointCorrespondencies, lastIterLineMatches.at(i))) {
             bestSubset.pointCorrespondencies.push_back(lastIterLineMatches.at(i));
         }
     }
-    computeHomography(bestSubset);
+    //computeHomography(bestSubset);
     levenbergMarquardt(bestSubset);
 
     bestSubset.Hs = denormalize(bestSubset.Hs, normT1, normT2);
@@ -228,7 +228,6 @@ bool FEstimatorHPoints::estimateHomography(pointSubsetStruct &result, std::vecto
     //Compute H_21 from NUM_CORRESP line correspondencies
     std::srand(time(NULL));  //Init random generator
     for(int i = 0; i < sets; i++) {
-        std::vector<int> subsetsIdx;
         pointSubsetStruct subset;
         for(int j = 0; j < NUM_POINT_CORRESP; j++) {
             int subsetIdx = 0;
@@ -237,9 +236,8 @@ bool FEstimatorHPoints::estimateHomography(pointSubsetStruct &result, std::vecto
                 subsetIdx = std::rand() % numOfPairs;
                 search++;
                 if(search == MAX_POINT_SEARCH) return false;    //No non colinear points remaining
-            } while(!isUniqe(subsetsIdx, subsetIdx) || isColinear(subset.pointCorrespondencies, pointCorresp.at(subsetIdx)));
+            } while(!isUniqe(subset.pointCorrespondencies, pointCorresp.at(subsetIdx)) || isColinear(subset.pointCorrespondencies, pointCorresp.at(subsetIdx)));
 
-            subsetsIdx.push_back(subsetIdx);
             subset.pointCorrespondencies.push_back(getPointCorrespStruct(pointCorresp.at(subsetIdx)));
         }
 
@@ -547,4 +545,12 @@ Mat* FEstimatorHPoints::normalizePoints(std::vector<pointCorrespStruct> &corresp
     }
 
     return normalizationMats;
+}
+
+bool FEstimatorHPoints::isUniqe(std::vector<pointCorrespStruct> existingCorresp, pointCorrespStruct newCorresp) {
+    if(existingCorresp.size() == 0) return true;
+    for(std::vector<pointCorrespStruct>::const_iterator iter = existingCorresp.begin(); iter != existingCorresp.end(); ++iter) {
+        if(iter->id == newCorresp.id) return false;
+    }
+    return true;
 }

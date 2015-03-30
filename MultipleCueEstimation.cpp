@@ -185,6 +185,17 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
     int iterations = 1;
     int lastFeatureCount = 0;
 
+//    std::vector<Mat> x1, x2, x1norm, x2norm;
+
+//    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
+//        for(int i = 0; i < estimationIter->getFeaturesImg1().size(); i++) {
+//            x1.push_back(estimationIter->getFeaturesImg1().at(i));
+//            x2.push_back(estimationIter->getFeaturesImg2().at(i));
+//        }
+//    }
+
+//    Mat* T = normalize(x1, x2, x1norm, x2norm);
+
     do {
 
         Eigen::VectorXd x(9);
@@ -199,10 +210,22 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 
         x(6) = refinedF.at<double>(2,0);
         x(7) = refinedF.at<double>(2,1);
+        x(8) = refinedF.at<double>(2,2);
 
         std::vector<Mat> goodCombindX1;
         std::vector<Mat> goodCombindX2;
-        findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, 0.01);
+        findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, 1.5/(iterations*iterations));
+
+        homogMat(refinedF);
+
+//        for(int i = 0; i < x1norm.size(); i++) {
+//            if(errorWrapper(refinedF, x1norm.at(i), x2norm.at(i)) < 1.5/(iterations*iterations)) {
+//                goodCombindX1.push_back(x1norm.at(i));
+//                goodCombindX2.push_back(x2norm.at(i));
+//            }
+//        }
+
+
         if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << ", Refined feature count: " << goodCombindX1.size() << "/" << numValues << std::endl;
 
         GeneralFunctor functor;
@@ -231,18 +254,23 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 
         refinedF.at<double>(2,0) = x(6);
         refinedF.at<double>(2,1) = x(7);
+        refinedF.at<double>(2,2) = x(8);
+
+        //refinedF = T[1].inv(DECOMP_SVD)*refinedF*T[0];
 
         enforceRankTwoConstraint(refinedF);
 
         //meanSquaredCSTError = computeCombinedMeanSquaredError(estimations, refinedF);
         meanSquaredCSTError = computeCombinedMeanSquaredError(goodCombindX1, goodCombindX2, refinedF);
 
-        if((lastError - meanSquaredCSTError)/meanSquaredCSTError < 0.01 || lastFeatureCount == goodCombindX1.size()) stableSolutions++;
+        double dError = (lastError - meanSquaredCSTError)/meanSquaredCSTError;
+
+        if((dError >= 0 && dError < 0.01) || lastFeatureCount == goodCombindX1.size()) stableSolutions++;
         else stableSolutions = 0;
 
         lastFeatureCount = goodCombindX1.size();
 
-        if (LOG_DEBUG) std::cout <<"Mean sqared symmetic transfer error: " << meanSquaredCSTError << ", rel. error change: " << (lastError - meanSquaredCSTError)/meanSquaredCSTError << ", stable solutions: " << stableSolutions << std::endl;
+        if (LOG_DEBUG) std::cout <<"Error: " << meanSquaredCSTError << ", rel. error change: " << dError << ", stable solutions: " << stableSolutions << std::endl;
 
         lastError = meanSquaredCSTError;
 

@@ -15,7 +15,6 @@
 
 //MAYBE:
 //- Find a way to incooperate line segments better into global error computation, see hartley, ziss p243 -> not possible
-//- Change random point error computation: move only a small distance on the epipolar line (only one random point)
 
 
 Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat Rw1, Mat Rw2, Mat Tw1, Mat Tw2) {      //Compute F from K,R,t in world coords

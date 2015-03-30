@@ -27,6 +27,9 @@ struct GeneralFunctor : Functor<double>
 
         F.at<double>(2,0) = x(6);
         F.at<double>(2,1) = x(7);
+        F.at<double>(2,2) = x(8);
+
+        homogMat(F);
 
         //std::vector<double> errorVect = computeCombinedErrorVect(*estimations, F);
         std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, F);
@@ -78,7 +81,7 @@ std::vector<Mat> x1;
 std::vector<Mat> x2;
 int numValues;
 
-int inputs() const { return 8; } // There are 9 parameters of the model
+int inputs() const { return 9; } // There are 9 parameters of the model
 int values() const {
 //    int numValues = 0;
 //    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations->begin(); estimationIter != estimations->end(); ++estimationIter) {

@@ -27,6 +27,8 @@ struct PointFunctor : Functor<double>
         newH.at<double>(2,1) = x(7);
         newH.at<double>(2,2) = x(8);
 
+        homogMat(newH);
+
         Mat newH_inv = newH.inv(DECOMP_SVD);
 
         pointCorrespStruct pc;

@@ -147,7 +147,6 @@ int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> 
         std::cout << "-- Number of matches : " << matchedLines.size() << " filtered: " << filteredMatches << std::endl;
     }
 
-    if(VISUAL_DEBUG) visualizeMatches(image_1, image_2, matchedLines, 2, true, "Line matches");
     if(LOG_DEBUG) std::cout << std::endl;
     return matchedLines.size();
 }

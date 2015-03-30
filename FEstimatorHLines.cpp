@@ -23,6 +23,8 @@ int FEstimatorHLines::extractMatches() {
     Mat* T = normalizeLines(matchedLines);
     normT1 = T[0].clone();
     normT2 = T[1].clone();
+
+    if(VISUAL_DEBUG) visualizeMatches(image_1, image_2, matchedLines, 2, true, "Line matches");
 }
 
 bool FEstimatorHLines::compute() {
@@ -123,15 +125,15 @@ bool FEstimatorHLines::compute() {
     enforceRankTwoConstraint(F);
 
     error = 0;
-    Mat H_t = H1.Hs.t();
+    Mat H_T = H1.Hs.t();
     Mat H_invT = H1.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::iterator it = H1.lineCorrespondencies.begin() ; it != H1.lineCorrespondencies.end(); ++it) {
-        error += squaredSymmeticTransferLineError(H_invT, H_t, *it);
+        error += squaredSymmeticTransferLineError(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
     }
-    H_t = H2.Hs.t();
+    H_T = H2.Hs.t();
     H_invT = H2.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::iterator it = H2.lineCorrespondencies.begin() ; it != H2.lineCorrespondencies.end(); ++it) {
-        error += squaredSymmeticTransferLineError(H_invT, H_t, *it);
+        error += squaredSymmeticTransferLineError(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
     }
     error /= (H1.lineCorrespondencies.size() + H2.lineCorrespondencies.size());
 
@@ -198,7 +200,7 @@ bool FEstimatorHLines::findLineHomography(std::vector<lineCorrespStruct> &goodLi
             lastIterLineMatches.push_back(*it);
         }
 
-        removedMatches = filterBadLineMatches(bestSubset, goodLineMatches, MAX_TRANSFER_DIST/(iteration*iteration));
+        removedMatches = filterBadLineMatches(bestSubset, goodLineMatches, MAX_TRANSFER_DIST/(iteration));
 
         if(iteration == MAX_REFINEMENT_ITERATIONS) return false;
 
@@ -212,11 +214,17 @@ bool FEstimatorHLines::findLineHomography(std::vector<lineCorrespStruct> &goodLi
 
     } while(stableSolutions < 3);
 
+    //visualizeMatches(image_1_color, image_2_color, lastIterLineMatches, 8, true, "1");
+
     for(int i = 0; i < lastIterLineMatches.size(); i++) {
-        if(!isParallel(bestSubset.lineCorrespondencies, lastIterLineMatches.at(i))) {
+        //if(!isParallel(bestSubset.lineCorrespondencies, lastIterLineMatches.at(i))) {
+        if(isUniqe(bestSubset.lineCorrespondencies, lastIterLineMatches.at(i))) {
             bestSubset.lineCorrespondencies.push_back(lastIterLineMatches.at(i));
         }
     }
+
+    //visualizeMatches(image_1_color, image_2_color, bestSubset.lineCorrespondencies, 8, true, "2");
+    //cvWaitKey(0);
 
     computeHomography(bestSubset);
     levenbergMarquardt(bestSubset);
@@ -273,8 +281,10 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
 
     double error = 0;
 
-    for(std::vector<lineCorrespStruct>::const_iterator iter = bestSubset.lineCorrespondencies.begin(); iter != bestSubset.lineCorrespondencies.end(); ++iter) {
-        error += squaredSymmeticTransferLineError(bestSubset.Hs, *iter);
+    Mat H_T = bestSubset.Hs.t();
+    Mat H_invT = bestSubset.Hs.inv(DECOMP_SVD).t();
+    for(std::vector<lineCorrespStruct>::const_iterator it = bestSubset.lineCorrespondencies.begin(); it != bestSubset.lineCorrespondencies.end(); ++it) {
+        error += squaredSymmeticTransferLineError(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
     }
 
     bestSubset.meanSquaredSymmeticTransferError = error/bestSubset.lineCorrespondencies.size();
@@ -285,11 +295,10 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
 bool FEstimatorHLines::estimateHomography(lineSubsetStruct &result, std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets) {
     int numOfPairs = lineCorrespondencies.size();
     std::vector<lineSubsetStruct> subsets;
-    if(LOG_DEBUG) std::cout << "-- Computing "<< sets << " Homographies" << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Computing "<< sets << " Homographies, using " << NUM_LINE_CORRESP << " point correspondencies each" << std::endl;
     //Compute H_21 from line correspondencies
     srand(time(NULL));  //Init random generator
     for(int i = 0; i < sets; i++) {
-        std::vector<int> subsetsIdx;
         lineSubsetStruct subset;
 
         for(int j = 0; j < NUM_LINE_CORRESP; j++) {
@@ -299,9 +308,8 @@ bool FEstimatorHLines::estimateHomography(lineSubsetStruct &result, std::vector<
                 subsetIdx = std::rand() % numOfPairs;
                 search++;
                 if(search == MAX_POINT_SEARCH) return false;    //No non colinear points remaining
-            } while(!isUniqe(subsetsIdx, subsetIdx) || !isParallel(subset.lineCorrespondencies, lineCorrespondencies.at(subsetIdx)));
+            } while(!isUniqe(subset.lineCorrespondencies, lineCorrespondencies.at(subsetIdx)) || isParallel(subset.lineCorrespondencies, lineCorrespondencies.at(subsetIdx)));
 
-            subsetsIdx.push_back(subsetIdx);
             subset.lineCorrespondencies.push_back(getlineCorrespStruct(lineCorrespondencies.at(subsetIdx)));
         }
         computeHomography(subset);
@@ -325,15 +333,17 @@ bool FEstimatorHLines::computeHomography(lineSubsetStruct &subset) {
 }
 
 bool FEstimatorHLines::isParallel(std::vector<lineCorrespStruct> fixedCorresp, lineCorrespStruct lcNew) {
-    if(fixedCorresp.size() < 3) return true;
+    if(fixedCorresp.size() < 3) return false;
     int parallelCout = 0;
     lineCorrespStruct lc;
     for(int i = 0; i < fixedCorresp.size(); i++) {
         lc = fixedCorresp.at(i);
-        if(smallestRelAngle(lc.line1Angle, lcNew.line1Angle) < MAX_ANGLE_DIFF || smallestRelAngle(lc.line2Angle, lcNew.line2Angle) < MAX_ANGLE_DIFF) parallelCout++;
+        if(smallestRelAngle(lc.line1Angle, lcNew.line1Angle) < MAX_ANGLE_DIFF || smallestRelAngle(lc.line2Angle, lcNew.line2Angle) < MAX_ANGLE_DIFF) {
+            parallelCout++;
+        }
     }
-    if(parallelCout >= 3) return false;
-    return true;
+    if(parallelCout >= 3) return true;
+    return false;
 }
 
 int FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches) {
@@ -407,19 +417,19 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
     lineSubsetStruct bestSolution = *subsets.begin();
     bestSolution.qualityMeasure = 0;
     double error = 0;
-    for(std::vector<lineSubsetStruct>::iterator it = subsets.begin() ; it != subsets.end(); ++it) {
-        Mat H_T = it->Hs.t();
-        Mat H_invT = it->Hs.inv(DECOMP_SVD).t();
-        it->qualityMeasure = 0;       //count inlainers
-        for(int i = 0; i < lineCorrespondencies.size(); i++) {
-            error = squaredSymmeticTransferLineError(H_invT, H_T, lineCorrespondencies.at(i));
+    for(std::vector<lineSubsetStruct>::iterator subset = subsets.begin() ; subset != subsets.end(); ++subset) {
+        Mat H_T = subset->Hs.t();
+        Mat H_invT = subset->Hs.inv(DECOMP_SVD).t();
+        subset->qualityMeasure = 0;       //count inlainers
+        for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
+            error = squaredSymmeticTransferLineError(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
             if(error <= threshold) {
-                it->meanSquaredSymmeticTransferError += error;
-                it->qualityMeasure++;
+                subset->meanSquaredSymmeticTransferError += error;
+                subset->qualityMeasure++;
             }
         }
-        it->meanSquaredSymmeticTransferError /= it->qualityMeasure;
-        if(it->qualityMeasure > bestSolution.qualityMeasure) bestSolution = *it;
+        subset->meanSquaredSymmeticTransferError /= subset->qualityMeasure;
+        if(subset->qualityMeasure > bestSolution.qualityMeasure) bestSolution = *subset;
     }
     if(LOG_DEBUG) std::cout << "-- RANSAC inlaiers: " << bestSolution.qualityMeasure << std::endl;
     return bestSolution;
@@ -452,7 +462,7 @@ double FEstimatorHLines::calcMedS(lineSubsetStruct &subset, std::vector<lineCorr
     std::vector<double> errors;
     double error;
     for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
-        error = squaredSymmeticTransferLineError(H_invT, H_T, *it);
+        error = squaredSymmeticTransferLineError(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
         errors.push_back(error);
         subset.meanSquaredSymmeticTransferError += error;
     }
@@ -550,13 +560,13 @@ void FEstimatorHLines::addPointCorrespondencies(Mat H, std::vector<lineCorrespSt
     if(LOG_DEBUG) std::cout << "-- Added " << (featuresImg1.size() - features) << "/" << goodLineMatches.size() << " point correspondencies to combined feature vector" << std::endl;
 }
 
-double FEstimatorHLines::squaredSymmeticTransferLineError(Mat H, lineCorrespStruct lc) {
-    Mat H_invT = H.inv(DECOMP_SVD).t();
-    Mat H_T = H.t();
-    return squaredSymmeticTransferLineError(H_invT, H_T, lc);
-}
+//double FEstimatorHLines::squaredSymmeticTransferLineError(Mat H, lineCorrespStruct lc) {
+//    Mat H_invT = H.inv(DECOMP_SVD).t();
+//    Mat H_T = H.t();
+//    return squaredSymmeticTransferLineError(H_invT, H_T, lc);
+//}
 
-double FEstimatorHLines::squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, lineCorrespStruct lc) {
+double FEstimatorHLines::squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
 //    Mat A = H_T*crossProductMatrix(lc.line2Start)*lc.line2End;
 //    Mat start1 = lc.line1Start.t()*A;
 //    Mat end1 = lc.line1End.t()*A;
@@ -566,19 +576,28 @@ double FEstimatorHLines::squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, l
 //    Mat result = (start1*start1 + end1*end1)/(A.at<double>(0,0)*A.at<double>(0,0) + A.at<double>(1,0)*A.at<double>(1,0)) + (start2*start2 + end2*end2)/(B.at<double>(0,0)*B.at<double>(0,0) + B.at<double>(1,0)*B.at<double>(1,0));
 //    return result.at<double>(0,0);
 
-    return (squaredTransferLineError(H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End) + squaredTransferLineError(H_invT, lc.line2Start, lc.line2End, lc.line1Start, lc.line1End))/2.0;
+    return squaredTransferLineError(H_T, l1s, l1e, l2s, l2e) + squaredTransferLineError(H_invT, l2s, l2e, l1s, l1e);
 }
 
 int FEstimatorHLines::filterBadLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &lineCorresp, double threshold) {
-    Mat Hs_inv = subset.Hs.inv(DECOMP_SVD);
+    Mat H_invT = subset.Hs.inv(DECOMP_SVD).t();
+    Mat H_T = subset.Hs.t();
     int removed = 0;
     std::vector<lineCorrespStruct>::iterator it= lineCorresp.begin();
     while (it!=lineCorresp.end()) {
-        if(squaredSymmeticTransferLineError(subset.Hs, Hs_inv, *it) > threshold) {
+        if(squaredSymmeticTransferLineError(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized) > threshold) {
             removed++;
             lineCorresp.erase(it);
         } else it++;
     }
     if(LOG_DEBUG) std::cout << "-- Refined number of matches: " << lineCorresp.size() <<  ", removed: " << removed << ", threshold: " << threshold << std::endl;
     return removed;
+}
+
+bool FEstimatorHLines::isUniqe(std::vector<lineCorrespStruct> existingCorresp, lineCorrespStruct newCorresp) {
+    if(existingCorresp.size() == 0) return true;
+    for(std::vector<lineCorrespStruct>::const_iterator iter = existingCorresp.begin(); iter != existingCorresp.end(); ++iter) {
+        if(iter->id == newCorresp.id) return false;
+    }
+    return true;
 }
