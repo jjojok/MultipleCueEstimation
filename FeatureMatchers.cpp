@@ -71,7 +71,7 @@ int extractPointMatches(Mat image_1, Mat image_2, std::vector<Point2d> &x1, std:
     return x1.size();
 }
 
-int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> &matchedLines) {
+int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> &allMatchedLines) {
     /********************************************************************
      * From: http://docs.opencv.org/trunk/modules/line_descriptor/doc/tutorial.html
      * ******************************************************************/
@@ -134,21 +134,26 @@ int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> 
         l1 = keylines1[it->queryIdx];
         l2 = keylines2[it->trainIdx];
 
+        id++;
+        lineCorrespStruct lc = getlineCorrespStruct(l1,l2, id);
+        lc.isGoodMatch = false;
+
         if (it->distance > maxHemmingDist || filterLineMatch(l1,l2)) {  //Bad match
             filteredMatches++;
         } else {    //Good match, add to correspondence list
-            lineCorrespStruct lc = getlineCorrespStruct(l1,l2, id);
-            id++;
-            matchedLines.push_back(lc);
+            lc.isGoodMatch = true;
+            //goodMatchedLines.push_back(lc);
         }
+
+        allMatchedLines.push_back(lc);
     }
 
     if(LOG_DEBUG) {
-        std::cout << "-- Number of matches : " << matchedLines.size() << " filtered: " << filteredMatches << std::endl;
+        std::cout << "-- Number of matches : " << allMatchedLines.size() << " good matches: " << allMatchedLines.size() - filteredMatches << std::endl;
     }
 
     if(LOG_DEBUG) std::cout << std::endl;
-    return matchedLines.size();
+    return allMatchedLines.size();
 }
 
 bool filterLineMatch(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2) {

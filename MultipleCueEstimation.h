@@ -51,7 +51,7 @@ private:
     unsigned int computations;
     bool compareWithGroundTruth;
     double meanSquaredRSSTError;    //Mean squared random sample symmetic transfer error
-    double meanSquaredCSTError;     //Mean squared symmetic transfer error of combined matches
+    double meanSquaredCombinedError;     //Mean squared error of combined matches
     Mat F;                          //Final Fundamental Matrix
 
     Mat image_1, image_2;

@@ -27,16 +27,19 @@ private:
     void fillHLinEqBase(Mat &linEq, double x, double y, double A, double B, double C, int row);
     lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies);
     double calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
-    Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
+    Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies, std::vector<lineCorrespStruct> &goodCorrespondencies);
     int filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
-    bool findLineHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, double outliers, lineSubsetStruct &result);
-    bool estimateHomography(lineSubsetStruct &result, std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets);
+    bool findLineHomography(std::vector<lineCorrespStruct> &lineCorrespondencies, int method, double confidence, double outliers, lineSubsetStruct &result,std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches);
+    bool estimateHomography(lineSubsetStruct &result, std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets, double ransacThr);
     void addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
 //    double squaredSymmeticTransferLineError(Mat H, lineCorrespStruct lc);
-    double squaredSymmeticTransferLineError(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
+    double errorFunctionHLinesSqared_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
     int filterBadLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &lineCorresp, double threshold);
-    std::vector<lineCorrespStruct> matchedLines;  //Vector of corresponing line segments (start & endpoints)
     bool isUniqe(std::vector<lineCorrespStruct> existingCorresp, lineCorrespStruct newCorresp);
+    double errorFunctionHLinesSqaredAlgebraic_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
+
+    std::vector<lineCorrespStruct> goodMatchedLines;  //Vector of (good) corresponing line segments (start & endpoints)
+    std::vector<lineCorrespStruct> allMatchedLines;  //Vector of (all) corresponing line segments (start & endpoints)
 };
 
 #endif // FESTIMATORHLINES_H

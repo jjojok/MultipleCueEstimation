@@ -50,8 +50,9 @@ struct LineFunctor : Functor<double>
 //            fvec(2*i) = Mat(start1+end1).at<double>(0,0);
 //            fvec(2*i+1) = Mat(start2+end2).at<double>(0,0);
 
-            fvec(2*i) = transferLineError(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized);
-            fvec(2*i+1) = transferLineError(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
+            //fvec(2*i) = errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized);
+            //fvec(2*i+1) = errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
+            fvec(i) = errorFunctionHLinesSqared(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) + errorFunctionHLinesSqared(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
 
         }
 
@@ -62,7 +63,7 @@ lineSubsetStruct *lines;
 FEstimatorHLines *estimator;
 
 int inputs() const { return 9; } // There are 9 parameters of the model
-int values() const { return lines->lineCorrespondencies.size()*2; } // The number of observations
+int values() const { return lines->lineCorrespondencies.size(); } // The number of observations
 };
 
 #endif // LMA_LINES_H

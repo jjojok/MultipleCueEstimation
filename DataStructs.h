@@ -16,6 +16,7 @@ struct lineCorrespStruct {
     Mat line1StartNormalized, line1EndNormalized, line2StartNormalized, line2EndNormalized;
     Mat line1Start, line1End, line2Start, line2End;
     int id;
+    bool isGoodMatch;
 };
 
 struct pointCorrespStruct {
@@ -32,14 +33,14 @@ struct lineCorrespSubsetError {
 struct lineSubsetStruct {
     std::vector<lineCorrespStruct> lineCorrespondencies;
     double qualityMeasure;
-    double meanSquaredSymmeticTransferError;
+    double subsetError;
     Mat Hs, Hs_normalized;
 };
 
 struct pointSubsetStruct {
     std::vector<pointCorrespStruct> pointCorrespondencies;
     double qualityMeasure;
-    double meanSquaredSymmeticTransferError;
+    double subsetError;
     Mat Hs, Hs_normalized;
     Mat T1, T2;
 };

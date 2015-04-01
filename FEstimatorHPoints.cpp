@@ -87,7 +87,7 @@ bool FEstimatorHPoints::compute() {
 
         H = firstEstimation.Hs*secondEstimation.Hs.inv(DECOMP_SVD); // H = (H1*H2⁻1)
 
-        homographies_equal = (computeUniqeEigenvector(H, e2) && isUnity(H));
+        homographies_equal = (!computeUniqeEigenvector(H, e2) || isUnity(H));
         if(homographies_equal) {
             if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
             outliers = computeRelativeOutliers(outliers, secondEstimation.pointCorrespondencies.size(), pointCorrespondencies.size());
@@ -138,7 +138,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int m
     int N;
     std::vector<pointCorrespStruct> goodMatches;
     std::vector<pointCorrespStruct> lastIterLineMatches;
-    bestSubset.meanSquaredSymmeticTransferError = 0;
+    bestSubset.subsetError = 0;
     int iteration = 0;
     int stableSolutions = 0;
     double dError = 0;
@@ -168,7 +168,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int m
             break;
         }
 
-        lastError = bestSubset.meanSquaredSymmeticTransferError;
+        lastError = bestSubset.subsetError;
 
         outliers = computeRelativeOutliers(outliers, goodMatches.size(), goodMatches.size() + removedMatches);
         N = computeNumberOfEstimations(confidence, outliers, NUM_POINT_CORRESP);
@@ -190,12 +190,12 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int m
             lastIterLineMatches.push_back(goodMatches.at(i));
         }
 
-        removedMatches = filterBadPointMatches(bestSubset, goodMatches, MAX_TRANSFER_DIST/(iteration*iteration));
+        removedMatches = filterBadPointMatches(bestSubset, goodMatches, MAX_TRANSFER_DIST/(iteration));
 
         if(iteration == MAX_REFINEMENT_ITERATIONS) return false;
 
-        dError = (lastError - bestSubset.meanSquaredSymmeticTransferError)/bestSubset.meanSquaredSymmeticTransferError;
-        if(LOG_DEBUG) std::cout << "-- Mean squared symmetric transfer error: " << bestSubset.meanSquaredSymmeticTransferError << ", rel. Error change: "<< dError << std::endl;
+        dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
+        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << std::endl;
 
         if(fabs(dError) <= MAX_ERROR_CHANGE || removedMatches == 0) stableSolutions++;
         else stableSolutions = 0;
@@ -216,7 +216,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int m
 
     bestSubset.Hs = denormalize(bestSubset.Hs, normT1, normT2);
 
-    if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.pointCorrespondencies.size() << ", Mean squared symmetric transfer error: " << bestSubset.meanSquaredSymmeticTransferError << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.pointCorrespondencies.size() << ", Mean squared error: " << bestSubset.subsetError << std::endl;
 
     return true;
 }
@@ -314,13 +314,13 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
         Mat H_inv = it->Hs.inv(DECOMP_SVD);
         it->qualityMeasure = 0;       //count inlainers
         for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-            error = squaredSymmetricTransferPointError_(it->Hs, H_inv, *pointIter);
+            error = squaredPointError(it->Hs, H_inv, *pointIter);
             if(error <= threshold) {
-                it->meanSquaredSymmeticTransferError += error;
+                it->subsetError += error;
                 it->qualityMeasure++;
             }
         }
-        it->meanSquaredSymmeticTransferError /= it->qualityMeasure;
+        it->subsetError /= it->qualityMeasure;
         if(it->qualityMeasure > bestSolution.qualityMeasure) bestSolution = *it;
     }
     if(LOG_DEBUG) std::cout << "-- RANSAC inlaiers: " << bestSolution.qualityMeasure << std::endl;
@@ -352,34 +352,26 @@ double FEstimatorHPoints::calcMedS(pointSubsetStruct &subset, std::vector<pointC
     std::vector<double> errors;
     double error = 0;
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error = squaredSymmetricTransferPointError_(subset.Hs, H_inv, *pointIter);
+        error = squaredPointError(subset.Hs, H_inv, *pointIter);
         errors.push_back(error);
-        subset.meanSquaredSymmeticTransferError += error;
+        subset.subsetError += error;
     }
-    subset.meanSquaredSymmeticTransferError /= pointCorresp.size();
+    subset.subsetError /= pointCorresp.size();
     std::sort(errors.begin(), errors.end());
     return errors.at(errors.size()/2);
 }
 
-double FEstimatorHPoints::meanSquaredSymmetricTransferPointError_(Mat H, std::vector<pointCorrespStruct> pointCorresp) {
+double FEstimatorHPoints::meanSquaredPointError(Mat H, std::vector<pointCorrespStruct> pointCorresp) {
     Mat H_inv = H.inv(DECOMP_SVD);
     double error = 0;
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error += squaredSymmetricTransferPointError_(H, H_inv, *pointIter);
+        error += squaredPointError(H, H_inv, *pointIter);
     }
     return error/pointCorresp.size();
 }
 
-double FEstimatorHPoints::squaredTransferPointError_(Mat H, pointCorrespStruct pointCorresp) {
-//    Mat mx1 = matVector(pointCorresp.x1);
-//    Mat mx2 = matVector(pointCorresp.x2);
-    return squaredTransferPointError(H, pointCorresp.x1norm, pointCorresp.x2norm);
-}
-
-double FEstimatorHPoints::squaredSymmetricTransferPointError_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
-//    Mat mx1 = matVector(pointCorresp.x1);
-//    Mat mx2 = matVector(pointCorresp.x2);
-    return squaredSymmetricTransferPointError(H, H_inv, pointCorresp.x1norm, pointCorresp.x2norm);
+double FEstimatorHPoints::squaredPointError(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
+    return errorFunctionHPointsSqared(H, H_inv, pointCorresp.x1norm, pointCorresp.x2norm);
 }
 
 int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp) {
@@ -410,7 +402,7 @@ int FEstimatorHPoints::filterBadPointMatches(pointSubsetStruct subset, std::vect
     int removed = 0;
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
     while (it!=pointCorresp.end()) {
-        if(squaredSymmetricTransferPointError_(subset.Hs, Hs_inv, *it) > threshold) {
+        if(squaredPointError(subset.Hs, Hs_inv, *it) > threshold) {
             removed++;
             pointCorresp.erase(it);
         } else it++;
@@ -481,7 +473,7 @@ double FEstimatorHPoints::levenbergMarquardt(pointSubsetStruct &bestSubset) {
 
     homogMat(bestSubset.Hs);
 
-    bestSubset.meanSquaredSymmeticTransferError = meanSquaredSymmetricTransferPointError_(bestSubset.Hs, bestSubset.pointCorrespondencies);
+    bestSubset.subsetError = meanSquaredPointError(bestSubset.Hs, bestSubset.pointCorrespondencies);
 
     return error;
 }
@@ -533,7 +525,7 @@ Mat* FEstimatorHPoints::normalizePoints(std::vector<pointCorrespStruct> &corresp
     normalizationMats[1].at<double>(0,2) = -scale2*mean2x;
     normalizationMats[1].at<double>(1,2) = -scale2*mean2y;
 
-    if(LOG_DEBUG) std::cout << "-- Normalization: " << std::endl <<"-- T1 = " << std::endl << normalizationMats[0] << std::endl << "-- T2 = " << std::endl << normalizationMats[1] << std::endl;
+    //if(LOG_DEBUG) std::cout << "-- Normalization: " << std::endl <<"-- T1 = " << std::endl << normalizationMats[0] << std::endl << "-- T2 = " << std::endl << normalizationMats[1] << std::endl;
 
     //Carry out normalization:
 

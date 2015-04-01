@@ -36,7 +36,7 @@ struct PointFunctor : Functor<double>
         for(unsigned int i = 0; i < this->points->pointCorrespondencies.size(); ++i)
         {
             pc = this->points->pointCorrespondencies.at(i);
-            fvec(i) = symmetricTransferPointError(newH, newH_inv, pc.x1norm, pc.x2norm);
+            fvec(i) = errorFunctionHPoints(newH, newH_inv, pc.x1norm, pc.x2norm);
         }
 
         return 0;

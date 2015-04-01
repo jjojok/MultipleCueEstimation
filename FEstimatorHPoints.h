@@ -19,9 +19,8 @@ private:
     pointSubsetStruct calcLMedS(std::vector<pointSubsetStruct> &subsets, std::vector<pointCorrespStruct> pointCorresp);
     double calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp);
     bool findPointHomography(pointSubsetStruct &bestSubset, int method, double confidence, double outliers);
-    double squaredTransferPointError_(Mat H, pointCorrespStruct pointCorresp);
-    double squaredSymmetricTransferPointError_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
-    double meanSquaredSymmetricTransferPointError_(Mat H, std::vector<pointCorrespStruct> pointCorresp);
+    double squaredPointError(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
+    double meanSquaredPointError(Mat H, std::vector<pointCorrespStruct> pointCorresp);
     int filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp);
     void computeHomography(pointSubsetStruct &subset);
     int filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold);

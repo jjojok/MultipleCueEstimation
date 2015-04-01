@@ -56,7 +56,7 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.006;
+#define MIN_LENGTH_FACTOR 0.003;
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
 //Ransac confidence
@@ -66,13 +66,13 @@
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig
-#define MAX_HEMMING_DIST 8
+#define MAX_HEMMING_DIST 10
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
 //Max Angle difference for lines being parallel
-#define MAX_ANGLE_DIFF M_PI/50.0
+#define MAX_ANGLE_DIFF M_PI/100.0
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

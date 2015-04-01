@@ -23,7 +23,7 @@ bool FEstimatorPoints::compute() {
     //std::vector<int> mask;
     Mat mask;
     extractMatches();
-    F = findFundamentalMat(x1, x2, CV_FM_RANSAC, RANSAC_THREDHOLD, 0.999, mask);
+    F = findFundamentalMat(x1, x2, CV_FM_RANSAC, RANSAC_THREDHOLD, RANSAC_CONFIDENCE, mask);
     //F.convertTo(F, CV_64FC1);
     for(int i = 0; i < x1.size(); i++) {
         if(mask.at<int>(i,0)) {
