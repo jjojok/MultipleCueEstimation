@@ -6,7 +6,9 @@
 #include <fstream>
 
 //TODO:
+//- sampsonFdist: x and y coordinates in denominator are not vector 0 and 1 but 0 and 2 indices, also make homogenous!
 //- Use sampson error (Hartley, Ziss: p98 (Homography), p287 (Fundamental)
+//- Generate point correspondencies from matched lines: Project a point on line in the first image to the second image and add this to global correspondences
 //- Optimize only the 7 parameters of F
 //- Discard global optimization if result is worse then one of the intermediate results
 //- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar and http://users.ics.forth.gr/~lourakis/homest/
@@ -15,6 +17,10 @@
 
 //MAYBE:
 //- Find a way to incooperate line segments better into global error computation, see hartley, ziss p243 -> not possible
+
+//General Info:
+//- Sampson/Reprojection error X = (x1, y1, x2, y2) in homogenen korrds
+//- LM: Optimize all 9 matrix elements
 
 
 Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat Rw1, Mat Rw2, Mat Tw1, Mat Tw2) {      //Compute F from K,R,t in world coords
