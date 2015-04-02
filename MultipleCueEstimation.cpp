@@ -160,7 +160,7 @@ FEstimationMethod* MultipleCueEstimation::calcFfromCurves() {    // First deriva
 
 }
 
-Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {    //Reduce error of F AFTER computing it seperatly form different sources
+Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) {    //Reduce error of F AFTER computing it seperatly form different sources
 
     if (LOG_DEBUG) std::cout << std::endl << "Refinement of computed Fundamental Matrices" << std::endl;
 
@@ -171,15 +171,15 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
         return Mat();
     }
 
-    FEstimationMethod bestMethod = *estimations.begin();
+    std::vector<FEstimationMethod>::iterator bestMethod = estimations.begin();
     Mat refinedF = Mat::ones(3,3,CV_64FC1);
     int numValues = 0;
 
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
         estimationIter->meanSquaredCSTError = errorFunctionCombinedMeanSquared(estimations, estimationIter->getF());
         if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for " << estimationIter->name << ": " << estimationIter->meanSquaredCSTError << std::endl;
-        if(bestMethod.meanSquaredCSTError > estimationIter->meanSquaredCSTError) {
-            bestMethod = *estimationIter;
+        if(bestMethod->meanSquaredCSTError > estimationIter->meanSquaredCSTError) {
+            bestMethod = estimationIter;
         }
         numValues += estimationIter->getFeaturesImg1().size();
     }
@@ -189,9 +189,9 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
         return Mat();
     }
 
-    refinedF = bestMethod.getF().clone();
+    refinedF = bestMethod->getF().clone();
 
-    if (LOG_DEBUG) std::cout << "Starting point for optimization: " << bestMethod.name << std::endl;
+    if (LOG_DEBUG) std::cout << "Starting point for optimization: " << bestMethod->name << std::endl;
     double lastError = 0;
     int stableSolutions = 0;
     int iterations = 1;
@@ -207,6 +207,8 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 //    }
 
 //    Mat* T = normalize(x1, x2, x1norm, x2norm);
+
+    double errorThr = sqrt(bestMethod->meanSquaredCSTError);
 
     do {
 
@@ -228,8 +230,9 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
         std::vector<Mat> goodCombindX2;
 
         homogMat(refinedF);
-        findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, 2.0);  ///(iterations)
-
+        findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, errorThr/(iterations));  ///(iterations)
+        if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << ", Refined feature count: " << goodCombindX1.size() << "/" << numValues << ", error threshold: " << errorThr/(iterations) << std::endl;
+        //thr = 3.0;
 
 //        for(int i = 0; i < x1norm.size(); i++) {
 //            if(errorWrapper(refinedF, x1norm.at(i), x2norm.at(i)) < 1.5/(iterations*iterations)) {
@@ -237,9 +240,6 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 //                goodCombindX2.push_back(x2norm.at(i));
 //            }
 //        }
-
-
-        if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << ", Refined feature count: " << goodCombindX1.size() << "/" << numValues << std::endl;
 
         GeneralFunctor functor;
         //functor.estimations = &estimations;
@@ -278,7 +278,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 
         double dError = (lastError - meanSquaredCombinedError)/meanSquaredCombinedError;
 
-        if((dError >= 0 && dError < 0.01) || lastFeatureCount == goodCombindX1.size()) stableSolutions++;
+        if((dError >= 0 && dError < 0.01) || abs(lastFeatureCount - goodCombindX1.size()) < 4) stableSolutions++;
         else stableSolutions = 0;
 
         lastFeatureCount = goodCombindX1.size();
@@ -289,7 +289,10 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> estimations) {
 
         iterations++;
 
-    } while(stableSolutions < 3 && iterations < MAX_REFINEMENT_ITERATIONS);
+    } while(stableSolutions < 3 && iterations < MAX_NUMERICAL_OPTIMIZATION_ITERATIONS);
+
+    double generalError = errorFunctionCombinedMeanSquared(estimations, refinedF);
+    if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for refined F: " << generalError << std::endl;
 
     return refinedF;
 }

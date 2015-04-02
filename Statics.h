@@ -18,8 +18,8 @@
 //General:
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
-//Max number of refinement steps after a first homographie was found
-#define MAX_REFINEMENT_ITERATIONS 300
+//Max number of numerical refinement steps after a first homographie was found
+#define MAX_NUMERICAL_OPTIMIZATION_ITERATIONS 300
 //Max squared distance of lines to be considered as a correct projection (pixel)
 #define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to beconsidered as stable
@@ -43,7 +43,7 @@
 //Ransac thredshold
 #define RANSAC_THREDHOLD 1.25
 //Ransac confidence
-#define RANSAC_CONFIDENCE 0.9999
+#define RANSAC_CONFIDENCE 0.9995
 ////Refinement thredshold
 //#define REFINEMENT_THREDHOLD 3.0
 //Number of point correspondencies per homography estimation
@@ -60,7 +60,7 @@
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
 //Ransac confidence
-#define CONFIDENCE 0.999
+#define CONFIDENCE 0.9995
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define HOMOGRAPHY_OUTLIERS 0.8
 //Number of correspondencies per homography estimation
@@ -72,7 +72,7 @@
 //Factor for selecting wrong matches in refinement step after first homography estimation
 #define OUTLIER_THESHOLD_FACTOR 2.0
 //Max Angle difference for lines being parallel
-#define MAX_ANGLE_DIFF M_PI/100.0
+#define MAX_ANGLE_DIFF M_PI/20.0        //M_PI/20.0
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

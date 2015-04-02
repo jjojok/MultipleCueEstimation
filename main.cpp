@@ -6,17 +6,17 @@
 #include <fstream>
 
 //TODO:
-//- sampsonFdist: x and y coordinates in denominator are not vector 0 and 1 but 0 and 2 indices, also make homogenous!
-//- Use sampson error (Hartley, Ziss: p98 (Homography), p287 (Fundamental)
-//- Generate point correspondencies from matched lines: Project a point on line in the first image to the second image and add this to global correspondences
-//- Optimize only the 7 parameters of F
+//- Fix HPoints sccording to hlines
+//- Find a good starting value for ransac thr according to noralization
+//- Debig output: number of correct matches for each estimation
+//- More iterations/smaller error thr for refinement step
+//- Use sampson error for HPoints (Hartley, Ziss: p98 (Homography), p287 (Fundamental)
 //- Discard global optimization if result is worse then one of the intermediate results
 //- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar and http://users.ics.forth.gr/~lourakis/homest/
-//- F from curves: FindContours -> compute slope for every point on contour, match slopes (include in matching: slope, point distance, color, intensety...)
 //- Refine F: Compute Projection matrices and take mean of rotations/translations (P1 = [I|0]; P2 = [[e2]xF12 | e2])
 
 //MAYBE:
-//- Find a way to incooperate line segments better into global error computation, see hartley, ziss p243 -> not possible
+//- F from curves: FindContours -> compute slope for every point on contour, match slopes (include in matching: slope, point distance, color, intensety...)
 
 //General Info:
 //- Sampson/Reprojection error X = (x1, y1, x2, y2) in homogenen korrds

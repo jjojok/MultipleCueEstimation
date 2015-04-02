@@ -31,7 +31,7 @@ int FEstimatorHPoints::extractMatches() {
     normT1 = T[0].clone();
     normT2 = T[1].clone();
 
-    visualizeMatches(image_1_color, image_2_color, x1, x2, 3, true, "Point matches F_HPoints");
+    visualizePointMatches(image_1_color, image_2_color, x1, x2, 3, true, "Point matches F_HPoints");
 }
 
 bool FEstimatorHPoints::compute() {
@@ -61,7 +61,7 @@ bool FEstimatorHPoints::compute() {
     }
 
     if(VISUAL_DEBUG) {
-        visualizeMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Point Homography 1 matches");
+        visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Point Homography 1 matches");
         visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, "Point homography 1");
     }
 
@@ -113,7 +113,7 @@ bool FEstimatorHPoints::compute() {
     }
 
     if(VISUAL_DEBUG) {
-        visualizeMatches(image_1_color, image_2_color, x1_used_temp, x2_used_temp, 3, true, "Point Homography 2 matches");
+        visualizePointMatches(image_1_color, image_2_color, x1_used_temp, x2_used_temp, 3, true, "Point Homography 2 matches");
         visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, "Point homography 2");
     }
 
@@ -155,7 +155,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int m
 
         iteration++;
 
-        if(LOG_DEBUG) std::cout << "-- Iteration: " << iteration <<"/" << MAX_REFINEMENT_ITERATIONS << ", Used number of matches: " << goodMatches.size() << std::endl;
+        if(LOG_DEBUG) std::cout << "-- Iteration: " << iteration <<"/" << MAX_NUMERICAL_OPTIMIZATION_ITERATIONS << ", Used number of matches: " << goodMatches.size() << std::endl;
 
         if(goodMatches.size() < NUM_POINT_CORRESP) {
             if(LOG_DEBUG) std::cout << "-- To few line matches left! ";
@@ -192,7 +192,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int m
 
         removedMatches = filterBadPointMatches(bestSubset, goodMatches, MAX_TRANSFER_DIST/(iteration));
 
-        if(iteration == MAX_REFINEMENT_ITERATIONS) return false;
+        if(iteration == MAX_NUMERICAL_OPTIMIZATION_ITERATIONS) return false;
 
         dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
         if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << std::endl;
@@ -381,7 +381,7 @@ int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &p
     while (it!=pointCorresp.end()) {
         bool remove = false;
         for(std::vector<pointCorrespStruct>::const_iterator used = usedPointCorresp.begin(); used != usedPointCorresp.end(); ++used) {
-            bool keep = std::rand()%4 - 1;  //Delete every third correpsondency
+            bool keep = false;//std::rand()%4 - 1;  //Delete every third correpsondency
             if(it->id == used->id && !keep) {
                 removed++;
                 remove = true;

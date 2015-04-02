@@ -52,7 +52,7 @@ struct LineFunctor : Functor<double>
 
             //fvec(2*i) = errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized);
             //fvec(2*i+1) = errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
-            fvec(i) = errorFunctionHLinesSqared(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) + errorFunctionHLinesSqared(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
+            fvec(i) = errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) + errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
 
         }
 

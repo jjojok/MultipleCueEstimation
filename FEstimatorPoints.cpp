@@ -39,7 +39,7 @@ bool FEstimatorPoints::compute() {
 
     error = meanSquaredSymmeticTransferError(F, x1_used, x2_used);
 
-    if(VISUAL_DEBUG) visualizeMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Used point matches");
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Used point matches");
 
     if(LOG_DEBUG) std::cout << std::endl << std::endl;
 

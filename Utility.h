@@ -50,8 +50,8 @@ void enforceRankTwoConstraint(Mat &F);
 lineCorrespStruct getlineCorrespStruct(double start1x, double start1y, double end1x, double end1y, double start2x, double start2y, double end2x, double end2y, int id);
 lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id);
 lineCorrespStruct getlineCorrespStruct(lineCorrespStruct lcCopy);
-void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name);
-void visualizeMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name);
+void visualizeLineMatches(Mat image_1_color, Mat image_2_color, std::vector<lineCorrespStruct> correspondencies, int lineWidth, bool drawConnections, std::string name);
+void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name);
 bool isUnity(Mat m);
 bool computeUniqeEigenvector(Mat H, Mat &e);
 std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F);
@@ -66,6 +66,7 @@ pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy);
 double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount);
 int computeNumberOfEstimations(double confidence, double outliers, int corrspNumber);
 bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
+void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat> x1, std::vector<Mat> x2, int lineWidth, bool drawConnections, std::string name);
 
 //Error functions Homography:
 double errorFunctionHLinesSqared(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
