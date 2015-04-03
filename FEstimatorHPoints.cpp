@@ -16,22 +16,15 @@ FEstimatorHPoints::FEstimatorHPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c,
 }
 
 int FEstimatorHPoints::extractMatches() {
-    std::vector<Point2d> x1, x2;
-    extractPointMatches(image_1, image_2, x1, x2);
+    extractPointMatches(image_1, image_2, allMatchedPoints);
 
-    for(int i = 0; i < x1.size(); i++) {
-        pointCorrespStruct *pc = new pointCorrespStruct;
-        pc->id = i;
-        pc->x1 = x1.at(i);
-        pc->x2 = x2.at(i);
-        pointCorrespondencies.push_back(*pc);
-    }
-
-    Mat* T = normalizePoints(pointCorrespondencies);
+    Mat* T = normalizePoints(allMatchedPoints, goodMatchedPoints);
     normT1 = T[0].clone();
     normT2 = T[1].clone();
 
-    visualizePointMatches(image_1_color, image_2_color, x1, x2, 3, true, "Point matches F_HPoints");
+    if(LOG_DEBUG) std::cout << "-- Number of good matches: " << goodMatchedPoints.size() << std::endl;
+
+    visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 3, true, name+": good point matches");
 }
 
 bool FEstimatorHPoints::compute() {
@@ -40,37 +33,35 @@ bool FEstimatorHPoints::compute() {
 
     if(LOG_DEBUG) std::cout << "-- First Estimation..."<< std::endl;
 
-    //Mat H1 = findHomography(x1, x2, LMEDS, RANSAC_THREDHOLD, mask, 2000, RANSAC_CONFIDENCE);
     pointSubsetStruct firstEstimation;
     pointSubsetStruct secondEstimation;
 
-    std::vector<Point2d> x1_used;
-    std::vector<Point2d> x2_used;
 
-
-    if(!findPointHomography(firstEstimation, LMEDS, CONFIDENCE, HOMOGRAPHY_OUTLIERS)) {
+    if(!findPointHomography(firstEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
 
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = firstEstimation.pointCorrespondencies.begin(); pointIter != firstEstimation.pointCorrespondencies.end(); ++pointIter) {
-        x1_used.push_back(pointIter->x1);
-        x2_used.push_back(pointIter->x2);
         featuresImg1.push_back(matVector(pointIter->x1));
         featuresImg2.push_back(matVector(pointIter->x2));
     }
 
     if(VISUAL_DEBUG) {
-        visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Point Homography 1 matches");
-        visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, "Point homography 1");
+        visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 3, true, name+": H1 used Matches");
+        visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, name+": H1");
     }
 
-    if(LOG_DEBUG) std::cout << "-- Used matches: " << x1_used.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Used matches: " << firstEstimation.pointCorrespondencies.size() << std::endl;
 
-    int estCnt = 0;
+    if(VISUAL_DEBUG) {
+        visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 8, true, name+": Remaining matches for 2ed estimation");
+    }
+
     bool homographies_equal = true;
-    int removed = filterUsedPointMatches(pointCorrespondencies, firstEstimation.pointCorrespondencies);
-    double outliers = computeRelativeOutliers(HOMOGRAPHY_OUTLIERS, pointCorrespondencies.size(), pointCorrespondencies.size() + removed);
+    int removed = filterUsedPointMatches(goodMatchedPoints, firstEstimation.pointCorrespondencies);
+    filterUsedPointMatches(allMatchedPoints, firstEstimation.pointCorrespondencies);
+    double outliers = computeRelativeOutliers(HOMOGRAPHY_OUTLIERS, goodMatchedPoints.size(), goodMatchedPoints.size() + removed);
     Mat H;
     Mat e2;
 
@@ -78,9 +69,7 @@ bool FEstimatorHPoints::compute() {
 
         if(LOG_DEBUG) std::cout << "-- Second Estimation..."<< std::endl;
 
-        estCnt++;
-
-        if(!findPointHomography(secondEstimation, RANSAC, CONFIDENCE, outliers)) {
+        if(!findPointHomography(secondEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, CONFIDENCE, outliers)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -90,138 +79,119 @@ bool FEstimatorHPoints::compute() {
         homographies_equal = (!computeUniqeEigenvector(H, e2) || isUnity(H));
         if(homographies_equal) {
             if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
-            outliers = computeRelativeOutliers(outliers, secondEstimation.pointCorrespondencies.size(), pointCorrespondencies.size());
-            filterUsedPointMatches(pointCorrespondencies, secondEstimation.pointCorrespondencies);
-        }
-
-        if(MAX_H2_ESTIMATIONS < estCnt) {   //Not able to find a second homographie
-            if(LOG_DEBUG) std::cout << "-- Estimation failed!" << std::endl;
-            return false;
+            removed = filterUsedPointMatches(goodMatchedPoints, secondEstimation.pointCorrespondencies);
+            filterUsedPointMatches(allMatchedPoints, secondEstimation.pointCorrespondencies);
+            outliers = computeRelativeOutliers(outliers, goodMatchedPoints.size(), goodMatchedPoints.size() + removed);
         }
     }
 
-    std::vector<Point2d> x1_used_temp;    //debug only
-    std::vector<Point2d> x2_used_temp;
-
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = secondEstimation.pointCorrespondencies.begin(); pointIter != secondEstimation.pointCorrespondencies.end(); ++pointIter) {
-        x1_used.push_back(pointIter->x1);
-        x2_used.push_back(pointIter->x2);
-        x1_used_temp.push_back(pointIter->x1);
-        x2_used_temp.push_back(pointIter->x2);
         featuresImg1.push_back(matVector(pointIter->x1));
         featuresImg2.push_back(matVector(pointIter->x2));
     }
 
+    if(LOG_DEBUG) std::cout << "-- Added " << featuresImg1.size() << " point correspondencies to combined feature vector" << std::endl;
+
     if(VISUAL_DEBUG) {
-        visualizePointMatches(image_1_color, image_2_color, x1_used_temp, x2_used_temp, 3, true, "Point Homography 2 matches");
-        visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, "Point homography 2");
+        visualizePointMatches(image_1_color, image_2_color, secondEstimation.pointCorrespondencies, 3, true, name+": H2 used Matches");
+        visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, name+": H2");
     }
 
     F = crossProductMatrix(e2)*firstEstimation.Hs;
     enforceRankTwoConstraint(F);
 
-    if(LOG_DEBUG) std::cout << "-- Used matches: " << x1_used_temp.size() << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Used matches: " << secondEstimation.pointCorrespondencies.size() << std::endl;
 
     successful = true;
 
-    error = sampsonFDistance(F, x1_used, x2_used);
-
-    //if(VISUAL_DEBUG) visualizeMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Point Homography used point matches");
+    error = sampsonFDistance(F, featuresImg1, featuresImg2);
 
     if(LOG_DEBUG) std::cout << std::endl << std::endl;
 
     return successful;
 }
 
-bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, int method, double confidence, double outliers) {
+bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, int method, double confidence, double outliers) {
     double lastError = 0;
     int N;
-    std::vector<pointCorrespStruct> goodMatches;
-    std::vector<pointCorrespStruct> lastIterLineMatches;
+    std::vector<pointCorrespStruct> goodPointMatches;
+    //std::vector<pointCorrespStruct> lastIterLineMatches;
     bestSubset.subsetError = 0;
-    int iteration = 0;
+    //int iteration = 0;
     int stableSolutions = 0;
     double dError = 0;
     int removedMatches = 0;
+    double errorThr = 0.00001;
 
     if(LOG_DEBUG) std::cout << "-- findPointHomography: confidence = " << confidence << ", relative outliers = " << outliers << std::endl;
 
-    goodMatches.clear();
-    for(std::vector<pointCorrespStruct>::const_iterator it = pointCorrespondencies.begin() ; it != pointCorrespondencies.end(); ++it) {
-        goodMatches.push_back(*it);
+    goodPointMatches.clear();
+    for(std::vector<pointCorrespStruct>::const_iterator it = goodMatches.begin() ; it != goodMatches.end(); ++it) {
+        goodPointMatches.push_back(*it);
     }
+
+    if(goodPointMatches.size() < NUM_POINT_CORRESP) {
+        if(LOG_DEBUG) std::cout << "-- To few line matches left! ";
+        if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
+        return false;
+    }
+
+    outliers = computeRelativeOutliers(outliers, goodPointMatches.size(), goodPointMatches.size() + removedMatches);
+    N = computeNumberOfEstimations(confidence, outliers, NUM_POINT_CORRESP);
+    if(!estimateHomography(bestSubset, goodPointMatches, method, N, errorThr)) {
+        if(LOG_DEBUG) std::cout << "-- Only colinear points left! ";
+        if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
+        return false;
+    }
+
+    errorThr = bestSubset.subsetError;
+
+    int iterationLM = 0;
 
     do {
 
-        iteration++;
+        iterationLM++;
 
-        if(LOG_DEBUG) std::cout << "-- Iteration: " << iteration <<"/" << MAX_NUMERICAL_OPTIMIZATION_ITERATIONS << ", Used number of matches: " << goodMatches.size() << std::endl;
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << MAX_NUMERICAL_OPTIMIZATION_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
 
-        if(goodMatches.size() < NUM_POINT_CORRESP) {
-            if(LOG_DEBUG) std::cout << "-- To few line matches left! ";
-            if(iteration == 1) {
-                if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
-                return false;
+        Mat H = bestSubset.Hs;
+        Mat H_inv = bestSubset.Hs.inv(DECOMP_SVD);
+        bestSubset.pointCorrespondencies.clear();
+        for(int i = 0; i < allMatches.size(); i++) {
+            pointCorrespStruct pc = allMatches.at(i);
+            if(errorFunctionHPoints_(H_inv, H, pc) < sqrt(errorThr)/iterationLM) {        //errorThr
+                bestSubset.pointCorrespondencies.push_back(pc);
             }
-            if(LOG_DEBUG) std::cout << "Using second best solution..." << std::endl;
-            goodMatches = lastIterLineMatches;
-            break;
         }
 
-        lastError = bestSubset.subsetError;
-
-        outliers = computeRelativeOutliers(outliers, goodMatches.size(), goodMatches.size() + removedMatches);
-        N = computeNumberOfEstimations(confidence, outliers, NUM_POINT_CORRESP);
-        if(!estimateHomography(bestSubset, goodMatches, method, N)) {
-            if(LOG_DEBUG) std::cout << "-- Only colinear points left! ";
-            if(iteration == 1) {
-                if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
-                return false;
-            }
-            if(LOG_DEBUG) std::cout << "Using second best solution..." << std::endl;
-            goodMatches = lastIterLineMatches;
-            break;
-        }
+        removedMatches = removedMatches - bestSubset.pointCorrespondencies.size();
 
         levenbergMarquardt(bestSubset);
 
-        lastIterLineMatches.clear();
-        for(int i = 0; i < goodMatches.size(); i++) {
-            lastIterLineMatches.push_back(goodMatches.at(i));
-        }
-
-        removedMatches = filterBadPointMatches(bestSubset, goodMatches, MAX_TRANSFER_DIST/(iteration));
-
-        if(iteration == MAX_NUMERICAL_OPTIMIZATION_ITERATIONS) return false;
+        if(iterationLM == MAX_NUMERICAL_OPTIMIZATION_ITERATIONS) return false;
 
         dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
-        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << std::endl;
+        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.pointCorrespondencies.size() << std::endl;
 
-        if(fabs(dError) <= MAX_ERROR_CHANGE || removedMatches == 0) stableSolutions++;
+        lastError = bestSubset.subsetError;
+
+        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || removedMatches == 0) stableSolutions++;
         else stableSolutions = 0;
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
+        if(bestSubset.pointCorrespondencies.size() <= 6) break;
+
     } while(stableSolutions < 3);
 
-    //bestSubset.pointCorrespondencies.clear();
-    for(int i = 0; i < lastIterLineMatches.size(); i++) {
-        //if(!isColinear(bestSubset.pointCorrespondencies, lastIterLineMatches.at(i))) {
-        if(isUniqe(bestSubset.pointCorrespondencies, lastIterLineMatches.at(i))) {
-            bestSubset.pointCorrespondencies.push_back(lastIterLineMatches.at(i));
-        }
-    }
-    //computeHomography(bestSubset);
-    levenbergMarquardt(bestSubset);
+    if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.pointCorrespondencies.size() << ", Mean squared error: " << bestSubset.subsetError << std::endl;
 
     bestSubset.Hs = denormalize(bestSubset.Hs, normT1, normT2);
-
-    if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.pointCorrespondencies.size() << ", Mean squared error: " << bestSubset.subsetError << std::endl;
 
     return true;
 }
 
-bool FEstimatorHPoints::estimateHomography(pointSubsetStruct &result, std::vector<pointCorrespStruct> pointCorresp, int method, int sets) {
+bool FEstimatorHPoints::estimateHomography(pointSubsetStruct &result, std::vector<pointCorrespStruct> pointCorresp, int method, int sets, double errorThr) {
     int numOfPairs = pointCorresp.size();
     std::vector<pointSubsetStruct> subsets;
     if(LOG_DEBUG) std::cout << "-- Computing "<< sets << " Homographies, using " << NUM_POINT_CORRESP << " point correspondencies each" << std::endl;
@@ -248,7 +218,7 @@ bool FEstimatorHPoints::estimateHomography(pointSubsetStruct &result, std::vecto
         } else i--;
     }
 
-    if(method == RANSAC) result = calcRANSAC(subsets, 0.6, pointCorresp);
+    if(method == RANSAC) result = calcRANSAC(subsets, errorThr, pointCorresp);
     else result = calcLMedS(subsets, pointCorresp);
     return true;
 }
@@ -314,7 +284,7 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
         Mat H_inv = it->Hs.inv(DECOMP_SVD);
         it->qualityMeasure = 0;       //count inlainers
         for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-            error = squaredPointError(it->Hs, H_inv, *pointIter);
+            error = errorFunctionHPointsSquared_(it->Hs, H_inv, *pointIter);
             if(error <= threshold) {
                 it->subsetError += error;
                 it->qualityMeasure++;
@@ -342,7 +312,7 @@ pointSubsetStruct FEstimatorHPoints::calcLMedS(std::vector<pointSubsetStruct> &s
         }
         it++;
     } while(it != subsets.end());
-
+    lMedSsubset.subsetError = lMedSsubset.qualityMeasure;
     if(LOG_DEBUG) std::cout << "-- LMEDS: " << lMedSsubset.qualityMeasure << std::endl;
     return lMedSsubset;
 }
@@ -352,7 +322,7 @@ double FEstimatorHPoints::calcMedS(pointSubsetStruct &subset, std::vector<pointC
     std::vector<double> errors;
     double error = 0;
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error = squaredPointError(subset.Hs, H_inv, *pointIter);
+        error = errorFunctionHPointsSquared_(subset.Hs, H_inv, *pointIter);
         errors.push_back(error);
         subset.subsetError += error;
     }
@@ -365,13 +335,17 @@ double FEstimatorHPoints::meanSquaredPointError(Mat H, std::vector<pointCorrespS
     Mat H_inv = H.inv(DECOMP_SVD);
     double error = 0;
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error += squaredPointError(H, H_inv, *pointIter);
+        error += errorFunctionHPointsSquared_(H, H_inv, *pointIter);
     }
     return error/pointCorresp.size();
 }
 
-double FEstimatorHPoints::squaredPointError(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
+double FEstimatorHPoints::errorFunctionHPointsSquared_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
     return errorFunctionHPointsSqared(H, H_inv, pointCorresp.x1norm, pointCorresp.x2norm);
+}
+
+double FEstimatorHPoints::errorFunctionHPoints_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
+    return errorFunctionHPoints(H, H_inv, pointCorresp.x1norm, pointCorresp.x2norm);
 }
 
 int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp) {
@@ -402,7 +376,7 @@ int FEstimatorHPoints::filterBadPointMatches(pointSubsetStruct subset, std::vect
     int removed = 0;
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
     while (it!=pointCorresp.end()) {
-        if(squaredPointError(subset.Hs, Hs_inv, *it) > threshold) {
+        if(errorFunctionHPoints_(subset.Hs, Hs_inv, *it) > threshold) {
             removed++;
             pointCorresp.erase(it);
         } else it++;
@@ -478,7 +452,7 @@ double FEstimatorHPoints::levenbergMarquardt(pointSubsetStruct &bestSubset) {
     return error;
 }
 
-Mat* FEstimatorHPoints::normalizePoints(std::vector<pointCorrespStruct> &correspondencies) {
+Mat* FEstimatorHPoints::normalizePoints(std::vector<pointCorrespStruct> &correspondencies , std::vector<pointCorrespStruct> &goodCorrespondencies) {
 
     //Normalization: Hartley, Zisserman, Multiple View Geometry in Computer Vision, p. 109
 
@@ -534,6 +508,9 @@ Mat* FEstimatorHPoints::normalizePoints(std::vector<pointCorrespStruct> &corresp
         it->x1norm = normalizationMats[0]*matVector(it->x1);
         it->x2norm = normalizationMats[1]*matVector(it->x2);
 
+        if(it->isGoodMatch) {
+            goodCorrespondencies.push_back(getPointCorrespStruct(*it));
+        }
     }
 
     return normalizationMats;

@@ -20,7 +20,7 @@
 #include "Utility.h"
 
 using namespace cv;
-int extractPointMatches(Mat image_1, Mat image_2, std::vector<Point2d> &x1, std::vector<Point2d> &x2);
+int extractPointMatches(Mat image_1, Mat image_2, std::vector<pointCorrespStruct> &allMatchedPoints);
 int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> &allMatchedLines);
 int filterLineExtractions(double minLenght, std::vector<cv::line_descriptor::KeyLine> &keylines);
 bool filterLineMatch(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2);

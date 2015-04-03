@@ -5,7 +5,6 @@
 #include "Utility.h"
 #include "FEstimatorPoints.h"
 #include "FEstimatorHLines.h"
-#include "FEstimatorHPlanes.h"
 #include "FEstimatorHPoints.h"
 
 //SYSTEM

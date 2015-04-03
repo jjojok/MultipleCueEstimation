@@ -16,7 +16,19 @@ FEstimatorPoints::FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
 }
 
 int FEstimatorPoints::extractMatches() {
-    extractPointMatches(image_1, image_2, x1, x2);
+    std::vector<pointCorrespStruct> allPointCorrespondencies;
+    extractPointMatches(image_1, image_2, allPointCorrespondencies);
+
+    for(std::vector<pointCorrespStruct>::iterator iter = allPointCorrespondencies.begin(); iter != allPointCorrespondencies.end(); ++iter) {
+        if(iter->isGoodMatch) {
+            x1.push_back(iter->x1);
+            x2.push_back(iter->x2);
+        }
+    }
+
+    if(LOG_DEBUG) std::cout << "-- Number of good matches: " << x1.size() << std::endl;
+
+    visualizePointMatches(image_1_color, image_2_color, x1, x2, 3, true, name+": good point matches");
 }
 
 bool FEstimatorPoints::compute() {
@@ -39,7 +51,7 @@ bool FEstimatorPoints::compute() {
 
     error = meanSquaredSymmeticTransferError(F, x1_used, x2_used);
 
-    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, "Used point matches");
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, name+": Used point matches");
 
     if(LOG_DEBUG) std::cout << std::endl << std::endl;
 

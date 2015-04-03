@@ -23,6 +23,7 @@ struct pointCorrespStruct {
     Mat x1norm, x2norm;
     Point2d x1, x2;
     int id;
+    bool isGoodMatch;
 };
 
 struct lineCorrespSubsetError {

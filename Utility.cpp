@@ -398,6 +398,8 @@ pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy) {
 
     pc->id = pcCopy.id;
 
+    pc->isGoodMatch = pcCopy.isGoodMatch;
+
     return *pc;
 }
 
@@ -473,6 +475,26 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Poi
     showImage(name, img, WINDOW_NORMAL, 1600);
 }
 
+void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<pointCorrespStruct> pointCorresp, int lineWidth, bool drawConnections, std::string name) {
+    Mat img;
+    hconcat(image_1_color.clone(), image_2_color.clone(), img);
+    for(int i = 0; i < pointCorresp.size(); i++) {
+        Point2f p1, p2;
+        p1 = pointCorresp.at(i).x1;
+        p2 = pointCorresp.at(i).x2;
+
+        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        cv::circle(img, p1, 2, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), 2, color, lineWidth);
+        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
+        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
+        if(drawConnections) {
+            cv::line(img, p1, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), color, lineWidth);
+        }
+    }
+    showImage(name, img, WINDOW_NORMAL, 1600);
+}
+
 void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat> x1, std::vector<Mat> x2, int lineWidth, bool drawConnections, std::string name) {
     Mat img;
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
@@ -495,8 +517,12 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat
 bool isUnity(Mat m) {       //Check main diagonal for being close to 1
     Mat diff = abs(m - Mat::eye(m.rows, m.cols, CV_64FC1));
     for(int i = 0; i < m.cols; i++) {
-        if(diff.at<double>(i,i) > MARGIN) return false;
+        if(diff.at<double>(i,i) > MARGIN) {
+            if(LOG_DEBUG) std::cout << "-- Is Unity matrix: false" << std::endl;
+            return false;
+        }
     }
+    if(LOG_DEBUG) std::cout << "-- Is Unity matrix: true" << std::endl;
     return true;
 }
 
@@ -520,7 +546,7 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
         }
     }
 
-    bool oneDifferentEigenvalue = false;
+    bool eigenvalueOK = false;
     double dist[eigenvalues.rows];
     double lastDist = 0;
     int col = 0;
@@ -528,13 +554,25 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
         Mat eig = eigenvalues.row(i);
         dist[i] = 0;
         for(int j = 0; j < eigenvalues.rows; j ++) {
-            dist[i] += squaredError(eig, eigenvalues.row(j));
+            dist[i] += fabs(eig.at<double>(0,0) - eigenvalues.row(j).at<double>(0,0));
         }
-        if(dist[i] > MARGIN) oneDifferentEigenvalue = true;
+        if(dist[i] > MARGIN*MARGIN) eigenvalueOK = true;
         if(dist[i] > lastDist) {
             col = i;
             lastDist = dist[i];
         }
+    }
+
+    if(LOG_DEBUG) std::cout << "-- Found uniqe eigenvalue: " << eigenvalueOK << ", " << eigenvalues.row(col).at<double>(0,0) << std::endl;
+
+    double eigenValDiff = 0;
+    if(col == 0) eigenValDiff = eigenvalues.row(1).at<double>(0,0) - eigenvalues.row(2).at<double>(0,0);
+    if(col == 1) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(2).at<double>(0,0);
+    if(col == 2) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(1).at<double>(0,0);
+
+    if(fabs(eigenValDiff) > MARGIN) {
+        if(LOG_DEBUG) std::cout << "-- Other eigenvalues are not equal!" << std::endl;
+        eigenvalueOK = false;
     }
 
     std::vector<Mat> e2;
@@ -543,7 +581,7 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
 
     Mat(e2.at(0)).copyTo(e);
 
-    return oneDifferentEigenvalue;
+    return eigenvalueOK;
 }
 
 std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F) {
@@ -797,6 +835,30 @@ double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d
     }
     return error/points1.size();
 }
+
+double sampsonFDistance(Mat F, std::vector<Mat> points1, std::vector<Mat> points2) {
+    double error = 0;
+    for(int i = 0; i < points1.size(); i++) {
+        error+=sampsonFDistance(F, points1.at(i), points2.at(i));
+    }
+    return error/points1.size();
+}
+
+//double sampsonFDistance(Mat F, std::vector<pointCorrespStruct> pointCorresp) {
+//    double error = 0;
+//    for(int i = 0; i < pointCorresp.size(); i++) {
+//        error+=sampsonFDistance(F, matVector(pointCorresp.at(i).x1), matVector(pointCorresp.at(i).x2));
+//    }
+//    return error/pointCorresp.size();
+//}
+
+//double sampsonFDistance(Mat F, std::vector<lineCorrespStruct> pointCorresp) {
+//    double error = 0;
+//    for(int i = 0; i < pointCorresp.size(); i++) {
+//        error+=sampsonFDistance(F, matVector(pointCorresp.at(i).x1), matVector(pointCorresp.at(i).x2));
+//    }
+//    return error/pointCorresp.size();
+//}
 
 double sampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
     Mat b1 = H*x2;

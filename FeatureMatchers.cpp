@@ -1,6 +1,6 @@
 #include "FeatureMatchers.h"
 
-int extractPointMatches(Mat image_1, Mat image_2, std::vector<Point2d> &x1, std::vector<Point2d> &x2) {
+int extractPointMatches(Mat image_1, Mat image_2, std::vector<pointCorrespStruct> &allMatchedPoints) {
     std::vector<cv::KeyPoint> keypoints_1;
     std::vector<cv::KeyPoint> keypoints_2;
 
@@ -46,29 +46,34 @@ int extractPointMatches(Mat image_1, Mat image_2, std::vector<Point2d> &x1, std:
     //-- or a small arbitary value in the event that min_dist is very
     //-- small)
     //-- PS.- radiusMatch can also be used here.
-    std::vector< DMatch > good_matches;
+    //std::vector< DMatch > good_matches;
 
     if(LOG_DEBUG) std::cout << "-- Overall matches : " << descriptors_1.rows << std::endl;
 
     for( int i = 0; i < descriptors_1.rows; i++ )
     {
+        pointCorrespStruct* pc = new pointCorrespStruct;
+        pc->x1 = keypoints_1[matches[i].queryIdx].pt;
+        pc->x2 = keypoints_2[matches[i].trainIdx].pt;
+        pc->isGoodMatch = false;
         if( matches[i].distance <= min_dist )
         {
-            good_matches.push_back( matches[i]);
+            //good_matches.push_back( matches[i]);
+            pc->isGoodMatch = true;
         }
-    }
 
-    if(LOG_DEBUG) std::cout << "-- Number of good matches: " << good_matches.size() << std::endl;
+        allMatchedPoints.push_back(*pc);
+    }
 
     // ++++
 
-    for( int i = 0; i < good_matches.size(); i++ )
-    {
-        x1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
-        x2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
-    }
+//    for( int i = 0; i < good_matches.size(); i++ )
+//    {
+//        x1.push_back(keypoints_1[good_matches[i].queryIdx].pt);
+//        x2.push_back(keypoints_2[good_matches[i].trainIdx].pt);
+//    }
 
-    return x1.size();
+    return allMatchedPoints.size();
 }
 
 int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> &allMatchedLines) {

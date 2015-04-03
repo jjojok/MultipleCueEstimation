@@ -147,9 +147,7 @@ FEstimationMethod* MultipleCueEstimation::calcFfromHPoints() {    // From: two H
 }
 
 FEstimationMethod* MultipleCueEstimation::calcFfromHPlanes() {    // From: two Homographies (one in each image)
-    FEstimatorHPlanes* estomatorPlanes = new FEstimatorHPlanes(image_1, image_2, image_1_color, image_2_color, "F_HPlanes");
-    estomatorPlanes->compute();
-    return estomatorPlanes;
+
 }
 
 FEstimationMethod* MultipleCueEstimation::calcFfromConics() {    // Maybe: something with vanishing points v1*w*v2=0 (Hartley, Zissarmen p. 235ff)
@@ -167,7 +165,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     //Select F with smallest error with respect to all features as starting point
 
     if(estimations.size() == 0) {
-        if (LOG_DEBUG) std::cout << "No Fundamental Matrix found!" << std::endl;
+        if (LOG_DEBUG) std::cout << "-- No Fundamental Matrix found!" << std::endl;
         return Mat();
     }
 
@@ -185,13 +183,13 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     }
 
     if(numValues < 8) {
-        if (LOG_DEBUG) std::cout << "Not enough features!" << std::endl;
+        if (LOG_DEBUG) std::cout << "-- Not enough features!" << std::endl;
         return Mat();
     }
 
     refinedF = bestMethod->getF().clone();
 
-    if (LOG_DEBUG) std::cout << "Starting point for optimization: " << bestMethod->name << std::endl;
+    if (LOG_DEBUG) std::cout << "-- Starting point for optimization: " << bestMethod->name << std::endl;
     double lastError = 0;
     int stableSolutions = 0;
     int iterations = 1;
@@ -208,7 +206,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
 //    Mat* T = normalize(x1, x2, x1norm, x2norm);
 
-    double errorThr = sqrt(bestMethod->meanSquaredCSTError);
+    double errorThr = 0.5*sqrt(bestMethod->meanSquaredCSTError);
 
     do {
 
@@ -233,6 +231,8 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, errorThr/(iterations));  ///(iterations)
         if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << ", Refined feature count: " << goodCombindX1.size() << "/" << numValues << ", error threshold: " << errorThr/(iterations) << std::endl;
         //thr = 3.0;
+
+        //errorThr-=errorThr/iterations;
 
 //        for(int i = 0; i < x1norm.size(); i++) {
 //            if(errorWrapper(refinedF, x1norm.at(i), x2norm.at(i)) < 1.5/(iterations*iterations)) {
@@ -278,12 +278,12 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
         double dError = (lastError - meanSquaredCombinedError)/meanSquaredCombinedError;
 
-        if((dError >= 0 && dError < 0.01) || abs(lastFeatureCount - goodCombindX1.size()) < 4) stableSolutions++;
+        if((dError >= 0 && dError < 0.01) || abs(lastFeatureCount - goodCombindX1.size()) == 0) stableSolutions++;   //abs(lastFeatureCount - goodCombindX1.size()) < 4
         else stableSolutions = 0;
 
         lastFeatureCount = goodCombindX1.size();
 
-        if (LOG_DEBUG) std::cout <<"Error: " << meanSquaredCombinedError << ", rel. error change: " << dError << ", stable solutions: " << stableSolutions << std::endl;
+        if (LOG_DEBUG) std::cout <<"-- Error: " << meanSquaredCombinedError << ", rel. error change: " << dError << ", stable solutions: " << stableSolutions << std::endl;
 
         lastError = meanSquaredCombinedError;
 

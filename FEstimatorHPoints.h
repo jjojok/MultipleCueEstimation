@@ -13,21 +13,25 @@ public:
 
 private:
 
-    std::vector<pointCorrespStruct> pointCorrespondencies; //corresponding points in image 1 and 2
-    bool estimateHomography(pointSubsetStruct &result, std::vector<pointCorrespStruct> pointCorresp, int method, int sets);
+    bool estimateHomography(pointSubsetStruct &result, std::vector<pointCorrespStruct> pointCorresp, int method, int sets, double errorThr);
     pointSubsetStruct calcRANSAC(std::vector<pointSubsetStruct> &subsets, double threshold, std::vector<pointCorrespStruct> pointCorresp);
     pointSubsetStruct calcLMedS(std::vector<pointSubsetStruct> &subsets, std::vector<pointCorrespStruct> pointCorresp);
     double calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp);
-    bool findPointHomography(pointSubsetStruct &bestSubset, int method, double confidence, double outliers);
-    double squaredPointError(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
-    double meanSquaredPointError(Mat H, std::vector<pointCorrespStruct> pointCorresp);
+    bool findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, int method, double confidence, double outliers);
+    double errorFunctionHPointsSquared_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
     int filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp);
     void computeHomography(pointSubsetStruct &subset);
     int filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold);
     bool isColinear(std::vector<pointCorrespStruct> fixedCorresp, pointCorrespStruct pcNew);
     double levenbergMarquardt(pointSubsetStruct &bestSubset);
-    Mat* normalizePoints(std::vector<pointCorrespStruct> &correspondencies);
+    Mat* normalizePoints(std::vector<pointCorrespStruct> &correspondencies , std::vector<pointCorrespStruct> &goodCorrespondencies);
     bool isUniqe(std::vector<pointCorrespStruct> existingCorresp, pointCorrespStruct newCorresp);
+    double errorFunctionHPoints_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
+    double meanSquaredPointError(Mat H, std::vector<pointCorrespStruct> pointCorresp);
+
+    std::vector<pointCorrespStruct> goodMatchedPoints;  //Vector of (good) corresponing points
+    std::vector<pointCorrespStruct> allMatchedPoints;  //Vector of (all) corresponing points
+
 };
 
 #endif // FESTIMATORHPOINTS_H
