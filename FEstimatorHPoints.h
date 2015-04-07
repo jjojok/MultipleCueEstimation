@@ -18,7 +18,7 @@ private:
     pointSubsetStruct calcLMedS(std::vector<pointSubsetStruct> &subsets, std::vector<pointCorrespStruct> pointCorresp);
     double calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp);
     bool findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, int method, double confidence, double outliers);
-    double errorFunctionHPointsSquared_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
+    double errorFunctionHPointsSquared_(Mat H, pointCorrespStruct pointCorresp);
     int filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp);
     void computeHomography(pointSubsetStruct &subset);
     int filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold);
@@ -26,7 +26,7 @@ private:
     double levenbergMarquardt(pointSubsetStruct &bestSubset);
     Mat* normalizePoints(std::vector<pointCorrespStruct> &correspondencies , std::vector<pointCorrespStruct> &goodCorrespondencies);
     bool isUniqe(std::vector<pointCorrespStruct> existingCorresp, pointCorrespStruct newCorresp);
-    double errorFunctionHPoints_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
+    double errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp);
     double meanSquaredPointError(Mat H, std::vector<pointCorrespStruct> pointCorresp);
 
     std::vector<pointCorrespStruct> goodMatchedPoints;  //Vector of (good) corresponing points

@@ -87,8 +87,6 @@ std::string getType(Mat m) {
         case CV_64F: type+="CV_64F"; break;
         default: type+="unknown"; break;
     }
-//    type+=", depth: ";
-//    type+=(DEPTH_MASK & m.type());
     return type;
 }
 
@@ -124,29 +122,15 @@ void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, 
 
     // Draw points
     std::vector<cv::Point2d>::const_iterator itPts= p1.begin();
-    //std::vector<uchar>::const_iterator itIn= inliers.begin();
     while (itPts!=p1.end()) {
-
-        // draw a circle at each inlier location
-        //if (*itIn) {
             cv::circle(image1,*itPts,3,cv::Scalar(255,255,255),2);
-            //points1In.push_back(*itPts);
-       // }
         ++itPts;
-        //++itIn;
     }
 
     itPts= p2.begin();
-    //itIn= inliers.begin();
     while (itPts!=p2.end()) {
-
-        // draw a circle at each inlier location
-        //if (*itIn) {
             cv::circle(image2,*itPts,3,cv::Scalar(255,255,255),2);
-            //points2In.push_back(*itPts);
-        //}
         ++itPts;
-        //++itIn;
     }
 
     // Display the images with points
@@ -271,7 +255,6 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat imag
         double l2F1a = 0, l2F1b = 0;
 
         Mat l2F1homog;
-       //Mat img1;
 
         int trys = 1;
         do {    //Draw random point until it's epipolar line intersects image 2
@@ -294,17 +277,6 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat imag
 
             trys++;
 
-//            if(trys > 20) {
-//            img1 = image1.clone();
-//            circle(img1, cvPoint(x,y), 5, Scalar(255,255,255), 3);
-//            circle(img1, cvPoint(x,y), 30, Scalar(255,255,255), 6);
-//            Mat img2 = image2.clone();
-//            cv::line(img2,cv::Point(0,-l2F1homog.at<double>(2,0)/l2F1homog.at<double>(1,0)), cv::Point(image1.cols,-(l2F1homog.at<double>(2,0)+l2F1homog.at<double>(0,0)*image1.cols)/l2F1homog.at<double>(1,0)),cv::Scalar(255,255,255), 2);
-//            Mat img;
-//            hconcat(img1, img2, img);
-//            showImage("test 1, 2", img);
-//            waitKey(0);}
-
         } while((xMin > xMax) && (trys < MAX_SAMPLE_TRYS));
 
         if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
@@ -318,28 +290,16 @@ double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat imag
         circle(img2, cvPoint(x,y), 5, Scalar(255,255,255), 3);
         circle(img2, cvPoint(x,y), 30, Scalar(255,255,255), 6);
 
- //       cv::line(img2,cv::Point(0,-l2F1homog.at<double>(2,0)/l2F1homog.at<double>(1,0)), cv::Point(image1.cols,-(l2F1homog.at<double>(2,0)+l2F1homog.at<double>(0,0)*image1.cols)/l2F1homog.at<double>(1,0)),cv::Scalar(255,0,0), 2);
-
         //Compute distance of chosen random point to epipolar line of F2
         Mat p2homog = matVector(x, y, 1);
         Mat l2F2homog = F2*p1homog;
         l2F2homog /= l2F2homog.at<double>(1,0);
         epipolarDistSum+=fabs(Mat(p2homog.t()*l2F2homog).at<double>(0,0));
 
-//        cv::line(img2,cv::Point(0,-l2F2homog.at<double>(2,0)/l2F2homog.at<double>(1,0)), cv::Point(image1.cols,-(l2F2homog.at<double>(2,0)+l2F2homog.at<double>(0,0)*image1.cols)/l2F2homog.at<double>(1,0)),cv::Scalar(255,255,255), 2);
-
         //Compute distance of point1 to epipolar line from random point using F2^T in image 1
-
         Mat l1F2homog = F2.t()*p2homog;
         l1F2homog /= l1F2homog.at<double>(1,0);
         epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
-
-//        cv::line(img1,cv::Point(0,-l1F2homog.at<double>(2,0)/l1F2homog.at<double>(1,0)), cv::Point(image1.cols,-(l1F2homog.at<double>(2,0)+l1F2homog.at<double>(0,0)*image1.cols)/l1F2homog.at<double>(1,0)),cv::Scalar(255,255,255), 2);
-
-//        showImage("test1_", img1);
-//        showImage("test2", img2);
-//        waitKey(0);
-
     }
     return epipolarDistSum/(2.0*numOfSamples);
 }
@@ -466,8 +426,6 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Poi
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
         cv::circle(img, p1.at(i), 2, color, lineWidth);
         cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), 2, color, lineWidth);
-        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
-        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
         if(drawConnections) {
             cv::line(img, p1.at(i), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
         }
@@ -486,8 +444,6 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<poi
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
         cv::circle(img, p1, 2, color, lineWidth);
         cv::circle(img, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), 2, color, lineWidth);
-        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
-        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
         if(drawConnections) {
             cv::line(img, p1, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), color, lineWidth);
         }
@@ -505,8 +461,6 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
         cv::circle(img, cvPoint2D32f(p1.at<double>(0,0), p1.at<double>(1,0)), 2, color, lineWidth);
         cv::circle(img, cvPoint2D32f(p2.at<double>(0,0) + image_1_color.cols, p2.at<double>(1,0)), 2, color, lineWidth);
-        //cv::line(img, p1.at(i), p1.at(i), color, lineWidth);
-        //cv::line(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
         if(drawConnections) {
             cv::line(img, cvPoint2D32f(p1.at<double>(0,0), p1.at<double>(1,0)), cvPoint2D32f(p2.at<double>(0,0) + image_1_color.cols, p2.at<double>(1,0)), color, lineWidth);
         }
@@ -563,7 +517,8 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
         }
     }
 
-    if(LOG_DEBUG) std::cout << "-- Found uniqe eigenvalue: " << eigenvalueOK << ", " << eigenvalues.row(col).at<double>(0,0) << std::endl;
+    if(LOG_DEBUG && eigenvalueOK) std::cout << "-- Found uniqe eigenvalue: " << eigenvalues.row(col).at<double>(0,0) << std::endl;
+    if(LOG_DEBUG && !eigenvalueOK) std::cout << "-- Found no uniqe eigenvalue!" << std::endl;
 
     double eigenValDiff = 0;
     if(col == 0) eigenValDiff = eigenvalues.row(1).at<double>(0,0) - eigenvalues.row(2).at<double>(0,0);
@@ -589,28 +544,12 @@ std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> esti
     std::vector<double> *errorVect = new std::vector<double>();
 
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-
-//        if(estimationIter->getType() == F_FROM_LINES_VIA_H) {   //Line correspondencies != point correspondencies
-//            Mat H = computeGeneralHomography(F);
-//            Mat H_invT = H.inv(DECOMP_SVD).t();
-//            Mat H_T = H.t();
-//            for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size()/2; i++)
-//            {
-//                double err1, err2;
-//                //err1 = transferLineError(H_T, estimationIter->getFeaturesImg1().at(2*i), estimationIter->getFeaturesImg1().at(2*i+1), estimationIter->getFeaturesImg2().at(2*i), estimationIter->getFeaturesImg2().at(2*i+1));
-//                /err2 = transferLineError(H_invT, estimationIter->getFeaturesImg2().at(2*i), estimationIter->getFeaturesImg2().at(2*i+1), estimationIter->getFeaturesImg1().at(2*i), estimationIter->getFeaturesImg1().at(2*i+1));
-//                errorVect->push_back((err1 + err2)/2.0);
-//            }
-//        } else {
-            for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
-            {
-                Mat x1 = estimationIter->getFeaturesImg1().at(i);
-                Mat x2 = estimationIter->getFeaturesImg2().at(i);
-                //if(estimationIter->getType() != F_FROM_LINES_VIA_H || (estimationIter->getType() == F_FROM_LINES_VIA_H && symmeticTransferError(F, x1, x2) < MAX_TRANSFER_DIST)) {      //Remove line correspondencies where line tips are no point correspondencies
-                    errorVect->push_back(errorFunctionFPoints(F, x1, x2));
-                //}
-            }
-        //}
+        for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
+        {
+            Mat x1 = estimationIter->getFeaturesImg1().at(i);
+            Mat x2 = estimationIter->getFeaturesImg2().at(i);
+            errorVect->push_back(errorFunctionFPoints(F, x1, x2));
+        }
     }
     return *errorVect;
 }
@@ -658,15 +597,6 @@ void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::ve
 
 void computeEpipoles(Mat F, Mat &e1, Mat &e2) {     //See Hartley, Ziss p.246
 
-//    SVD svd;
-//    Mat u, vt, w;
-//    svd.compute(F, w, u, vt);
-
-//    e1 = Mat(vt.row(2).t());
-//    svd.compute(F.t(), w, u, vt);
-
-//    e2 = Mat(vt.row(2).t());
-
     /**********************************
      * http://eigen.tuxfamily.org/dox/group__TutorialLinearAlgebra.html
      * ********************************/
@@ -689,42 +619,22 @@ void computeEpipoles(Mat F, Mat &e1, Mat &e2) {     //See Hartley, Ziss p.246
 
 Mat computeGeneralHomography(Mat F) {       //See Hartley, Ziss p.243
     Mat e1, e2;
-
     computeEpipoles(F, e1, e2);
     Mat H = crossProductMatrix(e2).inv(DECOMP_SVD)*F;
     H /= H.at<double>(2,2);
-    //if(LOG_DEBUG) std::cout << "-- computed H = " << std::endl << H << std::endl;
-
     return H;
 }
-
-//void symmeticTransferLineError(Mat H_invT, Mat H_T, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End, double *err1, double *err2) {
-////    Mat A = H_T*crossProductMatrix(line2Start)*line2End;
-////    Mat start1 = line1Start.t()*A;
-////    Mat end1 = line1End.t()*A;
-////    Mat B = H_invT*crossProductMatrix(line1Start)*line1End;
-////    Mat start2 = line2Start.t()*B;
-////    Mat end2 = line2End.t()*B;
-
-////    *err1 = Mat((start1+end1)/).at<double>(0,0);
-////    *err2 = Mat(start2+end2).at<double>(0,0);
-
-//    *err1 = squaredTransferLineError(H_T, line1Start, line1End, line2Start, line2End);
-//    *err2 = squaredTransferLineError(H_invT, line2Start, line2End, line1Start, line1End);
-//}
 
 double errorFunctionHLinesSqared(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
     return squaredTransferLineError(H, line1Start, line1End, line2Start, line2End);
 }
 
 double errorFunctionFPointsSquared(Mat F, Mat x1, Mat x2) {
-    //return computeUnsquaredSampsonFDistance(F, x1, x2);
     return sampsonFDistance(F, x1, x2);
-    //return symmeticTransferError(F, x1, x2);
 }
 
-double errorFunctionHPointsSqared(Mat H, Mat H_inv, Mat x1, Mat x2) {
-    return sampsonHDistance(H, H_inv, x1, x2);
+double errorFunctionHPointsSqared(Mat H, Mat x1, Mat x2) {
+    return sampsonHDistance(H, x1, x2);
 }
 
 double errorFunctionHLines(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
@@ -735,8 +645,8 @@ double errorFunctionFPoints(Mat F, Mat x1, Mat x2) {
     return std::sqrt(errorFunctionFPointsSquared(F, x1, x2));
 }
 
-double errorFunctionHPoints(Mat H, Mat H_inv, Mat x1, Mat x2) {
-    return std::sqrt(errorFunctionHPointsSqared(H, H_inv, x1, x2));
+double errorFunctionHPoints(Mat H, Mat x1, Mat x2) {
+    return std::sqrt(errorFunctionHPointsSqared(H, x1, x2));
 }
 
 double symmeticTransferError(Mat F, Mat x1, Mat x2) {
@@ -752,15 +662,9 @@ double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2St
     double Ay = std::pow(A.at<double>(1,0), 2);
     Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
     return result.at<double>(0,0);
-
-//    Mat A = (line1Start.t()*H*crossProductMatrix(line2Start)*line2End)*(line1Start.t()*H*crossProductMatrix(line2Start)*line2End) + (line1End.t()*H*crossProductMatrix(line2Start)*line2End)*(line1End.t()*H*crossProductMatrix(line2Start)*line2End);
-//    Mat B = H*crossProductMatrix(line2Start)*line2End;
-
-//    return std::pow(A.at<double>(0,0),2)/(std::pow(B.at<double>(0,0),2)+std::pow(B.at<double>(1,0),2));
 }
 
 double transferPointError(Mat H, Mat x1, Mat x2) {
-    //return Mat(crossProductMatrix(x2)*H*x1.t()).at<double>(0,0);
     Mat __x2 = x2/x2.at<double>(2,0);
     Mat _x2 = H*x1;
     _x2 /= _x2.at<double>(2,0);
@@ -768,7 +672,6 @@ double transferPointError(Mat H, Mat x1, Mat x2) {
 }
 
 double symmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2) {
-    //return computeUnsquaredSampsonHDistance(H, H_inv, x1, x2);
     return transferPointError(H, x1, x2) + transferPointError(H_inv, x2, x1);
 }
 
@@ -777,7 +680,6 @@ double squaredTransferPointError(Mat H, Mat x1, Mat x2) {
 }
 
 double squaredSymmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2) {
-    //return sampsonHDistance(H, H_inv, x1, x2);
     return squaredTransferPointError(H, x1, x2) + squaredTransferPointError(H_inv, x2, x1);
 }
 
@@ -844,28 +746,29 @@ double sampsonFDistance(Mat F, std::vector<Mat> points1, std::vector<Mat> points
     return error/points1.size();
 }
 
-//double sampsonFDistance(Mat F, std::vector<pointCorrespStruct> pointCorresp) {
-//    double error = 0;
-//    for(int i = 0; i < pointCorresp.size(); i++) {
-//        error+=sampsonFDistance(F, matVector(pointCorresp.at(i).x1), matVector(pointCorresp.at(i).x2));
-//    }
-//    return error/pointCorresp.size();
-//}
+double sampsonHDistance(Mat H, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
 
-//double sampsonFDistance(Mat F, std::vector<lineCorrespStruct> pointCorresp) {
-//    double error = 0;
-//    for(int i = 0; i < pointCorresp.size(); i++) {
-//        error+=sampsonFDistance(F, matVector(pointCorresp.at(i).x1), matVector(pointCorresp.at(i).x2));
-//    }
-//    return error/pointCorresp.size();
-//}
+    Mat E = crossProductMatrix(x2)*H*x1;
+    Mat J = Mat::zeros(3,4,CV_64FC1);
 
-double sampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
-    Mat b1 = H*x2;
-    Mat b2 = H_inv*x1;
-    homogMat(b1);
-    homogMat(b2);
-    return pow(norm(x1 - b1), 2) + pow(norm(x2 - b2),2);
+    Mat H1 = H.row(0).t();
+    Mat H2 = H.row(1).t();
+    Mat H3 = H.row(2).t();
+
+    //dE/dx
+    J.col(0) = x2.cross(H1);
+    //dE/dy
+    J.col(1) = x2.cross(H2);
+    //dE/dx'
+    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
+    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
+    //dE/dy'
+    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
+    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
+
+    Mat error = E.t()*(J*J.t()).inv(DECOMP_SVD)*E;
+
+    return error.at<double>(0,0);
 }
 
 void homogMat(Mat &m) {
@@ -949,4 +852,249 @@ double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std:
     if(LOG_DEBUG) std::cout << "-- Computed sampson distance for " << used << "/" << x1.size() << " points: " << error << std::endl;
     return error;
 }
+
+//double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H)
+//{
+//    double h[9];
+//    double m1[2];
+//    double m2[2];
+//    double err;
+
+//    m1[0] = x1.at<double>(0,0);
+//    m1[1] = x1.at<double>(1,0);
+//    m2[0] = x2.at<double>(0,0);
+//    m2[1] = x2.at<double>(1,0);
+//    h[0] = H.at<double>(0,0);
+//    h[1] = H.at<double>(0,1);
+//    h[2] = H.at<double>(0,2);
+//    h[3] = H.at<double>(1,0);
+//    h[4] = H.at<double>(1,1);
+//    h[5] = H.at<double>(10,2);
+//    h[6] = H.at<double>(2,0);
+//    h[7] = H.at<double>(2,1);
+//    h[8] = H.at<double>(2,2);
+
+//    /*****************************************
+//     * From: http://users.ics.forth.gr/~lourakis/homest/
+//     * ***************************************/
+//  double t1;
+//  double t10;
+//  double t100;
+//  double t104;
+//  double t108;
+//  double t112;
+//  double t118;
+//  double t12;
+//  double t122;
+//  double t125;
+//  double t126;
+//  double t129;
+//  double t13;
+//  double t139;
+//  double t14;
+//  double t141;
+//  double t144;
+//  double t15;
+//  double t150;
+//  double t153;
+//  double t161;
+//  double t167;
+//  double t17;
+//  double t174;
+//  double t18;
+//  double t19;
+//  double t193;
+//  double t199;
+//  double t2;
+//  double t20;
+//  double t201;
+//  double t202;
+//  double t21;
+//  double t213;
+//  double t219;
+//  double t22;
+//  double t220;
+//  double t222;
+//  double t225;
+//  double t23;
+//  double t236;
+//  double t24;
+//  double t243;
+//  double t250;
+//  double t253;
+//  double t26;
+//  double t260;
+//  double t27;
+//  double t271;
+//  double t273;
+//  double t28;
+//  double t29;
+//  double t296;
+//  double t3;
+//  double t30;
+//  double t303;
+//  double t31;
+//  double t317;
+//  double t33;
+//  double t331;
+//  double t335;
+//  double t339;
+//  double t34;
+//  double t342;
+//  double t345;
+//  double t35;
+//  double t350;
+//  double t354;
+//  double t36;
+//  double t361;
+//  double t365;
+//  double t37;
+//  double t374;
+//  double t39;
+//  double t4;
+//  double t40;
+//  double t41;
+//  double t42;
+//  double t43;
+//  double t44;
+//  double t45;
+//  double t46;
+//  double t47;
+//  double t49;
+//  double t51;
+//  double t57;
+//  double t6;
+//  double t65;
+//  double t66;
+//  double t68;
+//  double t69;
+//  double t7;
+//  double t72;
+//  double t78;
+//  double t8;
+//  double t86;
+//  double t87;
+//  double t90;
+//  double t95;
+//  {
+//    t1 = m2[0];
+//    t2 = h[6];
+//    t3 = t2*t1;
+//    t4 = m1[0];
+//    t6 = h[7];
+//    t7 = t1*t6;
+//    t8 = m1[1];
+//    t10 = h[8];
+//    t12 = h[0];
+//    t13 = t12*t4;
+//    t14 = h[1];
+//    t15 = t14*t8;
+//    t17 = t3*t4+t7*t8+t1*t10-t13-t15-h[2];
+//    t18 = m2[1];
+//    t19 = t18*t18;
+//    t20 = t2*t2;
+//    t21 = t19*t20;
+//    t22 = t18*t2;
+//    t23 = h[3];
+//    t24 = t23*t22;
+//    t26 = t23*t23;
+//    t27 = t6*t6;
+//    t28 = t19*t27;
+//    t29 = t18*t6;
+//    t30 = h[4];
+//    t31 = t29*t30;
+//    t33 = t30*t30;
+//    t34 = t4*t4;
+//    t35 = t20*t34;
+//    t36 = t2*t4;
+//    t37 = t6*t8;
+//    t39 = 2.0*t36*t37;
+//    t40 = t36*t10;
+//    t41 = 2.0*t40;
+//    t42 = t8*t8;
+//    t43 = t42*t27;
+//    t44 = t37*t10;
+//    t45 = 2.0*t44;
+//    t46 = t10*t10;
+//    t47 = t21-2.0*t24+t26+t28-2.0*t31+t33+t35+t39+t41+t43+t45+t46;
+//    t49 = t12*t12;
+//    t51 = t6*t30;
+//    t57 = t20*t2;
+//    t65 = t1*t1;
+//    t66 = t65*t20;
+//    t68 = t65*t57;
+//    t69 = t4*t10;
+//    t72 = t2*t49;
+//    t78 = t27*t6;
+//    t86 = t65*t78;
+//    t87 = t8*t10;
+//    t90 = t65*t27;
+//    t95 = -2.0*t49*t18*t51-2.0*t3*t12*t46-2.0*t1*t57*t12*t34-2.0*t3*t12*t33+t66
+//*t43+2.0*t68*t69+2.0*t72*t69-2.0*t7*t14*t46-2.0*t1*t78*t14*t42-2.0*t7*t14*t26+
+//2.0*t86*t87+t90*t35+2.0*t49*t6*t87;
+//    t100 = t14*t14;
+//    t104 = t100*t2;
+//    t108 = t2*t23;
+//    t112 = t78*t42*t8;
+//    t118 = t57*t34*t4;
+//    t122 = t10*t26;
+//    t125 = t57*t4;
+//    t126 = t10*t19;
+//    t129 = t78*t8;
+//    t139 = -2.0*t57*t34*t18*t23+2.0*t100*t6*t87+2.0*t104*t69-2.0*t100*t18*t108+
+//4.0*t36*t112+6.0*t43*t35+4.0*t118*t37+t35*t28+2.0*t36*t122+2.0*t125*t126+2.0*
+//t129*t126+2.0*t37*t122-2.0*t78*t42*t18*t30+t43*t21;
+//    t141 = t10*t33;
+//    t144 = t46*t18;
+//    t150 = t46*t19;
+//    t153 = t46*t10;
+//    t161 = t27*t27;
+//    t167 = 2.0*t36*t141-2.0*t144*t108+2.0*t37*t141+t66*t33+t150*t27+t150*t20+
+//4.0*t37*t153+6.0*t43*t46+4.0*t112*t10+t43*t33+t161*t42*t19+t43*t26+4.0*t36*t153
+//;
+//    t174 = t20*t20;
+//    t193 = 6.0*t35*t46+4.0*t10*t118+t35*t33+t35*t26+t174*t34*t19+t100*t27*t42+
+//t100*t20*t34+t100*t19*t20+t90*t46+t65*t161*t42+t90*t26+t49*t27*t42+t49*t20*t34+
+//t49*t19*t27;
+//    t199 = t34*t34;
+//    t201 = t12*t23;
+//    t202 = t14*t30;
+//    t213 = t42*t42;
+//    t219 = t66*t46+t100*t26+t46*t100+t174*t199-2.0*t201*t202-2.0*t144*t51+t46*
+//t26+t65*t174*t34+t49*t33+t49*t46+t46*t33+t161*t213-2.0*t7*t14*t20*t34;
+//    t220 = t1*t27;
+//    t222 = t36*t8;
+//    t225 = t7*t14;
+//    t236 = t4*t6*t8;
+//    t243 = t3*t12;
+//    t250 = t46*t46;
+//    t253 = t1*t20;
+//    t260 = -4.0*t220*t14*t222-4.0*t225*t40-4.0*t220*t15*t10+2.0*t90*t40+2.0*
+//t225*t24+2.0*t72*t236-2.0*t3*t12*t27*t42-4.0*t243*t44+2.0*t66*t44+2.0*t243*t31+
+//t250+2.0*t68*t236-4.0*t253*t12*t236-4.0*t253*t13*t10;
+//    t271 = t4*t20;
+//    t273 = t8*t18;
+//    t296 = t10*t18;
+//    t303 = 2.0*t104*t236-2.0*t35*t31+12.0*t35*t44+2.0*t125*t37*t19-4.0*t271*t6*
+//t273*t23+2.0*t36*t37*t26+2.0*t36*t129*t19-4.0*t36*t27*t273*t30+2.0*t36*t37*t33+
+//12.0*t36*t43*t10+12.0*t36*t37*t46-4.0*t271*t296*t23+2.0*t36*t126*t27;
+//    t317 = t18*t14;
+//    t331 = t14*t2;
+//    t335 = t12*t18;
+//    t339 = t220*t18;
+//    t342 = t7*t30;
+//    t345 = t317*t6;
+//    t350 = -4.0*t31*t40-2.0*t43*t24+2.0*t37*t126*t20-4.0*t44*t24-4.0*t27*t8*
+//t296*t30-2.0*t253*t317*t30-2.0*t65*t2*t23*t6*t30+2.0*t3*t23*t14*t30-2.0*t12*t19
+//*t331*t6+2.0*t335*t331*t30-2.0*t201*t339+2.0*t201*t342+2.0*t201*t345+2.0*t86*
+//t222;
+//    t354 = 1/(t95+t139+t167+t193+t219+t260+t303+t350);
+//    t361 = t22*t4+t29*t8+t296-t23*t4-t30*t8-h[5];
+//    t365 = t253*t18-t3*t23-t335*t2+t201+t339-t342-t345+t202;
+//    t374 = t66-2.0*t243+t49+t90-2.0*t225+t100+t35+t39+t41+t43+t45+t46;
+//    err = sqrt((t17*t47*t354-t361*t365*t354)*t17+(-t17*t365*t354+t361*t374*
+//t354)*t361);
+//    return err;
+//  }
+//}
 

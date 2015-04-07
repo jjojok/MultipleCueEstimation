@@ -19,7 +19,7 @@
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
 //Max number of numerical refinement steps after a first homographie was found
-#define MAX_NUMERICAL_OPTIMIZATION_ITERATIONS 300
+#define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 300
 //Max squared distance of lines to be considered as a correct projection (pixel)
 #define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to beconsidered as stable
@@ -29,9 +29,11 @@
 //How close two values have to be to be considered equal
 #define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
-#define MAX_H2_ESTIMATIONS 50
+#define MAX_H2_ESTIMATIONS 20
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
+//Minimal number of matches to stop numerical optimization
+#define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
 
 //Points:
 //Sift features
@@ -49,7 +51,7 @@
 //Number of point correspondencies per homography estimation
 #define NUM_POINT_CORRESP 4//6
 //Max distance from point to line for 3 points to be colinear
-#define MAX_COLINEAR_DIST 5.0
+#define MAX_COLINEAR_DIST 4.0
 
 //Number of segements for image pyramid
 #define OCTAVES 2

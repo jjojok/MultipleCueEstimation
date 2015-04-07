@@ -61,30 +61,30 @@ double errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2
 void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist);
 void computeEpipoles(Mat F, Mat &e1, Mat &e2);
 Mat computeGeneralHomography(Mat F);
-//void symmeticTransferLineError(Mat H_invT, Mat H_T, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End, double *err1, double *err2);
 pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy);
 double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount);
 int computeNumberOfEstimations(double confidence, double outliers, int corrspNumber);
 bool isUniqe(std::vector<int> subsetsIdx, int newIdx);
 void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat> x1, std::vector<Mat> x2, int lineWidth, bool drawConnections, std::string name);
 void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<pointCorrespStruct> pointCorresp, int lineWidth, bool drawConnections, std::string name);
+void homogMat(Mat &m);
+Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1norm, std::vector<Mat> &x2norm);
 
-//Error functions Homography:
+//Error functions:
+//double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H);
 double errorFunctionHLinesSqared(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double errorFunctionFPointsSquared(Mat F, Mat x1, Mat x2);
-double errorFunctionHPointsSqared(Mat H, Mat H_inv, Mat x1, Mat x2);
+double errorFunctionHPointsSqared(Mat H, Mat x1, Mat x2);
 double errorFunctionHLines(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double errorFunctionFPoints(Mat F, Mat x1, Mat x2);
-double errorFunctionHPoints(Mat H, Mat H_inv, Mat x1, Mat x2);
+double errorFunctionHPoints(Mat H, Mat x1, Mat x2);
 double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double squaredSymmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2);
 double sampsonHDistance(Mat H, Mat x1, Mat x2);
-double sampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2);
 double computeUnsquaredSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2);
 double transferPointError(Mat H, Mat p1, Mat p2);
 double symmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2);
 double squaredTransferPointError(Mat H, Mat x1, Mat x2);
-//Error functions Fundamental mat:
 double errorFunctionFPointsSquared(Mat F, Mat x1, Mat x2);
 double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2);
 double sampsonFDistance(Mat F, Mat x1, Mat x2);
@@ -92,8 +92,6 @@ double sampsonFDistance(Mat F, std::vector<Mat> points1, std::vector<Mat> points
 double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double symmeticTransferError(Mat F, Mat x1, Mat x2);
-void homogMat(Mat &m);
-Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1norm, std::vector<Mat> &x2norm);
 double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2);
 
 #endif // UTILITY_H

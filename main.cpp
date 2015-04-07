@@ -6,10 +6,9 @@
 #include <fstream>
 
 //TODO:
-//- Fix HPoints sccording to hlines
+//- Fro refinement: select best F based on inlaiers not genral error
 //- Find a good starting value for ransac thr according to noralization
-//- Debig output: number of correct matches for each estimation
-//- More iterations/smaller error thr for refinement step
+//- Debug output: number of correct matches for each estimation
 //- Use sampson error for HPoints (Hartley, Ziss: p98 (Homography), p287 (Fundamental)
 //- Discard global optimization if result is worse then one of the intermediate results
 //- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar and http://users.ics.forth.gr/~lourakis/homest/

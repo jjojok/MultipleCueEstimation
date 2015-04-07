@@ -60,7 +60,8 @@ Mat MultipleCueEstimation::compute() {
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
             std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
             if (compareWithGroundTruth) {
-                it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
+                //it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
+                it->meanSquaredRSSTError = -2;
                 double error2 = squaredError(Fgt, it->getF());
                 if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << it->meanSquaredRSSTError << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getError() << std::endl;
                 double error3 = meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1combined, x2combined);
@@ -75,7 +76,8 @@ Mat MultipleCueEstimation::compute() {
         if(F.data) {
             std::cout << "Refined F = " << std::endl << F << std::endl;
             if (compareWithGroundTruth) {
-                meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, F, image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
+                //meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, F, image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
+                meanSquaredRSSTError = -2;
                 double error2 = squaredError(Fgt, F);
                 if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << meanSquaredRSSTError << ", Squated distance: " << error2 << std::endl;
                 double error3 = meanSampsonFDistanceGoodMatches(Fgt, F, x1combined, x2combined);
@@ -205,8 +207,13 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 //    }
 
 //    Mat* T = normalize(x1, x2, x1norm, x2norm);
+    double errorThr;
+    if(bestMethod->meanSquaredCSTError < 15000) {
+        errorThr = 0.5*sqrt(bestMethod->meanSquaredCSTError);
+    } else {
+        errorThr = 5.0;
+    }
 
-    double errorThr = 0.5*sqrt(bestMethod->meanSquaredCSTError);
 
     do {
 
@@ -228,9 +235,12 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         std::vector<Mat> goodCombindX2;
 
         homogMat(refinedF);
-        findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, errorThr/(iterations));  ///(iterations)
+
+        findGoodCombinedMatches(estimations, goodCombindX1, goodCombindX2, refinedF, errorThr/(iterations));
         if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << ", Refined feature count: " << goodCombindX1.size() << "/" << numValues << ", error threshold: " << errorThr/(iterations) << std::endl;
         //thr = 3.0;
+
+        if(goodCombindX1.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) break;
 
         //errorThr-=errorThr/iterations;
 
@@ -289,7 +299,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
         iterations++;
 
-    } while(stableSolutions < 3 && iterations < MAX_NUMERICAL_OPTIMIZATION_ITERATIONS);
+    } while(stableSolutions < 3 && iterations < NUMERICAL_OPTIMIZATION_MAX_ITERATIONS);
 
     double generalError = errorFunctionCombinedMeanSquared(estimations, refinedF);
     if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for refined F: " << generalError << std::endl;

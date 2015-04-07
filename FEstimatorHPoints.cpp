@@ -152,14 +152,13 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         iterationLM++;
 
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << MAX_NUMERICAL_OPTIMIZATION_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
 
         Mat H = bestSubset.Hs;
-        Mat H_inv = bestSubset.Hs.inv(DECOMP_SVD);
         bestSubset.pointCorrespondencies.clear();
         for(int i = 0; i < allMatches.size(); i++) {
             pointCorrespStruct pc = allMatches.at(i);
-            if(errorFunctionHPoints_(H_inv, H, pc) < sqrt(errorThr)/iterationLM) {        //errorThr
+            if(errorFunctionHPoints_(H, pc) < sqrt(errorThr)/iterationLM) {        //errorThr
                 bestSubset.pointCorrespondencies.push_back(pc);
             }
         }
@@ -168,7 +167,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         levenbergMarquardt(bestSubset);
 
-        if(iterationLM == MAX_NUMERICAL_OPTIMIZATION_ITERATIONS) return false;
+        if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) return false;
 
         dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
         if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.pointCorrespondencies.size() << std::endl;
@@ -180,7 +179,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
-        if(bestSubset.pointCorrespondencies.size() <= 6) break;
+        if(bestSubset.pointCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) break;
 
     } while(stableSolutions < 3);
 
@@ -281,10 +280,9 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
     bestSolution.qualityMeasure = 0;
     double error = 0;
     for(std::vector<pointSubsetStruct>::iterator it = subsets.begin() ; it != subsets.end(); ++it) {
-        Mat H_inv = it->Hs.inv(DECOMP_SVD);
         it->qualityMeasure = 0;       //count inlainers
         for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-            error = errorFunctionHPointsSquared_(it->Hs, H_inv, *pointIter);
+            error = errorFunctionHPointsSquared_(it->Hs, *pointIter);
             if(error <= threshold) {
                 it->subsetError += error;
                 it->qualityMeasure++;
@@ -318,11 +316,10 @@ pointSubsetStruct FEstimatorHPoints::calcLMedS(std::vector<pointSubsetStruct> &s
 }
 
 double FEstimatorHPoints::calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp) {
-    Mat H_inv = subset.Hs.inv(DECOMP_SVD);
     std::vector<double> errors;
     double error = 0;
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error = errorFunctionHPointsSquared_(subset.Hs, H_inv, *pointIter);
+        error = errorFunctionHPointsSquared_(subset.Hs, *pointIter);
         errors.push_back(error);
         subset.subsetError += error;
     }
@@ -332,20 +329,20 @@ double FEstimatorHPoints::calcMedS(pointSubsetStruct &subset, std::vector<pointC
 }
 
 double FEstimatorHPoints::meanSquaredPointError(Mat H, std::vector<pointCorrespStruct> pointCorresp) {
-    Mat H_inv = H.inv(DECOMP_SVD);
     double error = 0;
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error += errorFunctionHPointsSquared_(H, H_inv, *pointIter);
+        error += errorFunctionHPointsSquared_(H, *pointIter);
     }
+    if(pointCorresp.size() == 0) return 0;
     return error/pointCorresp.size();
 }
 
-double FEstimatorHPoints::errorFunctionHPointsSquared_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
-    return errorFunctionHPointsSqared(H, H_inv, pointCorresp.x1norm, pointCorresp.x2norm);
+double FEstimatorHPoints::errorFunctionHPointsSquared_(Mat H, pointCorrespStruct pointCorresp) {
+    return errorFunctionHPointsSqared(H, pointCorresp.x1norm, pointCorresp.x2norm);
 }
 
-double FEstimatorHPoints::errorFunctionHPoints_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
-    return errorFunctionHPoints(H, H_inv, pointCorresp.x1norm, pointCorresp.x2norm);
+double FEstimatorHPoints::errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp) {
+    return errorFunctionHPoints(H, pointCorresp.x1norm, pointCorresp.x2norm);
 }
 
 int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp) {
@@ -372,11 +369,10 @@ int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &p
 }
 
 int FEstimatorHPoints::filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold) {
-    Mat Hs_inv = subset.Hs.inv(DECOMP_SVD);
     int removed = 0;
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
     while (it!=pointCorresp.end()) {
-        if(errorFunctionHPoints_(subset.Hs, Hs_inv, *it) > threshold) {
+        if(errorFunctionHPoints_(subset.Hs, *it) > threshold) {
             removed++;
             pointCorresp.erase(it);
         } else it++;

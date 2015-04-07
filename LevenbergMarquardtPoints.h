@@ -29,14 +29,12 @@ struct PointFunctor : Functor<double>
 
         homogMat(newH);
 
-        Mat newH_inv = newH.inv(DECOMP_SVD);
-
         pointCorrespStruct pc;
 
         for(unsigned int i = 0; i < this->points->pointCorrespondencies.size(); ++i)
         {
             pc = this->points->pointCorrespondencies.at(i);
-            fvec(i) = errorFunctionHPoints(newH, newH_inv, pc.x1norm, pc.x2norm);
+            fvec(i) = errorFunctionHPoints(newH, pc.x1norm, pc.x2norm);
         }
 
         return 0;

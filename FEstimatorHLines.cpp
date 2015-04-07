@@ -166,16 +166,6 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
     double errorThr = 0.00001;      //TODO: automatic start point
 
-//    Mat xa = Mat::ones(3,1,CV_64FC1), xb = Mat::ones(3,1,CV_64FC1);
-//    double thr = 3.0;
-//    double thra = thr/2.0, thrb = thr/2.0;
-//    xa.at<double>
-
-//    double a = sqrt(fabs(1.5*1.5 - 2))*normT1.at<double>(0,0) + sqrt(fabs(1.5*1.5 - 2))*normT2.at<double>(0,0);
-//    double b = 0.000005/normT1.at<double>(0,0) + 0.000005/normT2.at<double>(0,0);
-//    std::cout << "aaaaaaaa: " << a << std::endl;
-//    std::cout << "aaaaaaaa: " << b << std::endl;
-
     if(goodLineMatches.size() < NUM_LINE_CORRESP) {
         if(LOG_DEBUG) std::cout << "-- To few line matches left! ";
         if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
@@ -198,7 +188,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         iterationLM++;
 
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << MAX_NUMERICAL_OPTIMIZATION_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
 
         Mat H_T = bestSubset.Hs.t();
         Mat H_invT = bestSubset.Hs.inv(DECOMP_SVD).t();
@@ -214,7 +204,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         levenbergMarquardt(bestSubset);
 
-        if(iterationLM == MAX_NUMERICAL_OPTIMIZATION_ITERATIONS) return false;
+        if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) return false;
 
         dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
         if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.lineCorrespondencies.size() << std::endl;
@@ -226,7 +216,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
-        if(bestSubset.lineCorrespondencies.size() <= 6) break;
+        if(bestSubset.lineCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) break;
 
     } while(stableSolutions < 3);
 
@@ -288,7 +278,7 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
         error += errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
     }
 
-    bestSubset.subsetError = error/bestSubset.lineCorrespondencies.size();
+    if(bestSubset.lineCorrespondencies.size() > 0) bestSubset.subsetError = error/bestSubset.lineCorrespondencies.size();
 
     return error;
 }
