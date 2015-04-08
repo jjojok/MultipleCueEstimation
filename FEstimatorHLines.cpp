@@ -62,7 +62,7 @@ bool FEstimatorHLines::compute() {
     lineSubsetStruct firstEstimation;
     lineSubsetStruct secondEstimation;
 
-    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS)) {
+    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS, HOMOGRAPHY_RANSAC_THRESHOLD)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -98,7 +98,7 @@ bool FEstimatorHLines::compute() {
 //        for(std::vector<lineCorrespStruct>::const_iterator it = goodMatchedLines.begin() ; it != goodMatchedLines.end(); ++it) {
 //            goodLineMatches.push_back(*it);
 //        }
-        if(!findLineHomography(secondEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, outliers)) {
+        if(!findLineHomography(secondEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, outliers, HOMOGRAPHY_RANSAC_THRESHOLD)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -146,7 +146,7 @@ bool FEstimatorHLines::compute() {
     return true;
 }
 
-bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, int method, double confidence, double outliers) {
+bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold) {
     double lastError = 0;
     int N;
     //std::vector<lineCorrespStruct> lastIterLineMatches;
@@ -164,7 +164,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         goodLineMatches.push_back(*it);
     }
 
-    double errorThr = 0.00001;      //TODO: automatic start point
+    double errorThr = normalizeThr(normT1, normT2, threshold);
 
     if(goodLineMatches.size() < NUM_LINE_CORRESP) {
         if(LOG_DEBUG) std::cout << "-- To few line matches left! ";

@@ -34,6 +34,8 @@
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
+//Ransac reproj threshold for Homography computation
+#define HOMOGRAPHY_RANSAC_THRESHOLD 4.0
 
 //Points:
 //Sift features

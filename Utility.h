@@ -69,6 +69,7 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat
 void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<pointCorrespStruct> pointCorresp, int lineWidth, bool drawConnections, std::string name);
 void homogMat(Mat &m);
 Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1norm, std::vector<Mat> &x2norm);
+double normalizeThr(Mat T1, Mat T2, double thrdth);
 
 //Error functions:
 //double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H);

@@ -16,6 +16,29 @@ double fnorm(double x, double y) {
     return sqrt(pow(x, 2) + pow(y, 2));
 }
 
+double normalizeThr(Mat T1, Mat T2, double thrdth) {
+
+    double a = 0.25;
+
+    double thr = sqrt(thrdth-3*a*a);
+
+    Mat thrX1 = Mat::zeros(3,1,CV_64FC1);
+    thrX1.at<double>(0,0) = thr;
+    thrX1.at<double>(1,0) = a;
+    Mat thrX2 = Mat::zeros(3,1,CV_64FC1);
+    thrX2.at<double>(0,0) = a;
+    thrX2.at<double>(1,0) = a;
+
+    thrX1 = T1*thrX1;
+    thrX2 = T2*thrX2;
+
+    double normThr = std::pow(norm(thrX1),2) + std::pow(norm(thrX2),2);
+
+    if(LOG_DEBUG) std::cout << "-- Calculated normalized threshold: " << normThr << " from " << thrdth << std::endl;
+
+    return normThr;
+}
+
 void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name) {
     Mat transformed;
     Mat result;

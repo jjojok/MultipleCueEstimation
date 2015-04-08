@@ -37,7 +37,7 @@ bool FEstimatorHPoints::compute() {
     pointSubsetStruct secondEstimation;
 
 
-    if(!findPointHomography(firstEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS)) {
+    if(!findPointHomography(firstEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS, HOMOGRAPHY_RANSAC_THRESHOLD)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -69,7 +69,7 @@ bool FEstimatorHPoints::compute() {
 
         if(LOG_DEBUG) std::cout << "-- Second Estimation..."<< std::endl;
 
-        if(!findPointHomography(secondEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, CONFIDENCE, outliers)) {
+        if(!findPointHomography(secondEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, CONFIDENCE, outliers, HOMOGRAPHY_RANSAC_THRESHOLD)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -111,7 +111,7 @@ bool FEstimatorHPoints::compute() {
     return successful;
 }
 
-bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, int method, double confidence, double outliers) {
+bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold) {
     double lastError = 0;
     int N;
     std::vector<pointCorrespStruct> goodPointMatches;
@@ -121,7 +121,8 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
     int stableSolutions = 0;
     double dError = 0;
     int removedMatches = 0;
-    double errorThr = 0.00001;
+
+    double errorThr = normalizeThr(normT1, normT2, threshold);
 
     if(LOG_DEBUG) std::cout << "-- findPointHomography: confidence = " << confidence << ", relative outliers = " << outliers << std::endl;
 
