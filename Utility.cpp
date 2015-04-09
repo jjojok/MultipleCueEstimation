@@ -562,20 +562,20 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     return eigenvalueOK;
 }
 
-std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F) {
+//std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F) {
 
-    std::vector<double> *errorVect = new std::vector<double>();
+//    std::vector<double> *errorVect = new std::vector<double>();
 
-    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-        for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
-        {
-            Mat x1 = estimationIter->getFeaturesImg1().at(i);
-            Mat x2 = estimationIter->getFeaturesImg2().at(i);
-            errorVect->push_back(errorFunctionFPoints(F, x1, x2));
-        }
-    }
-    return *errorVect;
-}
+//    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
+//        for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
+//        {
+//            Mat x1 = estimationIter->getFeaturesImg1().at(i);
+//            Mat x2 = estimationIter->getFeaturesImg2().at(i);
+//            errorVect->push_back(errorFunctionFPoints(F, x1, x2));
+//        }
+//    }
+//    return *errorVect;
+//}
 
 std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Mat> x2, Mat F) {
 
@@ -589,14 +589,14 @@ std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Ma
     return *errorVect;
 }
 
-double errorFunctionCombinedMeanSquared(std::vector<FEstimationMethod> estimations, Mat impF) {
-    std::vector<double> errorVect = computeCombinedErrorVect(estimations, impF);
-    double combinedError = 0;
-    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
-        combinedError += std::pow(*errorIter,2);
-    }
-    return combinedError/(double)errorVect.size();
-}
+//double errorFunctionCombinedMeanSquared(std::vector<FEstimationMethod> estimations, Mat impF) {
+//    std::vector<double> errorVect = computeCombinedErrorVect(estimations, impF);
+//    double combinedError = 0;
+//    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
+//        combinedError += std::pow(*errorIter,2);
+//    }
+//    return combinedError/(double)errorVect.size();
+//}
 
 double errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF) {
     std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, impF);
@@ -607,13 +607,11 @@ double errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2
     return combinedError/(double)errorVect.size();
 }
 
-void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist) {
-    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-        for(int i = 0; i < estimationIter->getFeaturesImg1().size(); i++) {
-            if(errorFunctionFPoints(F, estimationIter->getFeaturesImg1().at(i), estimationIter->getFeaturesImg2().at(i)) < maxDist) {
-                x1.push_back(estimationIter->getFeaturesImg1().at(i));
-                x2.push_back(estimationIter->getFeaturesImg2().at(i));
-            }
+void findGoodCombinedMatches(std::vector<Mat> x1Combined, std::vector<Mat> x2Combined, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist) {
+    for(int i = 0; i < x1Combined.size(); i++) {
+        if(errorFunctionFPoints(F, x1Combined.at(i), x2Combined.at(i)) < maxDist) {
+            x1.push_back(x1Combined.at(i));
+            x2.push_back(x2Combined.at(i));
         }
     }
 }
@@ -661,15 +659,38 @@ double errorFunctionHPointsSqared(Mat H, Mat x1, Mat x2) {
 }
 
 double errorFunctionHLines(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    return std::sqrt(errorFunctionHLinesSqared(H, line1Start, line1End, line2Start, line2End));
+    //return std::sqrt(errorFunctionHLinesSqared(H, line1Start, line1End, line2Start, line2End));
+    return transferLineError(H, line1Start, line1End, line2Start, line2End);
 }
 
 double errorFunctionFPoints(Mat F, Mat x1, Mat x2) {
-    return std::sqrt(errorFunctionFPointsSquared(F, x1, x2));
+    //return std::sqrt(errorFunctionFPointsSquared(F, x1, x2));
+    return computeUnsquaredSampsonFDistance(F, x1, x2);
 }
 
 double errorFunctionHPoints(Mat H, Mat x1, Mat x2) {
-    return std::sqrt(errorFunctionHPointsSqared(H, x1, x2));
+    Mat E = crossProductMatrix(x2)*H*x1;
+    Mat J = Mat::zeros(3,4,CV_64FC1);
+
+    Mat H1 = H.row(0).t();
+    Mat H2 = H.row(1).t();
+    Mat H3 = H.row(2).t();
+
+    //dE/dx
+    J.col(0) = x2.cross(H1);
+    //dE/dy
+    J.col(1) = x2.cross(H2);
+    //dE/dx'
+    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
+    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
+    //dE/dy'
+    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
+    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
+
+    Mat error = J.inv(DECOMP_SVD)*E;
+
+    return error.at<double>(0,0);
+    //return std::sqrt(errorFunctionHPointsSqared(H, x1, x2));
 }
 
 double symmeticTransferError(Mat F, Mat x1, Mat x2) {
@@ -684,6 +705,17 @@ double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2St
     double Ax = std::pow(A.at<double>(0,0), 2);
     double Ay = std::pow(A.at<double>(1,0), 2);
     Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
+    return result.at<double>(0,0);
+}
+
+double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    Mat A = H*crossProductMatrix(line2Start)*line2End;
+    Mat start1 = line1Start.t()*A;
+    Mat end1 = line1End.t()*A;
+    homogMat(A);
+    double Ax = A.at<double>(0,0);
+    double Ay = A.at<double>(1,0);
+    Mat result = (start1 + end1)/(Ax + Ay);
     return result.at<double>(0,0);
 }
 
@@ -732,16 +764,11 @@ double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2) {    //For LM opt
     Mat b2 = F.t()*x2;
     homogMat(b1);
     homogMat(b2);
-    return n/sqrt(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
+    return n/(b1.at<double>(0,0) + b1.at<double>(1,0) + b2.at<double>(0,0) + b2.at<double>(1,0));
 }
 
 double computeUnsquaredSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {   //For LM optimization
-    double n = Mat(x2.t()*H*x1).at<double>(0,0);
-    Mat b1 = H*x1;
-    Mat b2 = H_inv*x2;
-    homogMat(b1);
-    homogMat(b2);
-    return n/sqrt(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
+
 }
 
 double sampsonFDistance(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
@@ -1121,3 +1148,6 @@ double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std:
 //  }
 //}
 
+bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {
+    return (x11.at<double>(0,0) == x21.at<double>(0,0)) && (x11.at<double>(1,0) == x21.at<double>(1,0)) && (x12.at<double>(0,0) == x22.at<double>(0,0)) && (x12.at<double>(1,0) == x22.at<double>(1,0));
+}

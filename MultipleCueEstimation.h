@@ -45,6 +45,8 @@ private:
     FEstimationMethod* calcFfromConics();
     FEstimationMethod* calcFfromCurves();
     Mat refineF(std::vector<FEstimationMethod> &estimations);
+    void combinePointCorrespondecies();
+    Mat levenbergMarquardt(Mat Flm, std::vector<Mat> x1, std::vector<Mat> x2, double errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr);
 
     int arguments;
     unsigned int computations;
@@ -57,6 +59,7 @@ private:
     Mat image_1_color, image_2_color;
     Mat Fgt;    //Ground truth
     std::vector<Point2d> x1, x2;   //corresponding points in image 1 and 2 (for debug only)
+    std::vector<Mat> x1Combined, x2Combined;   //combined corresponding points in image 1 and 2 from all computation
     std::vector<FEstimationMethod> estimations;
 
     std::vector<FEstimationMethod> debug_estimations;

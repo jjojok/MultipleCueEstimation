@@ -19,13 +19,11 @@
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
 //Max number of numerical refinement steps after a first homographie was found
-#define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 300
+#define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 100
 //Max squared distance of lines to be considered as a correct projection (pixel)
 #define MAX_TRANSFER_DIST 1.25
-//max Percentage of error changing for error to beconsidered as stable
+//max Percentage of error changing for error to be considered as stable
 #define MAX_ERROR_CHANGE 0.1
-//error for iteration to stop even if error still changes
-#define MIN_ERROR 1.0e-15
 //How close two values have to be to be considered equal
 #define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
@@ -35,7 +33,7 @@
 //Minimal number of matches to stop numerical optimization
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
 //Ransac reproj threshold for Homography computation
-#define HOMOGRAPHY_RANSAC_THRESHOLD 4.0
+#define HOMOGRAPHY_RANSAC_THRESHOLD 2.0
 
 //Points:
 //Sift features

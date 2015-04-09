@@ -64,10 +64,11 @@ bool FEstimatorHPoints::compute() {
     double outliers = computeRelativeOutliers(HOMOGRAPHY_OUTLIERS, goodMatchedPoints.size(), goodMatchedPoints.size() + removed);
     Mat H;
     Mat e2;
+    int estCnt = 1;
 
-    while(homographies_equal) {
+    while(homographies_equal && MAX_H2_ESTIMATIONS > estCnt) {
 
-        if(LOG_DEBUG) std::cout << "-- Second Estimation..."<< std::endl;
+        if(LOG_DEBUG) std::cout << "-- Second estimation " << estCnt << "/" << MAX_H2_ESTIMATIONS << "..." << std::endl;
 
         if(!findPointHomography(secondEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, CONFIDENCE, outliers, HOMOGRAPHY_RANSAC_THRESHOLD)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
@@ -83,6 +84,8 @@ bool FEstimatorHPoints::compute() {
             filterUsedPointMatches(allMatchedPoints, secondEstimation.pointCorrespondencies);
             outliers = computeRelativeOutliers(outliers, goodMatchedPoints.size(), goodMatchedPoints.size() + removed);
         }
+
+        estCnt++;
     }
 
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = secondEstimation.pointCorrespondencies.begin(); pointIter != secondEstimation.pointCorrespondencies.end(); ++pointIter) {
@@ -168,7 +171,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         levenbergMarquardt(bestSubset);
 
-        if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) return false;
+        if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
 
         dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
         if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.pointCorrespondencies.size() << std::endl;
@@ -343,7 +346,7 @@ double FEstimatorHPoints::errorFunctionHPointsSquared_(Mat H, pointCorrespStruct
 }
 
 double FEstimatorHPoints::errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp) {
-    return errorFunctionHPoints(H, pointCorresp.x1norm, pointCorresp.x2norm);
+    return fabs(errorFunctionHPoints(H, pointCorresp.x1norm, pointCorresp.x2norm));
 }
 
 int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp) {

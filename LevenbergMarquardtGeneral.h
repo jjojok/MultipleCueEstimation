@@ -31,64 +31,22 @@ struct GeneralFunctor : Functor<double>
 
         homogMat(F);
 
-        //std::vector<double> errorVect = computeCombinedErrorVect(*estimations, F);
         std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, F);
 
         for(int i = 0; i < errorVect.size(); i++) {
-            fvec(i) = errorVect.at(i);
+            if(fabs(errorVect.at(i)) <= inlierThr) errorVect.at(i) = 0;        //TODO! remove?
+            else fvec(i) = errorVect.at(i) - inlierThr;
         }
-
-//        for(std::vector<FEstimationMethod>::const_iterator estimationIter = methods->begin(); estimationIter != methods->end(); ++estimationIter) {
-
-//            if(estimationIter->getType() == F_FROM_LINES_VIA_H) {
-
-//                for(unsigned int i = 0; i < estimationIter->featuresImg1.size()/2; i++)
-//                {
-//                    Mat line1Start = estimationIter->featuresImg1.at(2*i);
-//                    Mat line1End = estimationIter->featuresImg1.at(2*i+1);
-
-//                    Mat line2Start = estimationIter->featuresImg2.at(2*i);
-//                    Mat line2End = estimationIter->featuresImg2.at(2*i+1);
-
-//                    Mat A = F*crossProductMatrix(line2Start)*line2End;
-//                    Mat start1 = line1Start.t()*A;
-//                    Mat end1 = line1End.t()*A;
-//                    Mat B = F_T*crossProductMatrix(line1Start)*line1End;
-//                    Mat start2 = line2Start.t()*B;
-//                    Mat end2 = line2End.t()*B;
-
-//                    fvec(fvecPos++) = Mat(start1+end1).at<double>(0,0);
-//                    fvec(fvecPos++) = Mat(start2+end2).at<double>(0,0);
-//                }
-//            }
-//            if(estimationIter->getType() == F_FROM_POINTS) {
-//                for(unsigned int i = 0; i < estimationIter->featuresImg1.size(); i++)   //Distance form features to correspondig epipolarline in other image
-//                {
-//                    Mat x1 = estimationIter->featuresImg1.at(i);
-//                    Mat x2 = estimationIter->featuresImg2.at(i);
-
-//                    fvec(fvecPos++) = Mat(x2.t()*F*x1).at<double>(0,0);
-//                    fvec(fvecPos++) = Mat(x1.t()*F.t()*x2).at<double>(0,0);
-//                }
-//            }
-//        }
 
         return 0;
     }
 
-//std::vector<FEstimationMethod> *estimations;
 std::vector<Mat> x1;
 std::vector<Mat> x2;
-int numValues;
+double inlierThr;
 
 int inputs() const { return 9; } // There are 9 parameters of the model
-int values() const {
-//    int numValues = 0;
-//    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations->begin(); estimationIter != estimations->end(); ++estimationIter) {
-//        numValues += estimationIter->getFeaturesImg1().size();
-//    }
-    return numValues;
-} // The number of observations
+int values() const { return x1.size(); } // The number of observations
 };
 
 #endif // LMA_LINES_H

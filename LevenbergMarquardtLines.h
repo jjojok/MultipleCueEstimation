@@ -39,21 +39,8 @@ struct LineFunctor : Functor<double>
         for(unsigned int i = 0; i < this->lines->lineCorrespondencies.size(); ++i)
         {
             lc = this->lines->lineCorrespondencies.at(i);
-
-//            Mat A = H_T*crossProductMatrix(lc.line2Start)*lc.line2End;
-//            Mat start1 = lc.line1Start.t()*A;
-//            Mat end1 = lc.line1End.t()*A;
-//            Mat B = H_invT*crossProductMatrix(lc.line1Start)*lc.line1End;
-//            Mat start2 = lc.line2Start.t()*B;
-//            Mat end2 = lc.line2End.t()*B;
-
-//            fvec(2*i) = Mat(start1+end1).at<double>(0,0);
-//            fvec(2*i+1) = Mat(start2+end2).at<double>(0,0);
-
-            //fvec(2*i) = errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized);
-            //fvec(2*i+1) = errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
             fvec(i) = errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) + errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
-
+            //fvec(i) = errorFunctionHLinesSqared(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) + errorFunctionHLinesSqared(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
         }
 
         return 0;

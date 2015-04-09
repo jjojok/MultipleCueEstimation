@@ -76,8 +76,6 @@ bool FEstimatorHLines::compute() {
         //visualizeProjectedLines(H1, 8, true, name+": H21 used lines projected to image 2");
     }
 
-    if(LOG_DEBUG) std::cout << "-- Second estimation..." << std::endl;
-
     filterUsedLineMatches(allMatchedLines, firstEstimation.lineCorrespondencies);
     int removed = filterUsedLineMatches(goodMatchedLines, firstEstimation.lineCorrespondencies);
 
@@ -94,10 +92,8 @@ bool FEstimatorHLines::compute() {
 
     while(homographies_equal && goodMatchedLines.size() > NUM_LINE_CORRESP && MAX_H2_ESTIMATIONS > estCnt) {
 
-//        goodLineMatches.clear();
-//        for(std::vector<lineCorrespStruct>::const_iterator it = goodMatchedLines.begin() ; it != goodMatchedLines.end(); ++it) {
-//            goodLineMatches.push_back(*it);
-//        }
+        if(LOG_DEBUG) std::cout << "-- Second estimation " << estCnt << "/" << MAX_H2_ESTIMATIONS << "..." << std::endl;
+
         if(!findLineHomography(secondEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, outliers, HOMOGRAPHY_RANSAC_THRESHOLD)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
@@ -204,7 +200,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         levenbergMarquardt(bestSubset);
 
-        if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) return false;
+        if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
 
         dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
         if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.lineCorrespondencies.size() << std::endl;
@@ -577,7 +573,8 @@ double FEstimatorHLines::errorFunctionHLinesSqared_(Mat H_invT, Mat H_T, Mat l1s
 }
 
 double FEstimatorHLines::errorFunctionHLines_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
-    return errorFunctionHLines(H_T, l1s, l1e, l2s, l2e) + errorFunctionHLines(H_invT, l2s, l2e, l1s, l1e);
+    return fabs(errorFunctionHLines(H_T, l1s, l1e, l2s, l2e)) + fabs(errorFunctionHLines(H_invT, l2s, l2e, l1s, l1e));
+    //return errorFunctionHLinesSqared_(H_invT, H_T, l1s, l1e, l2s, l2e);
 }
 
 int FEstimatorHLines::filterBadLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &lineCorresp, double threshold) {

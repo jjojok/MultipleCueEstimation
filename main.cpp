@@ -95,6 +95,7 @@ int main(int argc, char** argv )
         }
     }
     if(mce != 0) {
+        time_t startTime = time(0);
         mce->compute();
         if(argc == 6) {
             std::cout << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getMeanSquaredRSSTError() << ",";
@@ -104,6 +105,7 @@ int main(int argc, char** argv )
                 if(!estimation.isSuccessful()) std::cout << " , , , ";
                 else std::cout << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.getError() << ",";
             }
+            std::cout << time(0) - startTime << std::endl;
         }
     }
 }

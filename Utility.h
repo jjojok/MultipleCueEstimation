@@ -54,11 +54,11 @@ void visualizeLineMatches(Mat image_1_color, Mat image_2_color, std::vector<line
 void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name);
 bool isUnity(Mat m);
 bool computeUniqeEigenvector(Mat H, Mat &e);
-std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F);
+//std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F);
 std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1_vect, std::vector<Mat> x2_vect, Mat F);
-double errorFunctionCombinedMeanSquared(std::vector<FEstimationMethod> estimations, Mat F);
+//double errorFunctionCombinedMeanSquared(std::vector<FEstimationMethod> estimations, Mat F);
 double errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF);
-void findGoodCombinedMatches(std::vector<FEstimationMethod> estimations, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist);
+void findGoodCombinedMatches(std::vector<Mat> x1Combined, std::vector<Mat> x2Combined, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist);
 void computeEpipoles(Mat F, Mat &e1, Mat &e2);
 Mat computeGeneralHomography(Mat F);
 pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy);
@@ -70,6 +70,7 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<poi
 void homogMat(Mat &m);
 Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1norm, std::vector<Mat> &x2norm);
 double normalizeThr(Mat T1, Mat T2, double thrdth);
+bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22);
 
 //Error functions:
 //double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H);
@@ -86,6 +87,7 @@ double computeUnsquaredSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2);
 double transferPointError(Mat H, Mat p1, Mat p2);
 double symmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2);
 double squaredTransferPointError(Mat H, Mat x1, Mat x2);
+double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double errorFunctionFPointsSquared(Mat F, Mat x1, Mat x2);
 double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2);
 double sampsonFDistance(Mat F, Mat x1, Mat x2);
