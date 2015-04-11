@@ -39,7 +39,16 @@ public:
     double getMeanSquaredRSSTError();
 
     double meanSquaredCSTError;
+    double meanSquaredCSTErrorStandardDeviation;
+    int meanSquaredCSTErrorInliers;
+    double meanCSTError;
+    double meanCSTErrorStandardDeviation;
+    int meanCSTErrorInliers;
+
     double meanSquaredRSSTError;
+
+    double meanSampsonDistanceGoodPointMatches;
+    int goodPointMatchesCount;
 
 protected:
     virtual void init();

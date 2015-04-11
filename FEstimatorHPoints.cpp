@@ -423,7 +423,7 @@ double FEstimatorHPoints::levenbergMarquardt(pointSubsetStruct &bestSubset) {
 
     PointFunctor functor;
     functor.points = &bestSubset;
-    Eigen::NumericalDiff<PointFunctor> numDiff(functor, 1.0e-6); //epsilon
+    Eigen::NumericalDiff<PointFunctor> numDiff(functor, 1.0e-8); //epsilon
     Eigen::LevenbergMarquardt<Eigen::NumericalDiff<PointFunctor>,double> lm(numDiff);
 
     lm.parameters.ftol = 1.0e-15;

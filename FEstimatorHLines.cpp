@@ -176,7 +176,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         return false;
     }
 
-    errorThr = bestSubset.subsetError;
+    errorThr = 0.1*bestSubset.subsetError;
 
     int iterationLM = 0;
 
@@ -185,6 +185,8 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         iterationLM++;
 
         if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
+
+        removedMatches = bestSubset.lineCorrespondencies.size();
 
         Mat H_T = bestSubset.Hs.t();
         Mat H_invT = bestSubset.Hs.inv(DECOMP_SVD).t();
@@ -203,11 +205,11 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
 
         dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
-        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.lineCorrespondencies.size() << std::endl;
+        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.lineCorrespondencies.size() << ", removed: " << removedMatches << std::endl;
 
         lastError = bestSubset.subsetError;
 
-        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || removedMatches == 0) stableSolutions++;
+        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= 5) stableSolutions++;
         else stableSolutions = 0;
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
@@ -241,7 +243,7 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
     LineFunctor functor;
     functor.estimator = this;
     functor.lines = &bestSubset;
-    Eigen::NumericalDiff<LineFunctor> numDiff(functor, 1.0e-6); //epsilon
+    Eigen::NumericalDiff<LineFunctor> numDiff(functor, 1.0e-8); //epsilon
     Eigen::LevenbergMarquardt<Eigen::NumericalDiff<LineFunctor>,double> lm(numDiff);
 
     lm.parameters.ftol = 1.0e-15;

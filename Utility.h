@@ -56,8 +56,10 @@ bool isUnity(Mat m);
 bool computeUniqeEigenvector(Mat H, Mat &e);
 //std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F);
 std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1_vect, std::vector<Mat> x2_vect, Mat F);
+std::vector<double> computeCombinedSquaredErrorVect(std::vector<Mat> x1, std::vector<Mat> x2, Mat F);
 //double errorFunctionCombinedMeanSquared(std::vector<FEstimationMethod> estimations, Mat F);
-double errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF);
+void errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation);
+void errorFunctionCombinedMean(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation);
 void findGoodCombinedMatches(std::vector<Mat> x1Combined, std::vector<Mat> x2Combined, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist);
 void computeEpipoles(Mat F, Mat &e1, Mat &e2);
 Mat computeGeneralHomography(Mat F);
@@ -95,6 +97,6 @@ double sampsonFDistance(Mat F, std::vector<Mat> points1, std::vector<Mat> points
 double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2);
 double symmeticTransferError(Mat F, Mat x1, Mat x2);
-double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2);
+void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2, double &error, int &used);
 
 #endif // UTILITY_H

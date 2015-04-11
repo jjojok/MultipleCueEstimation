@@ -27,7 +27,7 @@
 //How close two values have to be to be considered equal
 #define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
-#define MAX_H2_ESTIMATIONS 20
+#define MAX_H2_ESTIMATIONS 0
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization

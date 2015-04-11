@@ -25,26 +25,15 @@ Mat MultipleCueEstimation::compute() {
     if (checkData()) {
         if(computations & F_FROM_POINTS) {
             FEstimationMethod* points = calcFfromPoints();
-            if(points->isSuccessful()) estimations.push_back(*points);
-            debug_estimations.push_back(*points);
+            estimations.push_back(*points);
         }
         if(computations & F_FROM_LINES_VIA_H) {
             FEstimationMethod* lines = calcFfromHLines();
-            if(lines->isSuccessful()) estimations.push_back(*lines);
-            debug_estimations.push_back(*lines);
+            estimations.push_back(*lines);
         }
         if(computations & F_FROM_POINTS_VIA_H) {
             FEstimationMethod* Hpoints = calcFfromHPoints();
-            if(Hpoints->isSuccessful()) estimations.push_back(*Hpoints);
-            debug_estimations.push_back(*Hpoints);
-        }
-
-        if (compareWithGroundTruth) {
-            std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
-            if(VISUAL_DEBUG) {
-                //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
-                drawEpipolarLines(x1,x2, Fgt, image_1, image_2, "F_groundtruth");
-            }
+            estimations.push_back(*Hpoints);
         }
 
         std::vector<Mat> x1combined, x2combined;
@@ -63,17 +52,19 @@ Mat MultipleCueEstimation::compute() {
         F = refineF(estimations);
 
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
-            std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
-            if (compareWithGroundTruth) {
-                //it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
-                it->meanSquaredRSSTError = -2;
-                double error2 = squaredError(Fgt, it->getF());
-                if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << it->meanSquaredRSSTError << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getError() << std::endl;
-                double error3 = meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1combined, x2combined);
-            }
-            if(VISUAL_DEBUG) {
-                //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
-                drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
+            if(it->isSuccessful()) {
+                std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
+                if (compareWithGroundTruth) {
+                    //it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
+                    it->meanSquaredRSSTError = -2;
+                    double error2 = squaredError(Fgt, it->getF());
+                    if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << it->meanSquaredRSSTError << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getError() << std::endl;
+                    meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1combined, x2combined, it->meanSampsonDistanceGoodPointMatches, it->goodPointMatchesCount);
+                }
+                if(VISUAL_DEBUG) {
+                    //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
+                    drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
+                }
             }
         }
 
@@ -84,11 +75,21 @@ Mat MultipleCueEstimation::compute() {
                 meanSquaredRSSTError = -2;
                 double error2 = squaredError(Fgt, F);
                 if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << meanSquaredRSSTError << ", Squated distance: " << error2 << std::endl;
-                double error3 = meanSampsonFDistanceGoodMatches(Fgt, F, x1combined, x2combined);
+                double error3;
+                int cnt;
+                meanSampsonFDistanceGoodMatches(Fgt, F, x1combined, x2combined, error3, cnt);
             }
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
                 drawEpipolarLines(x1,x2, F, image_1, image_2, "Refined F");
+            }
+        }
+
+        if (compareWithGroundTruth) {
+            std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
+            if(VISUAL_DEBUG) {
+                //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
+                drawEpipolarLines(x1,x2, Fgt, image_1, image_2, "F_groundtruth");
             }
         }
 
@@ -172,6 +173,9 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     std::vector< std::vector<Mat> > inliersX1;
     std::vector< std::vector<Mat> > inliersX2;
 
+    std::vector<Mat> goodCombindX1;
+    std::vector<Mat> goodCombindX2;
+
     combinePointCorrespondecies();
 
     //Select F with smallest error with respect to all features as starting point
@@ -186,12 +190,16 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     int numValues = 0;
 
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-        estimationIter->meanSquaredCSTError = errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF());
-        if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for " << estimationIter->name << ": " << estimationIter->meanSquaredCSTError << std::endl;
-        if(bestMethod->meanSquaredCSTError > estimationIter->meanSquaredCSTError) {
-            bestMethod = estimationIter;
+        if(estimationIter->isSuccessful()) {
+            errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF(), estimationIter->meanSquaredCSTError, estimationIter->meanSquaredCSTErrorInliers, 3.0, estimationIter->meanSquaredCSTErrorStandardDeviation);
+            errorFunctionCombinedMean(x1Combined, x2Combined, estimationIter->getF(), estimationIter->meanCSTError, estimationIter->meanCSTErrorInliers, 3.0, estimationIter->meanCSTErrorStandardDeviation);
+            if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for " << estimationIter->name << ": " << estimationIter->meanSquaredCSTError << "Std. dev: " << estimationIter->meanSquaredCSTErrorStandardDeviation << ", inliers: " << estimationIter->meanSquaredCSTErrorInliers << std::endl;
+            if (LOG_DEBUG) std::cout << "Computing mean error of combined matches for " << estimationIter->name << ": " << estimationIter->meanCSTError << "Std. dev: " << estimationIter->meanCSTErrorStandardDeviation << ", inliers: " << estimationIter->meanCSTErrorInliers << std::endl;
+            if(bestMethod->meanSquaredCSTErrorInliers < estimationIter->meanSquaredCSTErrorInliers) {
+                bestMethod = estimationIter;
+            }
+            numValues += estimationIter->getFeaturesImg1().size();
         }
-        numValues += estimationIter->getFeaturesImg1().size();
     }
 
     if(numValues < 8) {
@@ -203,12 +211,42 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     if (LOG_DEBUG) std::cout << "-- Starting point for optimization: " << bestMethod->name << std::endl;
 
-    double errorThr = 0.5*sqrt(bestMethod->meanSquaredCSTError);
+    double errorThr = 10.0*(bestMethod->meanCSTError);
+    int inliers = 0;
+    int oldInliers = 0;
+    int stableSolutions = 0;
+    double lmErrorThr = 10.0*bestMethod->meanCSTError;
 
-    levenbergMarquardt(refinedF, x1Combined, x2Combined, errorThr, 3, 0.05, 3.0);
+    do {
 
-    double generalError = errorFunctionCombinedMeanSquared(x1Combined, x2Combined, refinedF);
-    if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for refined F: " << generalError << std::endl;
+        levenbergMarquardt(refinedF, x1Combined, x2Combined, goodCombindX1, goodCombindX2, errorThr, 1, 0.05, lmErrorThr, 1.0, inliers, 1, NUMERICAL_OPTIMIZATION_MAX_ITERATIONS, 1e20);
+
+        lmErrorThr *= 0.90;
+        //errorThr *= 0.98;
+
+        if(abs(inliers - oldInliers) == 0) stableSolutions++;
+
+        oldInliers = inliers;
+
+    } while(stableSolutions < 10 && lmErrorThr > 3.0);
+
+    double errorThr2 = errorThr;
+    double standardDev = 0;
+
+    errorFunctionCombinedMean(goodCombindX1, goodCombindX1, refinedF, errorThr, inliers, errorThr2, standardDev);
+
+    errorThr = std::min(errorThr, errorThr2);
+
+    levenbergMarquardt(refinedF, x1Combined, x2Combined, goodCombindX1, goodCombindX2, errorThr, 0, 0.05, 0.0, 0.90, inliers, 3, 300, 1.2);
+
+    visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "Refined F used matches");
+
+    double generalError;
+    int generalInliers;
+    errorFunctionCombinedMeanSquared(x1Combined, x2Combined, refinedF, generalError, generalInliers, 3.0, standardDev);
+    if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for refined F: " << generalError << ", Std. dev: " << standardDev << ", inliers: " << generalInliers << std::endl;
+    errorFunctionCombinedMean(x1Combined, x2Combined, refinedF, generalError, generalInliers, 3.0, standardDev);
+    if (LOG_DEBUG) std::cout << "Computing mean error of combined matches for refined F: " << generalError << ", Std. dev: " << standardDev << ", inliers: " << generalInliers << std::endl;
 
     return refinedF;
 }
@@ -222,7 +260,7 @@ double MultipleCueEstimation::getMeanSquaredRSSTError() {
 }
 
 std::vector<FEstimationMethod> MultipleCueEstimation::getEstimations() {
-    return debug_estimations;
+    return estimations;
 }
 
 void MultipleCueEstimation::combinePointCorrespondecies() {
@@ -248,12 +286,19 @@ void MultipleCueEstimation::combinePointCorrespondecies() {
     }
 }
 
-Mat MultipleCueEstimation::levenbergMarquardt(Mat Flm, std::vector<Mat> x1, std::vector<Mat> x2, double errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr) {
+void MultipleCueEstimation::levenbergMarquardt(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError) {
     double lastError = 0;
     int stableSolutions = 0;
     int iterations = 1;
-    int lastFeatureCount = 0;
+    int featureChange = 0;
     double meanSquaredCombinedErr = 0;
+    double standardDev = 0;
+    inliers = 0;
+//    int nextIterInliers = 0;
+//    Mat oldFlm;
+
+    if (LOG_DEBUG) std::cout << "-- Running Levenberg Marquardt loop, min feature change: " << minFeatureChange << ", min rel. error change: " << minErrorChange << ", threshold for LM error: " << lmErrorThr << std::endl;
+
 
     do {
 
@@ -271,16 +316,24 @@ Mat MultipleCueEstimation::levenbergMarquardt(Mat Flm, std::vector<Mat> x1, std:
         x(7) = Flm.at<double>(2,1);
         x(8) = Flm.at<double>(2,2);
 
-        std::vector<Mat> goodCombindX1;
-        std::vector<Mat> goodCombindX2;
+        goodCombindX1.clear();
+        goodCombindX2.clear();
 
         homogMat(Flm);
 
-        findGoodCombinedMatches(x1, x2, goodCombindX1, goodCombindX2, Flm, errorThr/(iterations));
-        if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << ", Refined feature count: " << goodCombindX1.size() << "/" << x1.size() << ", error threshold: " << errorThr/(iterations) << std::endl;
+//        oldFlm = Flm.clone();
+
+        findGoodCombinedMatches(x1, x2, goodCombindX1, goodCombindX2, Flm, errorThr);
+
+        featureChange = featureChange - goodCombindX1.size();
+
+        if (LOG_DEBUG) std::cout << "-- Refinement Iteration " << iterations << "/" << maxIterations << ", Refined feature count: " << goodCombindX1.size() << "/" << x1.size() << ", feature change: " << featureChange << ", error threshold: " << errorThr << ", max Error: " << maxError << std::endl;
         //thr = 3.0;
 
-        if(goodCombindX1.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) break;
+        if(goodCombindX1.size() <= 50) {
+            if (LOG_DEBUG) std::cout << "-- Less then 50 matches left, iteration finieshed" << std::endl;
+            break;
+        }
 
         GeneralFunctor functor;
         functor.x1 = goodCombindX1;
@@ -290,7 +343,7 @@ Mat MultipleCueEstimation::levenbergMarquardt(Mat Flm, std::vector<Mat> x1, std:
         Eigen::LevenbergMarquardt<Eigen::NumericalDiff<GeneralFunctor>,double> lm(numDiff);
         lm.parameters.ftol = 1.0e-15;
         lm.parameters.xtol = 1.0e-15;
-        lm.parameters.maxfev = 4000; // Max iterations
+        lm.parameters.maxfev = 800; // Max iterations
         Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
 
         if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.nfev << ", Status: " << status << std::endl;
@@ -310,24 +363,34 @@ Mat MultipleCueEstimation::levenbergMarquardt(Mat Flm, std::vector<Mat> x1, std:
         enforceRankTwoConstraint(Flm);
 
         //meanSquaredCSTError = computeCombinedMeanSquaredError(estimations, refinedF);
-        meanSquaredCombinedErr = errorFunctionCombinedMeanSquared(goodCombindX1, goodCombindX2, Flm);
+
+        errorFunctionCombinedMean(goodCombindX1, goodCombindX2, Flm, meanSquaredCombinedErr, inliers, errorThr, standardDev);
+
+//        if(lmErrorThr > 0.8 && ((double)nextIterInliers)/inliers < 0.4) {
+//            if(LOG_DEBUG) std::cout <<"-- Inliers droped from " << inliers << " to " << nextIterInliers << ", Iteration stopped" << std::endl;
+//            Flm = oldFlm;
+//            break;
+//        }
+
+//        inliers = nextIterInliers;
 
         double dError = (lastError - meanSquaredCombinedErr)/meanSquaredCombinedErr;
 
-        if((dError >= 0 && dError < minErrorChange) || abs(lastFeatureCount - goodCombindX1.size()) <= minFeatureChange) stableSolutions++;   //abs(lastFeatureCount - goodCombindX1.size()) < 4
+        if(((dError >= 0 && dError < minErrorChange) || abs(featureChange) <= minFeatureChange || meanSquaredCombinedErr <= maxError)) stableSolutions++;   //abs(lastFeatureCount - goodCombindX1.size()) < 4
         else stableSolutions = 0;
 
-        lastFeatureCount = goodCombindX1.size();
+        if (LOG_DEBUG) std::cout <<"-- Error: " << meanSquaredCombinedErr << ", standard dev.: " << standardDev << ", rel. error change: " << dError << ", inliers: " << inliers << ", stable solutions: " << stableSolutions << "/" << minStableSolutions << std::endl;
 
-        if (LOG_DEBUG) std::cout <<"-- Error: " << meanSquaredCombinedErr << ", rel. error change: " << dError << ", stable solutions: " << stableSolutions << std::endl;
+        featureChange = goodCombindX1.size();
 
         lastError = meanSquaredCombinedErr;
 
+        if(errorDecay == 0.0) errorThr = errorThr/(iterations);
+        else errorThr *= errorDecay;
+
         iterations++;
 
-    } while(stableSolutions < 3 && iterations < NUMERICAL_OPTIMIZATION_MAX_ITERATIONS);
-
-    return Flm;
+    } while(stableSolutions < minStableSolutions && iterations < maxIterations);
 }
 
 

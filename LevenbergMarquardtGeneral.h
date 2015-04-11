@@ -35,7 +35,10 @@ struct GeneralFunctor : Functor<double>
 
         for(int i = 0; i < errorVect.size(); i++) {
             if(fabs(errorVect.at(i)) <= inlierThr) errorVect.at(i) = 0;        //TODO! remove?
-            else fvec(i) = errorVect.at(i) - inlierThr;
+            else {
+                if(errorVect.at(i) > 0) fvec(i) = errorVect.at(i) - inlierThr;
+                else fvec(i) = errorVect.at(i) + inlierThr;
+            }
         }
 
         return 0;

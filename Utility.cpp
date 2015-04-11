@@ -533,7 +533,7 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
         for(int j = 0; j < eigenvalues.rows; j ++) {
             dist[i] += fabs(eig.at<double>(0,0) - eigenvalues.row(j).at<double>(0,0));
         }
-        if(dist[i] > MARGIN*MARGIN) eigenvalueOK = true;
+        if(dist[i] > MARGIN) eigenvalueOK = true;
         if(dist[i] > lastDist) {
             col = i;
             lastDist = dist[i];
@@ -589,6 +589,18 @@ std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Ma
     return *errorVect;
 }
 
+std::vector<double> computeCombinedSquaredErrorVect(std::vector<Mat> x1, std::vector<Mat> x2, Mat F) {
+
+    std::vector<double> *errorVect = new std::vector<double>();
+
+    for(int i = 0; i < x1.size(); i++) {
+        Mat p1 = x1.at(i);
+        Mat p2 = x2.at(i);
+        errorVect->push_back(errorFunctionFPointsSquared(F, p1, p2));
+    }
+    return *errorVect;
+}
+
 //double errorFunctionCombinedMeanSquared(std::vector<FEstimationMethod> estimations, Mat impF) {
 //    std::vector<double> errorVect = computeCombinedErrorVect(estimations, impF);
 //    double combinedError = 0;
@@ -598,18 +610,43 @@ std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Ma
 //    return combinedError/(double)errorVect.size();
 //}
 
-double errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF) {
-    std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, impF);
-    double combinedError = 0;
+void errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation) {
+    std::vector<double> errorVect = computeCombinedSquaredErrorVect(x1, x2, impF);
+    error = 0;
+    inliers = 0;
+    standardDeviation = 0;
     for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
-        combinedError += std::pow(*errorIter,2);
+        error += *errorIter;
+        if(*errorIter <= inlierThr) inliers++;
     }
-    return combinedError/(double)errorVect.size();
+    error = error/((double)errorVect.size());
+    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
+        standardDeviation += std::pow(*errorIter - error, 2);
+    }
+    standardDeviation = standardDeviation/((double)errorVect.size());
+    standardDeviation = std::sqrt(standardDeviation);
+}
+
+void errorFunctionCombinedMean(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation) {
+    std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, impF);
+    error = 0;
+    inliers = 0;
+    standardDeviation = 0;
+    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
+        error += fabs(*errorIter);
+        if(fabs(*errorIter) <= inlierThr) inliers++;
+    }
+    error = error/((double)errorVect.size());
+    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
+        standardDeviation += std::pow(*errorIter - error, 2);
+    }
+    standardDeviation = standardDeviation/((double)errorVect.size());
+    standardDeviation = std::sqrt(standardDeviation);
 }
 
 void findGoodCombinedMatches(std::vector<Mat> x1Combined, std::vector<Mat> x2Combined, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist) {
     for(int i = 0; i < x1Combined.size(); i++) {
-        if(errorFunctionFPoints(F, x1Combined.at(i), x2Combined.at(i)) < maxDist) {
+        if(fabs(errorFunctionFPoints(F, x1Combined.at(i), x2Combined.at(i))) < maxDist) {
             x1.push_back(x1Combined.at(i));
             x2.push_back(x2Combined.at(i));
         }
@@ -664,8 +701,8 @@ double errorFunctionHLines(Mat H, Mat line1Start, Mat line1End, Mat line2Start, 
 }
 
 double errorFunctionFPoints(Mat F, Mat x1, Mat x2) {
-    //return std::sqrt(errorFunctionFPointsSquared(F, x1, x2));
-    return computeUnsquaredSampsonFDistance(F, x1, x2);
+    return std::sqrt(errorFunctionFPointsSquared(F, x1, x2));
+    //return computeUnsquaredSampsonFDistance(F, x1, x2);
 }
 
 double errorFunctionHPoints(Mat H, Mat x1, Mat x2) {
@@ -889,18 +926,17 @@ Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1nor
     return normalizationMats;
 }
 
-double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2) {
-    double error = 0;
-    double used = 0;
+void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2, double &error, int &used) {
+    error = 0;
+    used = 0;
     for(int i = 0; i < x1.size(); i++) {
-        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) < 0.5) {
+        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= 1.0) {
             error += sampsonFDistance(F, x1.at(i), x2.at(i));
             used++;
         }
     }
     error/=used;
     if(LOG_DEBUG) std::cout << "-- Computed sampson distance for " << used << "/" << x1.size() << " points: " << error << std::endl;
-    return error;
 }
 
 //double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H)
