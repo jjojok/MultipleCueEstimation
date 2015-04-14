@@ -1,5 +1,5 @@
-#ifndef LMA_LINES_H
-#define LMA_LINES_H
+#ifndef LMA_GENERAL_H
+#define LMA_GENERAL_H
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 * Code partially from: https://github.com/daviddoria/Examples/blob/master/c%2B%2B/Eigen/LevenbergMarquardt/CurveFitting.cpp
@@ -52,4 +52,4 @@ int inputs() const { return 9; } // There are 9 parameters of the model
 int values() const { return x1.size(); } // The number of observations
 };
 
-#endif // LMA_LINES_H
+#endif // LMA_GENERAL_H

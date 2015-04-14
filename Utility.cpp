@@ -623,7 +623,7 @@ void errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, 
     for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
         standardDeviation += std::pow(*errorIter - error, 2);
     }
-    standardDeviation = standardDeviation/((double)errorVect.size());
+    standardDeviation = standardDeviation/((double)errorVect.size() - 1.0);
     standardDeviation = std::sqrt(standardDeviation);
 }
 
@@ -640,13 +640,27 @@ void errorFunctionCombinedMean(std::vector<Mat> x1, std::vector<Mat> x2, Mat imp
     for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
         standardDeviation += std::pow(*errorIter - error, 2);
     }
-    standardDeviation = standardDeviation/((double)errorVect.size());
+    standardDeviation = standardDeviation/((double)errorVect.size() - 1.0);
     standardDeviation = std::sqrt(standardDeviation);
 }
 
 void findGoodCombinedMatches(std::vector<Mat> x1Combined, std::vector<Mat> x2Combined, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist) {
+    x1.clear();
+    x2.clear();
     for(int i = 0; i < x1Combined.size(); i++) {
-        if(fabs(errorFunctionFPoints(F, x1Combined.at(i), x2Combined.at(i))) < maxDist) {
+        if(errorFunctionFPointsSquared(F, x1Combined.at(i), x2Combined.at(i)) < maxDist) {
+            x1.push_back(x1Combined.at(i));
+            x2.push_back(x2Combined.at(i));
+        }
+    }
+}
+
+void findGoodCombinedMatches(std::vector<Point2d> x1Combined, std::vector<Point2d> x2Combined, std::vector<Point2d> &x1, std::vector<Point2d> &x2, Mat F, double maxDist, double minDist) {
+    x1.clear();
+    x2.clear();
+    for(int i = 0; i < x1Combined.size(); i++) {
+        double err = errorFunctionFPointsSquared(F, matVector(x1Combined.at(i)), matVector(x2Combined.at(i)));
+        if(minDist < err && err < maxDist) {
             x1.push_back(x1Combined.at(i));
             x2.push_back(x2Combined.at(i));
         }
@@ -700,34 +714,40 @@ double errorFunctionHLines(Mat H, Mat line1Start, Mat line1End, Mat line2Start, 
     return transferLineError(H, line1Start, line1End, line2Start, line2End);
 }
 
+double errorFunctionHLines(Mat H, Mat H_invT, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    //return std::sqrt(errorFunctionHLinesSqared(H, line1Start, line1End, line2Start, line2End));
+    return std::sqrt(squaredTransferLineError(H, line1Start, line1End, line2Start, line2End) + squaredTransferLineError(H_invT, line2Start, line2End, line1Start, line1End));
+}
+
 double errorFunctionFPoints(Mat F, Mat x1, Mat x2) {
     return std::sqrt(errorFunctionFPointsSquared(F, x1, x2));
+    //return errorFunctionFPointsSquared(F, x1, x2);
     //return computeUnsquaredSampsonFDistance(F, x1, x2);
 }
 
 double errorFunctionHPoints(Mat H, Mat x1, Mat x2) {
-    Mat E = crossProductMatrix(x2)*H*x1;
-    Mat J = Mat::zeros(3,4,CV_64FC1);
+//    Mat E = crossProductMatrix(x2)*H*x1;
+//    Mat J = Mat::zeros(3,4,CV_64FC1);
 
-    Mat H1 = H.row(0).t();
-    Mat H2 = H.row(1).t();
-    Mat H3 = H.row(2).t();
+//    Mat H1 = H.row(0).t();
+//    Mat H2 = H.row(1).t();
+//    Mat H3 = H.row(2).t();
 
-    //dE/dx
-    J.col(0) = x2.cross(H1);
-    //dE/dy
-    J.col(1) = x2.cross(H2);
-    //dE/dx'
-    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
-    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
-    //dE/dy'
-    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
-    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
+//    //dE/dx
+//    J.col(0) = x2.cross(H1);
+//    //dE/dy
+//    J.col(1) = x2.cross(H2);
+//    //dE/dx'
+//    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
+//    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
+//    //dE/dy'
+//    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
+//    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
 
-    Mat error = J.inv(DECOMP_SVD)*E;
+//    Mat error = -J.t()*(J*J.t()).inv(DECOMP_SVD)*E;
 
-    return error.at<double>(0,0);
-    //return std::sqrt(errorFunctionHPointsSqared(H, x1, x2));
+//    return error.at<double>(0,0);
+    return std::sqrt(errorFunctionHPointsSqared(H, x1, x2));
 }
 
 double symmeticTransferError(Mat F, Mat x1, Mat x2) {
@@ -1186,4 +1206,13 @@ void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::v
 
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {
     return (x11.at<double>(0,0) == x21.at<double>(0,0)) && (x11.at<double>(1,0) == x21.at<double>(1,0)) && (x12.at<double>(0,0) == x22.at<double>(0,0)) && (x12.at<double>(1,0) == x22.at<double>(1,0));
+}
+
+void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout) {
+    for(int i = 0; i < xin.size(); i++) {
+        Point2f p;
+        p.x = xin.at(i).at<double>(0,0);
+        p.y = xin.at(i).at<double>(1,0);
+        xout.push_back(p);
+    }
 }

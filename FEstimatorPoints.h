@@ -16,6 +16,7 @@ public:
 private:
 
     std::vector<Point2d> x1_used, x2_used;
+    std::vector<pointCorrespStruct> allPointCorrespondencies;
     std::vector<Point2d> x1, x2;    //corresponding points in image 1 and 2
 };
 

@@ -16,7 +16,6 @@ FEstimatorPoints::FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
 }
 
 int FEstimatorPoints::extractMatches() {
-    std::vector<pointCorrespStruct> allPointCorrespondencies;
     extractPointMatches(image_1, image_2, allPointCorrespondencies);
 
     for(std::vector<pointCorrespStruct>::iterator iter = allPointCorrespondencies.begin(); iter != allPointCorrespondencies.end(); ++iter) {
@@ -41,11 +40,19 @@ bool FEstimatorPoints::compute() {
         if(mask.at<int>(i,0)) {
             x1_used.push_back(x1.at(i));
             x2_used.push_back(x2.at(i));
-            featuresImg1.push_back(matVector(x1.at(i)));
-            featuresImg2.push_back(matVector(x2.at(i)));
         }
     }
     if(LOG_DEBUG) std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
+
+    for(int i = 0; i < allPointCorrespondencies.size(); i++) {
+        pointCorrespStruct pc = allPointCorrespondencies.at(i);
+        Mat xx1 = matVector(pc.x1);
+        Mat xx2 = matVector(pc.x2);
+        if(errorFunctionFPointsSquared(F, xx1, xx2) <= RANSAC_THREDHOLD) {
+            featuresImg1.push_back(xx1);
+            featuresImg2.push_back(xx2);
+        }
+    }
 
     if(featuresImg1.size() >= 7) successful = true;
 

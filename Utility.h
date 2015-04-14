@@ -61,6 +61,7 @@ std::vector<double> computeCombinedSquaredErrorVect(std::vector<Mat> x1, std::ve
 void errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation);
 void errorFunctionCombinedMean(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation);
 void findGoodCombinedMatches(std::vector<Mat> x1Combined, std::vector<Mat> x2Combined, std::vector<Mat> &x1, std::vector<Mat> &x2, Mat F, double maxDist);
+void findGoodCombinedMatches(std::vector<Point2d> x1Combined, std::vector<Point2d> x2Combined, std::vector<Point2d> &x1, std::vector<Point2d> &x2, Mat F, double maxDist, double minDist);
 void computeEpipoles(Mat F, Mat &e1, Mat &e2);
 Mat computeGeneralHomography(Mat F);
 pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy);
@@ -73,6 +74,7 @@ void homogMat(Mat &m);
 Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1norm, std::vector<Mat> &x2norm);
 double normalizeThr(Mat T1, Mat T2, double thrdth);
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22);
+void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout);
 
 //Error functions:
 //double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H);
@@ -80,6 +82,7 @@ double errorFunctionHLinesSqared(Mat H, Mat line1Start, Mat line1End, Mat line2S
 double errorFunctionFPointsSquared(Mat F, Mat x1, Mat x2);
 double errorFunctionHPointsSqared(Mat H, Mat x1, Mat x2);
 double errorFunctionHLines(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
+double errorFunctionHLines(Mat H, Mat H_invT, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double errorFunctionFPoints(Mat F, Mat x1, Mat x2);
 double errorFunctionHPoints(Mat H, Mat x1, Mat x2);
 double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);

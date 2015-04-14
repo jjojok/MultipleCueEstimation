@@ -39,8 +39,8 @@ struct LineFunctor : Functor<double>
         for(unsigned int i = 0; i < this->lines->lineCorrespondencies.size(); ++i)
         {
             lc = this->lines->lineCorrespondencies.at(i);
-            fvec(i) = errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) + errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
-            //fvec(i) = errorFunctionHLinesSqared(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) + errorFunctionHLinesSqared(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized);
+            fvec(i) = std::fabs(errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized)) + std::fabs(errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized));
+            //fvec(i) = errorFunctionHLines(H_T, H_invT, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized);
         }
 
         return 0;

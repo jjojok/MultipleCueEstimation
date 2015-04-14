@@ -100,7 +100,7 @@ bool FEstimatorHLines::compute() {
         }
 
         H = firstEstimation.Hs*secondEstimation.Hs.inv(DECOMP_SVD); // H = (H1*H2⁻1)
-        H /= H.at<double>(2,2);
+        homogMat(H);
 
         homographies_equal = (!computeUniqeEigenvector(H, e2) || isUnity(H));
         if(homographies_equal) {
@@ -152,6 +152,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
     int stableSolutions = 0;
     double dError = 0;
     int removedMatches = 0;
+    double errThr = 0;
 
     if(LOG_DEBUG) std::cout << "-- findHomography: confidence = " << confidence << ", relative outliers = " << outliers << std::endl;
 
@@ -161,6 +162,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
     }
 
     double errorThr = normalizeThr(normT1, normT2, threshold);
+    //double errorThr = threshold;
 
     if(goodLineMatches.size() < NUM_LINE_CORRESP) {
         if(LOG_DEBUG) std::cout << "-- To few line matches left! ";
@@ -176,7 +178,8 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         return false;
     }
 
-    errorThr = 0.1*bestSubset.subsetError;
+    //errorThr = errorThr;
+    errorThr = bestSubset.subsetError;
 
     int iterationLM = 0;
 
@@ -184,7 +187,10 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         iterationLM++;
 
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
+        //errThr = sqrt(errorThr)/iterationLM;
+        errThr = errorThr/(iterationLM);
+
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << errThr << std::endl;
 
         removedMatches = bestSubset.lineCorrespondencies.size();
 
@@ -193,7 +199,8 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         bestSubset.lineCorrespondencies.clear();
         for(int i = 0; i < allMatches.size(); i++) {
             lineCorrespStruct lc = allMatches.at(i);
-            if(errorFunctionHLines_(H_invT, H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) < sqrt(errorThr)/iterationLM) {        //errorThr
+            if(errorFunctionHLinesSqared_(H_invT, H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) < errThr) {        //errorThr
+            //if(errorFunctionHLinesSqared_(H_invT, H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End) < errThr) {
                 bestSubset.lineCorrespondencies.push_back(lc);
             }
         }
@@ -209,7 +216,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         lastError = bestSubset.subsetError;
 
-        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= 5) stableSolutions++;
+        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
         else stableSolutions = 0;
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
@@ -249,7 +256,7 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
     lm.parameters.ftol = 1.0e-15;
     lm.parameters.xtol = 1.0e-15;
     //lm.parameters.epsfcn = 1.0e-3;
-    lm.parameters.maxfev = 4000; // Max iterations
+    lm.parameters.maxfev = 40; // Max iterations
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
 
     if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.nfev << ", Status: " << status << std::endl;
@@ -337,13 +344,11 @@ bool FEstimatorHLines::isParallel(std::vector<lineCorrespStruct> fixedCorresp, l
 
 int FEstimatorHLines::filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches) {
     std::vector<lineCorrespStruct>::iterator it= matches.begin();
-    std::srand(std::time(0));
     int removed = 0;
     while (it!=matches.end()) {
         bool remove = false;
         for(std::vector<lineCorrespStruct>::const_iterator used = usedMatches.begin(); used != usedMatches.end(); ++used) {
-            bool keep = false;//std::rand()%3 - 1;
-            if(it->id == used->id && !keep) {
+            if(it->id == used->id) {
                 removed++;
                 remove = true;
                 break;
@@ -412,6 +417,7 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
         subset->qualityMeasure = 0;       //count inlainers
         for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
             error = errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
+            //error = errorFunctionHLinesSqared_(H_invT, H_T, it->line1Start, it->line1End, it->line2Start, it->line2End);
             if(error <= threshold) {
                 subset->subsetError += error;
                 subset->qualityMeasure++;
@@ -585,7 +591,7 @@ int FEstimatorHLines::filterBadLineMatches(lineSubsetStruct subset, std::vector<
     int removed = 0;
     std::vector<lineCorrespStruct>::iterator it= lineCorresp.begin();
     while (it!=lineCorresp.end()) {
-        if(errorFunctionHLines_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized) > threshold) {
+        if(errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized) > threshold) {
             removed++;
             lineCorresp.erase(it);
         } else it++;

@@ -56,6 +56,7 @@ int extractPointMatches(Mat image_1, Mat image_2, std::vector<pointCorrespStruct
         pc->x1 = keypoints_1[matches[i].queryIdx].pt;
         pc->x2 = keypoints_2[matches[i].trainIdx].pt;
         pc->isGoodMatch = false;
+        pc->id = i;
         if( matches[i].distance <= min_dist )
         {
             //good_matches.push_back( matches[i]);

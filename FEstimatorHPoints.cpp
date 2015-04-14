@@ -76,6 +76,7 @@ bool FEstimatorHPoints::compute() {
         }
 
         H = firstEstimation.Hs*secondEstimation.Hs.inv(DECOMP_SVD); // H = (H1*H2⁻1)
+        homogMat(H);
 
         homographies_equal = (!computeUniqeEigenvector(H, e2) || isUnity(H));
         if(homographies_equal) {
@@ -86,6 +87,11 @@ bool FEstimatorHPoints::compute() {
         }
 
         estCnt++;
+    }
+
+    if(homographies_equal) {     //Not able to find a secont homographie
+        if(LOG_DEBUG) std::cout << "-- Estimation failed!" << std::endl;
+        return false;
     }
 
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = secondEstimation.pointCorrespondencies.begin(); pointIter != secondEstimation.pointCorrespondencies.end(); ++pointIter) {
@@ -124,6 +130,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
     int stableSolutions = 0;
     double dError = 0;
     int removedMatches = 0;
+    double errThr = 0;
 
     double errorThr = normalizeThr(normT1, normT2, threshold);
 
@@ -156,13 +163,15 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         iterationLM++;
 
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << sqrt(errorThr)/iterationLM << std::endl;
+        errThr = errorThr/(iterationLM);
+
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << errThr << std::endl;
 
         Mat H = bestSubset.Hs;
         bestSubset.pointCorrespondencies.clear();
         for(int i = 0; i < allMatches.size(); i++) {
             pointCorrespStruct pc = allMatches.at(i);
-            if(errorFunctionHPoints_(H, pc) < sqrt(errorThr)/iterationLM) {        //errorThr
+            if(errorFunctionHPointsSquared_(H, pc) < errThr) {        //errorThr
                 bestSubset.pointCorrespondencies.push_back(pc);
             }
         }
@@ -178,7 +187,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         lastError = bestSubset.subsetError;
 
-        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || removedMatches == 0) stableSolutions++;
+        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
         else stableSolutions = 0;
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
@@ -346,18 +355,16 @@ double FEstimatorHPoints::errorFunctionHPointsSquared_(Mat H, pointCorrespStruct
 }
 
 double FEstimatorHPoints::errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp) {
-    return fabs(errorFunctionHPoints(H, pointCorresp.x1norm, pointCorresp.x2norm));
+    return errorFunctionHPoints(H, pointCorresp.x1norm, pointCorresp.x2norm);
 }
 
 int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp) {
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
-    std::srand(std::time(0));
     int removed = 0;
     while (it!=pointCorresp.end()) {
         bool remove = false;
         for(std::vector<pointCorrespStruct>::const_iterator used = usedPointCorresp.begin(); used != usedPointCorresp.end(); ++used) {
-            bool keep = false;//std::rand()%4 - 1;  //Delete every third correpsondency
-            if(it->id == used->id && !keep) {
+            if(it->id == used->id) {
                 removed++;
                 remove = true;
                 break;
@@ -376,7 +383,7 @@ int FEstimatorHPoints::filterBadPointMatches(pointSubsetStruct subset, std::vect
     int removed = 0;
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
     while (it!=pointCorresp.end()) {
-        if(errorFunctionHPoints_(subset.Hs, *it) > threshold) {
+        if(errorFunctionHPointsSquared_(subset.Hs, *it) > threshold) {
             removed++;
             pointCorresp.erase(it);
         } else it++;
@@ -428,7 +435,7 @@ double FEstimatorHPoints::levenbergMarquardt(pointSubsetStruct &bestSubset) {
 
     lm.parameters.ftol = 1.0e-15;
     lm.parameters.xtol = 1.0e-15;
-    lm.parameters.maxfev = 4000; // Max iterations
+    lm.parameters.maxfev = 40; // Max iterations
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
 
     if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.nfev << ", Status: " << status << std::endl;

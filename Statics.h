@@ -23,17 +23,19 @@
 //Max squared distance of lines to be considered as a correct projection (pixel)
 #define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to be considered as stable
-#define MAX_ERROR_CHANGE 0.1
+#define MAX_ERROR_CHANGE 0.01
+//max features changing for error to be considered as stable
+#define MAX_FEATURE_CHANGE 3
 //How close two values have to be to be considered equal
 #define MARGIN 0.1
 //Number of attempts to compute a second Homography if it is equal to the forst one
-#define MAX_H2_ESTIMATIONS 0
+#define MAX_H2_ESTIMATIONS 20
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
 //Ransac reproj threshold for Homography computation
-#define HOMOGRAPHY_RANSAC_THRESHOLD 2.0
+#define HOMOGRAPHY_RANSAC_THRESHOLD 1.25
 
 //Points:
 //Sift features
@@ -43,7 +45,7 @@
 //Factor of min Sift distance from all generated points where correspondence is still acceptable
 #define SIFT_MIN_DIST_FACTOR 3.0
 //Ransac thredshold
-#define RANSAC_THREDHOLD 1.25
+#define RANSAC_THREDHOLD 2.0
 //Ransac confidence
 #define RANSAC_CONFIDENCE 0.9995
 ////Refinement thredshold
