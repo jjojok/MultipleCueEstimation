@@ -75,6 +75,8 @@ Mat* normalize(std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &x1nor
 double normalizeThr(Mat T1, Mat T2, double thrdth);
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22);
 void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout);
+bool compareCorrespErrors(correspSubsetError ls1, correspSubsetError ls2);
+bool compareFundMatSets(fundamentalMatrix f1, fundamentalMatrix f2);
 
 //Error functions:
 //double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H);

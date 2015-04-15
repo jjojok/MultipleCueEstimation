@@ -535,10 +535,6 @@ Mat* FEstimatorHLines::normalizeLines(std::vector<lineCorrespStruct> &correspond
     return normalizationMats;
 }
 
-bool compareLineCorrespErrors(lineCorrespSubsetError ls1, lineCorrespSubsetError ls2) {
-    return ls1.lineCorrespError < ls2.lineCorrespError;
-}
-
 void FEstimatorHLines::addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches) {
     Mat H_inv = H.inv(DECOMP_SVD);
     for(std::vector<lineCorrespStruct>::const_iterator iter = goodLineMatches.begin(); iter != goodLineMatches.end(); ++iter) {

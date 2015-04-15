@@ -4,8 +4,6 @@
 #include "Utility.h"
 #include "DataStructs.h"
 
-bool compareLineCorrespErrors(lineCorrespSubsetError ls1, lineCorrespSubsetError ls2);
-
 class FEstimatorHLines : public FEstimationMethod {
 public:
     FEstimatorHLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name);

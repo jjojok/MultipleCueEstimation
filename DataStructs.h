@@ -26,9 +26,18 @@ struct pointCorrespStruct {
     bool isGoodMatch;
 };
 
-struct lineCorrespSubsetError {
-    int lineCorrespIdx;
-    double lineCorrespError;
+struct correspSubsetError {
+    int correspIdx;
+    double correspError;
+};
+
+struct fundamentalMatrix {
+    Mat F;
+    int inlier;
+    double meanSquaredErrror;
+    double stdDeviation;
+    double inlierMeanSquaredErrror;
+    double inlierStdDeviation;
 };
 
 struct lineSubsetStruct {
