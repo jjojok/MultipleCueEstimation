@@ -963,8 +963,16 @@ bool compareCorrespErrors(correspSubsetError ls1, correspSubsetError ls2) {
     return ls1.correspError < ls2.correspError;
 }
 
-bool compareFundMatSets(fundamentalMatrix f1, fundamentalMatrix f2) {
-    return f1.inlier > f2.inlier;
+bool compareFundMatSets(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+    return f1->inlier > f2->inlier;
+}
+
+bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+    return f1->selectedInlierCount > f2->selectedInlierCount;
+}
+
+bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+    return f1->meanSquaredErrror < f2->meanSquaredErrror;
 }
 
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {
