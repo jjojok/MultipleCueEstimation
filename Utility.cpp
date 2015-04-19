@@ -968,7 +968,7 @@ bool compareFundMatSets(fundamentalMatrix* f1, fundamentalMatrix* f2) {
 }
 
 bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-    return f1->selectedInlierCount > f2->selectedInlierCount;
+    return f1->selectedInlierCount/(double)f1->inlier > f2->selectedInlierCount/(double)f2->inlier;
 }
 
 bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
