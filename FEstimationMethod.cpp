@@ -40,7 +40,7 @@ Mat FEstimationMethod::normalize(Mat T, double x, double y, double z) {
 
 Mat FEstimationMethod::denormalize(Mat M, Mat T1, Mat T2) {
     Mat T = T2.inv(DECOMP_SVD)*M*T1;
-    T = T / T.at<double>(2,2);
+    homogMat(T);
     return T;
 }
 

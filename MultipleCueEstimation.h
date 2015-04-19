@@ -32,9 +32,14 @@ public:
     MultipleCueEstimation(Mat *img1, Mat *img2, int comp);
     MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat *F_groudtruth);
 
+    double debugRefinedFGoodMatchedError;
+    int debugRefinedFGoodMatches;
+    int debugCombinedMatches;
+
     Mat compute();
     double getMeanSquaredRSSTError();
     double getMeanSquaredCSTError();
+    int getInlier();
     std::vector<FEstimationMethod> getEstimations();
 
 private:
@@ -56,6 +61,7 @@ private:
     bool compareWithGroundTruth;
     double meanSquaredRSSTError;    //Mean squared random sample symmetic transfer error
     double meanSquaredCombinedError;     //Mean squared error of combined matches
+    int inlier;
     Mat F;                          //Final Fundamental Matrix
 
     Mat image_1, image_2;

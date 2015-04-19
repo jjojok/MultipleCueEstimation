@@ -50,7 +50,7 @@ Mat MultipleCueEstimation::compute() {
 
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
             if(it->isSuccessful()) {
-                std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
+                if(LOG_DEBUG) std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
                 if (compareWithGroundTruth) {
                     //it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
                     it->meanSquaredRSSTError = -2;
@@ -65,15 +65,15 @@ Mat MultipleCueEstimation::compute() {
             }
         }
 
+        double error3;
+        int cnt;
         if(F.data) {
-            std::cout << "Refined F = " << std::endl << F << std::endl;
+            if(LOG_DEBUG) std::cout << "Refined F = " << std::endl << F << std::endl;
             if (compareWithGroundTruth) {
                 //meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, F, image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
                 meanSquaredRSSTError = -2;
                 double error2 = squaredError(Fgt, F);
                 if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << meanSquaredRSSTError << ", Squated distance: " << error2 << std::endl;
-                double error3;
-                int cnt;
                 meanSampsonFDistanceGoodMatches(Fgt, F, x1combined, x2combined, error3, cnt);
             }
             if(VISUAL_DEBUG) {
@@ -84,6 +84,7 @@ Mat MultipleCueEstimation::compute() {
 
         if (compareWithGroundTruth) {
             std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
+            meanSampsonFDistanceGoodMatches(Fgt, Fgt, x1combined, x2combined, error3, cnt);
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
                 drawEpipolarLines(x1,x2, Fgt, image_1, image_2, "F_groundtruth");
@@ -166,7 +167,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     if (LOG_DEBUG) std::cout << std::endl << "Refinement of computed Fundamental Matrices" << std::endl;
 
-    double squaredErrorThr = 0.5;
+    double squaredErrorThr = 2.00;
 
     std::vector<Mat> goodCombindX1;
     std::vector<Mat> goodCombindX2;
@@ -197,19 +198,19 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             if(bestMethod->meanSquaredCSTErrorInliers < estimationIter->meanSquaredCSTErrorInliers) {
                 bestMethod = estimationIter;
             }
-            if(estimationIter->meanSquaredCSTErrorInliers > x1Combined.size()*0.2 && estimationIter->meanSquaredCSTError < 5e4) {
-                fundamentalMatrix* fm = new fundamentalMatrix;
-                fm->inlier = estimationIter->meanSquaredCSTErrorInliers;
-                fm->inlierMeanSquaredErrror = 0;
-                fm->inlierStdDeviation = 0;
-                fm->selectedInlierCount = 0;
-                fm->meanSquaredErrror = estimationIter->meanSquaredCSTError;
-                fm->stdDeviation = estimationIter->meanSquaredCSTErrorStandardDeviation;
-                fm->F = estimationIter->getF().clone();
-                fm->name = estimationIter->name;
-                fundMats.push_back(fm);
-                if (LOG_DEBUG) std::cout << "Added to vector of fundamental matrices" << std::endl;
-            }
+
+            fundamentalMatrix* fm = new fundamentalMatrix;
+            fm->inlier = estimationIter->meanSquaredCSTErrorInliers;
+            fm->inlierMeanSquaredErrror = 0;
+            fm->inlierStdDeviation = 0;
+            fm->selectedInlierCount = 0;
+            fm->meanSquaredErrror = estimationIter->meanSquaredCSTError;
+            fm->stdDeviation = estimationIter->meanSquaredCSTErrorStandardDeviation;
+            fm->F = estimationIter->getF().clone();
+            fm->name = estimationIter->name;
+            fundMats.push_back(fm);
+            if (LOG_DEBUG) std::cout << "Added to vector of fundamental matrices" << std::endl;
+
             numValues += estimationIter->getFeaturesImg1().size();
         }
     }
@@ -285,6 +286,11 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
             std::sort(errors.begin(), errors.end(), compareCorrespErrors);
 
+//            for(int i = 0; i < errors.size(); i++) {      //remove inliers d²< 0.1
+//                if(errors.at(i).correspError < 0.0001) remove = i;
+//                else break;
+//            }
+
             errors.erase(errors.begin()+remove, errors.end());
 
             for(int i = 0; i < errors.size(); i++) {
@@ -309,7 +315,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             fm->inlierStdDeviation = std::sqrt(fm->inlierStdDeviation/(fm->inlier-1));
 
             errorMeasure = std::sqrt(fm->inlierStdDeviation*fm->inlierStdDeviation + fm->inlierMeanSquaredErrror*fm->inlierMeanSquaredErrror);
-            std::cout << "-- inlierMeanError: " << fm->inlierMeanSquaredErrror << ", inlierStdDev: " << fm->inlierStdDeviation << " inlier: " << fm->inlier << ", error measure: " << errorMeasure<< std::endl;
+            if (LOG_DEBUG) std::cout << "-- Removed inliers: " << remove <<  " inlierMeanError: " << fm->inlierMeanSquaredErrror << ", inlierStdDev: " << fm->inlierStdDeviation << " inlier: " << fm->inlier << ", error measure: " << errorMeasure<< std::endl;
 
             int generalInliers;
             errorFunctionCombinedMeanSquared(x1Combined, x2Combined, fm->F, fm->meanSquaredErrror, generalInliers, squaredErrorThr, fm->stdDeviation);
@@ -343,9 +349,9 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     fundMatsTmp.clear();
     for(int i = 0; i < fundMats.size(); i++) {
         fundamentalMatrix* fm = fundMats.at(i);
-        if(i > 2 && (fm->meanSquaredErrror > 4*(currentIterMeanErr/i) || (fm->meanSquaredErrror > 4*(currentIterStdDev/i)))) {
+        if(i > 2 && (fm->meanSquaredErrror > 10*(currentIterMeanErr/i) || (fm->meanSquaredErrror > 10*(currentIterStdDev/i)))) {
             if (LOG_DEBUG) {
-                std::cout << "-- Current iteration max mean error: " << 4*(currentIterMeanErr/iterations) << ", max std. dev.: " << 4*(currentIterStdDev/iterations) << std::endl;
+                std::cout << "-- Current iteration max mean error: " << 10*(currentIterMeanErr/iterations) << ", max std. dev.: " << 10*(currentIterStdDev/iterations) << std::endl;
                 std::cout << "-- Current iteration fundmat mean error: " << fm->meanSquaredErrror << ", std. dev.: " << fm->stdDeviation << std::endl;
                 if(compareWithGroundTruth) {
                     meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
@@ -355,8 +361,10 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             }
         } else {
             fundMatsTmp.push_back(fm);
-            currentIterMeanErr += fm->meanSquaredErrror;
-            currentIterStdDev += fm->stdDeviation;
+            if(i < 40) {
+                currentIterMeanErr += fm->meanSquaredErrror;
+                currentIterStdDev += fm->stdDeviation;
+            }
         }
     }
     fundMats = fundMatsTmp;
@@ -369,7 +377,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     double leastMeanMean = 0;
     double leastMeanStdDev = 0;
     double meanStdDev = 0;
-    double errormeasures = fundMats.size(); //std::min((int)fundMats.size(), 30);
+    double errormeasures = fundMats.size();//fundMats.size()*0.4;
     int leastInliers = fundMats.at(errormeasures-1)->inlier;
 
     for(int i = 0; i < errormeasures; i++) {
@@ -428,18 +436,28 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             bestFundMats.push_back(fm);
             //bestFm = fundMats.at(i);
             //break;
+        } else {
+            if (LOG_DEBUG) {
+                std::cout << "-- Current iteration max mean error: " << meanMean << ", max std. dev.: " << meanStdDev << ", least mean error: " << leastMeanMean << ", least max std. dev.: " << leastMeanStdDev << std::endl;
+                std::cout << "-- Current iteration fundmat mean error: " << fm->meanSquaredErrror << ", std. dev.: " << fm->stdDeviation << ", least mean error: " << fm->leastInlierMeanSquaredErrror << ", least std. dev.: " << fm->leastInlierStdDeviation << std::endl;
+                if(compareWithGroundTruth) {
+                    meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
+                }
+                std::cout << "-- Filtering fundmat " << fm->name << " (" << i << ")" << std::endl;
+                //std::cout << std::endl;
+            }
         }
     }
 
     bestfm = bestFundMats.at(0);
 
-    std::cout << "-- Curresnt best FundMat: " << bestfm->name << ", inlier: " << bestfm->inlier << ", inlier error: " << bestfm->inlierMeanSquaredErrror << ", inlier std. dev.: " << bestfm->inlierStdDeviation << ", error: " << bestfm->meanSquaredErrror << ", std. dev.: " << bestfm->stdDeviation << std::endl;
+    if(LOG_DEBUG) std::cout << "-- Curresnt best FundMat: " << bestfm->name << ", inlier: " << bestfm->inlier << ", inlier error: " << bestfm->inlierMeanSquaredErrror << ", inlier std. dev.: " << bestfm->inlierStdDeviation << ", error: " << bestfm->meanSquaredErrror << ", std. dev.: " << bestfm->stdDeviation << std::endl;
     if(compareWithGroundTruth) {
         meanSampsonFDistanceGoodMatches(Fgt, bestFundMats.at(0)->F, x1Combined, x2Combined, debugErr, debugUsed);
     }
-    drawEpipolarLines(x1, x1, bestFundMats.at(0)->F, image_1_color, image_2_color, "intermedeate best");
-    findGoodCombinedMatches(x1Combined, x2Combined, goodCombindX1, goodCombindX2, bestFundMats.at(0)->F, squaredErrorThr);
-    visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "intermedeate best");
+//    drawEpipolarLines(x1, x1, bestFundMats.at(0)->F, image_1_color, image_2_color, "intermedeate best");
+//    findGoodCombinedMatches(x1Combined, x2Combined, goodCombindX1, goodCombindX2, bestFundMats.at(0)->F, squaredErrorThr);
+//    visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "intermedeate best");
 
     if (LOG_DEBUG) std::cout << "-- Computing inlier matrix... " << std::endl;
     Mat inlierMatrix = Mat::zeros(x1Combined.size(), bestFundMats.size(), CV_8UC1);
@@ -450,7 +468,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         for(int j = 0; j < bestFundMats.size(); j++) {
             fundamentalMatrix* fm = bestFundMats.at(j);
             double d = errorFunctionFPointsSquared(fm->F,  x1, x2);
-            if(d < 3.0) {  //leastMeanMean squaredErrorThr
+            if(d < squaredErrorThr) {  //leastMeanMean squaredErrorThr
                 inlierMatrix.at<u_int8_t>(i, j) = 1;
             }
         }
@@ -485,27 +503,6 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     }
 
     if (LOG_DEBUG) std::cout << "-- Good selected points: " << x1CombinedSelection.size() << std::endl;
-
-    matToPoint(x1CombinedSelection, x1CombinedSelectionP);
-    matToPoint(x2CombinedSelection, x2CombinedSelectionP);
-
-    Mat test1 = findFundamentalMat(x1CombinedSelectionP, x2CombinedSelectionP, noArray(), FM_8POINT);
-    drawEpipolarLines(x1, x1, test1, image_1_color, image_2_color, "test1");
-    visualizePointMatches(image_1_color, image_2_color, x1CombinedSelection, x2CombinedSelection, 3, true, "test1");
-    if (LOG_DEBUG) std::cout << "-- test 8 point" << std::endl;
-    if(compareWithGroundTruth) {
-        meanSampsonFDistanceGoodMatches(Fgt, test1, x1Combined, x2Combined, debugErr, debugUsed);
-    }
-
-
-    Mat test2 = findFundamentalMat(x1CombinedSelectionP, x2CombinedSelectionP, noArray(), FM_RANSAC, squaredErrorThr, 0.9995);
-    drawEpipolarLines(x1, x1, test2, image_1_color, image_2_color, "test1");
-    findGoodCombinedMatches(x1CombinedSelection, x1CombinedSelection, goodCombindX1, goodCombindX2, test2, squaredErrorThr);
-    visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "test2");
-    if (LOG_DEBUG) std::cout << "-- test ransac" << std::endl;
-    if(compareWithGroundTruth) {
-        meanSampsonFDistanceGoodMatches(Fgt, test2, x1Combined, x2Combined, debugErr, debugUsed);
-    }
 
     if (LOG_DEBUG) std::cout << std::endl << std::endl << "-- Finding F with discribes the most points above mean inlier count..." << std::endl << std::endl << std::endl;
 
@@ -549,6 +546,30 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     }
     bestFundMats = fundMatsTmp;
 
+    matToPoint(x1CombinedSelection, x1CombinedSelectionP);
+    matToPoint(x2CombinedSelection, x2CombinedSelectionP);
+
+    Mat FCombinedSelection = findFundamentalMat(x1CombinedSelectionP, x2CombinedSelectionP, noArray(), FM_RANSAC, squaredErrorThr, 0.9995);
+    if(VISUAL_DEBUG) drawEpipolarLines(x1, x1, FCombinedSelection, image_1_color, image_2_color, "FCombinedSelection");
+    if(VISUAL_DEBUG) findGoodCombinedMatches(x1CombinedSelection, x1CombinedSelection, goodCombindX1, goodCombindX2, FCombinedSelection, squaredErrorThr);
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "FCombinedSelection used points");
+    fundamentalMatrix* fmCombinedSelection = new fundamentalMatrix;
+    fmCombinedSelection->F = FCombinedSelection;
+    fmCombinedSelection->name = "FCombinedSelection";
+    fmCombinedSelection->inlierMeanSquaredErrror = 0;
+    fmCombinedSelection->inlierStdDeviation = 0;
+    fmCombinedSelection->leastInlierMeanSquaredErrror = 0;
+    fmCombinedSelection->leastInlierStdDeviation = 0;
+    fmCombinedSelection->selectedInlierCount = 0;
+    errorFunctionCombinedMeanSquared(x1Combined, x2Combined, fmCombinedSelection->F, fmCombinedSelection->meanSquaredErrror, fmCombinedSelection->inlier, squaredErrorThr, fmCombinedSelection->stdDeviation);
+    bestFundMats.push_back(fmCombinedSelection);
+    if (LOG_DEBUG) std::cout << "-- Computed FCombinedSelection:" << std::endl;
+    if (LOG_DEBUG) std::cout << "-- meanSquaredErrror: " << fmCombinedSelection->meanSquaredErrror << ", stdDeviation: " << fmCombinedSelection->stdDeviation << std::endl;
+    if(compareWithGroundTruth) {
+        meanSampsonFDistanceGoodMatches(Fgt, fmCombinedSelection->F, x1Combined, x2Combined, debugErr, debugUsed);
+    }
+    if (LOG_DEBUG) std::cout << std::endl;
+
     std::sort(bestFundMats.begin(), bestFundMats.end(), compareFundMatSetsError);
 
     if (LOG_DEBUG) {
@@ -564,39 +585,32 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         }
     }
 
-    //TODO: get m best solutions + good solutions from different computations
-    // For each of n correspondencys: compute if it is inlier in each solution, store "1" for inlers in mxn matrix
-    // For each of n columns: count number of "1", number above thr -> correspondency good
-    // Take all good correspondencys and compute best solution or find best of existing
-
     bestfm = bestFundMats.at(0);
     refinedF = bestFundMats.at(0)->F;
 
     if(LOG_DEBUG) std::cout << "-- Best error: " << bestfm->meanSquaredErrror << ", std. dev.: " << bestfm->stdDeviation << ", inliers: " << bestfm->inlier << std::endl;
-    meanSampsonFDistanceGoodMatches(Fgt, refinedF, x1Combined, x2Combined, debugErr, debugUsed);
+    if(compareWithGroundTruth) meanSampsonFDistanceGoodMatches(Fgt, refinedF, x1Combined, x2Combined, debugErr, debugUsed);
 
     findGoodCombinedMatches(x1Combined, x2Combined, goodCombindX1, goodCombindX2, refinedF, squaredErrorThr);
 
     errorFunctionCombinedMeanSquared(goodCombindX1, goodCombindX1, refinedF, errorThr2, inliers, squaredErrorThr, stdDeviation);
 
-    drawEpipolarLines(x1, x2, refinedF, image_1_color, image_2_color, "Standard Deviation min imization result");
+    if(VISUAL_DEBUG) drawEpipolarLines(x1, x2, refinedF, image_1_color, image_2_color, "RefinedF bevore LM");
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "RefinedF bevore LM used points");
 
-    visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "Standard Deviation min imization result");
+    //levenbergMarquardt(refinedF, x1Combined, x2Combined, goodCombindX1, goodCombindX2, squaredErrorThr, 10, 0.05, 0.0, 0.9, inliers, 3, 3000, 0.0, stdDeviation, error);
 
-    double errorThr3 = 3.0;
-
-    levenbergMarquardt(refinedF, x1CombinedSelection, x2CombinedSelection, goodCombindX1, goodCombindX2, errorThr3, -1, 0.01, 0.0, 1.0, inliers, 3, 3000, 0.0, stdDeviation, error);
-
-    visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "Refined F used matches");
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, goodCombindX1, goodCombindX2, 3, true, "Refined F used matches");
 
     double generalError;
     int generalInliers;
-    errorFunctionCombinedMeanSquared(x1Combined, x2Combined, refinedF, generalError, generalInliers, squaredErrorThr, stdDeviation);
+    errorFunctionCombinedMeanSquared(x1Combined, x2Combined, refinedF, meanSquaredCombinedError, this->inlier, squaredErrorThr, stdDeviation);
     if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for refined F: " << generalError << ", Std. dev: " << stdDeviation << ", inliers: " << generalInliers << std::endl;
     errorFunctionCombinedMean(x1Combined, x2Combined, refinedF, generalError, generalInliers, sqrt(squaredErrorThr), stdDeviation);
     if (LOG_DEBUG) std::cout << "Computing mean error of combined matches for refined F: " << generalError << ", Std. dev: " << stdDeviation << ", inliers: " << generalInliers << std::endl;
 
-    cvWaitKey(0);
+    debugCombinedMatches = x1Combined.size();
+    if(compareWithGroundTruth) meanSampsonFDistanceGoodMatches(Fgt, refinedF, x1Combined, x2Combined, debugRefinedFGoodMatchedError, debugRefinedFGoodMatches);
 
     return refinedF;
 }
@@ -611,6 +625,10 @@ double MultipleCueEstimation::getMeanSquaredRSSTError() {
 
 std::vector<FEstimationMethod> MultipleCueEstimation::getEstimations() {
     return estimations;
+}
+
+int MultipleCueEstimation::getInlier() {
+    return inlier;
 }
 
 void MultipleCueEstimation::combinePointCorrespondecies() {

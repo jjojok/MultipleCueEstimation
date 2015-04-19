@@ -142,7 +142,7 @@ bool FEstimatorHLines::compute() {
     return true;
 }
 
-bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold) {
+bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold, Mat H1) {
     double lastError = 0;
     int N;
     //std::vector<lineCorrespStruct> lastIterLineMatches;
@@ -176,6 +176,13 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         if(LOG_DEBUG) std::cout << "-- Only colinear points left! ";
         if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
         return false;
+    }
+
+    if(H1.data) {
+        Mat H2 = denormalize(bestSubset.Hs, normT1, normT2);
+        Mat H = H1*H2.inv(DECOMP_SVD);
+        Mat e2;
+        if(!computeUniqeEigenvector(H, e2) || isUnity(H)) return true;
     }
 
     //errorThr = errorThr;

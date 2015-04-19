@@ -44,6 +44,7 @@ public:
     double meanCSTError;
     double meanCSTErrorStandardDeviation;
     int meanCSTErrorInliers;
+    int inlier;
 
     double meanSquaredRSSTError;
 

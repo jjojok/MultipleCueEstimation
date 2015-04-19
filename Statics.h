@@ -19,7 +19,7 @@
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
 //Max number of numerical refinement steps after a first homographie was found
-#define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 50
+#define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 100
 //Max squared distance of lines to be considered as a correct projection (pixel)
 #define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to be considered as stable

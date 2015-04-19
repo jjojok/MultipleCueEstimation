@@ -31,7 +31,7 @@ struct GeneralFunctor : Functor<double>
 
         homogMat(F);
 
-        std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, F);
+        std::vector<double> errorVect = computeCombinedSquaredErrorVect(x1, x2, F);
 
         for(int i = 0; i < errorVect.size(); i++) {
             fvec(i) = errorVect.at(i);
