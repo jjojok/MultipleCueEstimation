@@ -89,7 +89,7 @@ bool FEstimatorHPoints::compute() {
         estCnt++;
     }
 
-    if(homographies_equal) {     //Not able to find a secont homographie
+    if(homographies_equal) {     //Not able to find a second homography
         if(LOG_DEBUG) std::cout << "-- Estimation failed!" << std::endl;
         return false;
     }

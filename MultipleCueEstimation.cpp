@@ -176,6 +176,8 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     std::vector<fundamentalMatrix*> fundMats;
     std::vector<fundamentalMatrix*> fundMatsTmp;
 
+    //std::vector<combinedPointMatch*> fundMatMatches;
+
     combinePointCorrespondecies();
 
     //Select F with smallest error with respect to all features as starting point
@@ -271,6 +273,8 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             fm->meanSquaredErrror = 0;
             fm->stdDeviation = 0;
             fm->selectedInlierCount = 0;
+            fm->containedInCluserCnt = 0;
+            fm->id = iterations;
             char buffer[10];
             std::sprintf(buffer, "Iter_%i", iterations);
             fm->name = std::string(buffer);
@@ -344,30 +348,30 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     std::cout << std::endl;
 
-    double currentIterMeanErr = 0;
-    double currentIterStdDev = 0;
-    fundMatsTmp.clear();
-    for(int i = 0; i < fundMats.size(); i++) {
-        fundamentalMatrix* fm = fundMats.at(i);
-        if(i > 2 && (fm->meanSquaredErrror > 10*(currentIterMeanErr/i) || (fm->meanSquaredErrror > 10*(currentIterStdDev/i)))) {
-            if (LOG_DEBUG) {
-                std::cout << "-- Current iteration max mean error: " << 10*(currentIterMeanErr/iterations) << ", max std. dev.: " << 10*(currentIterStdDev/iterations) << std::endl;
-                std::cout << "-- Current iteration fundmat mean error: " << fm->meanSquaredErrror << ", std. dev.: " << fm->stdDeviation << std::endl;
-                if(compareWithGroundTruth) {
-                    meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
-                }
-                std::cout << "-- Filtering fundmat " << fm->name << " (" << i << ")" << std::endl;
-                //std::cout << std::endl;
-            }
-        } else {
-            fundMatsTmp.push_back(fm);
-            if(i < 40) {
-                currentIterMeanErr += fm->meanSquaredErrror;
-                currentIterStdDev += fm->stdDeviation;
-            }
-        }
-    }
-    fundMats = fundMatsTmp;
+//    double currentIterMeanErr = 0;
+//    double currentIterStdDev = 0;
+//    fundMatsTmp.clear();
+//    for(int i = 0; i < fundMats.size(); i++) {
+//        fundamentalMatrix* fm = fundMats.at(i);
+//        if(i > 2 && (fm->meanSquaredErrror > 10*(currentIterMeanErr/i) || (fm->meanSquaredErrror > 10*(currentIterStdDev/i)))) {
+//            if (LOG_DEBUG) {
+//                std::cout << "-- Current iteration max mean error: " << 10*(currentIterMeanErr/iterations) << ", max std. dev.: " << 10*(currentIterStdDev/iterations) << std::endl;
+//                std::cout << "-- Current iteration fundmat mean error: " << fm->meanSquaredErrror << ", std. dev.: " << fm->stdDeviation << std::endl;
+//                if(compareWithGroundTruth) {
+//                    meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
+//                }
+//                std::cout << "-- Filtering fundmat " << fm->name << " (" << i << ")" << std::endl;
+//                //std::cout << std::endl;
+//            }
+//        } else {
+//            fundMatsTmp.push_back(fm);
+//            if(i < 40) {
+//                currentIterMeanErr += fm->meanSquaredErrror;
+//                currentIterStdDev += fm->stdDeviation;
+//            }
+//        }
+//    }
+//    fundMats = fundMatsTmp;
 
     if (LOG_DEBUG) std::cout << std::endl;
 
@@ -426,29 +430,30 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     fundamentalMatrix* bestfm;
 
-    for(int i = 0; i < errormeasures; i++) {
-        fundamentalMatrix* fm = fundMats.at(i);
+//    for(int i = 0; i < errormeasures; i++) {
+//        fundamentalMatrix* fm = fundMats.at(i);
 
-        //if(fnorm(fm->leastInlierMeanSquaredErrror, fm->leastInlierStdDeviation) < leastMeanErrormeasure && fnorm(fm->meanSquaredErrror, fm->stdDeviation) < meanErrormeasure) {
-        //if(fm->meanSquaredErrror < 0.9*meanMean && fm->stdDeviation < 0.9*meanStdDev && fm->meanSquaredErrror > 0.5*meanMean && fm->stdDeviation > 0.5*meanStdDev) {       //Filter bad solutions an the ones that are "to good to be true"
+//        //if(fnorm(fm->leastInlierMeanSquaredErrror, fm->leastInlierStdDeviation) < leastMeanErrormeasure && fnorm(fm->meanSquaredErrror, fm->stdDeviation) < meanErrormeasure) {
+//        //if(fm->meanSquaredErrror < 0.9*meanMean && fm->stdDeviation < 0.9*meanStdDev && fm->meanSquaredErrror > 0.5*meanMean && fm->stdDeviation > 0.5*meanStdDev) {       //Filter bad solutions an the ones that are "to good to be true"
 
-        if(fm->leastInlierMeanSquaredErrror < leastMeanMean && fm->leastInlierStdDeviation < leastMeanStdDev && fm->meanSquaredErrror < meanMean && fm->stdDeviation < meanStdDev && fm->leastInlierMeanSquaredErrror > 0.1*leastMeanMean && fm->leastInlierStdDeviation > 0.1*leastMeanStdDev && fm->meanSquaredErrror > 0.1*meanMean && fm->stdDeviation > 0.1*meanStdDev) {
-            bestFundMats.push_back(fm);
-            //bestFm = fundMats.at(i);
-            //break;
-        } else {
-            if (LOG_DEBUG) {
-                std::cout << "-- Current iteration max mean error: " << meanMean << ", max std. dev.: " << meanStdDev << ", least mean error: " << leastMeanMean << ", least max std. dev.: " << leastMeanStdDev << std::endl;
-                std::cout << "-- Current iteration fundmat mean error: " << fm->meanSquaredErrror << ", std. dev.: " << fm->stdDeviation << ", least mean error: " << fm->leastInlierMeanSquaredErrror << ", least std. dev.: " << fm->leastInlierStdDeviation << std::endl;
-                if(compareWithGroundTruth) {
-                    meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
-                }
-                std::cout << "-- Filtering fundmat " << fm->name << " (" << i << ")" << std::endl;
-                //std::cout << std::endl;
-            }
-        }
-    }
+//        if(fm->leastInlierMeanSquaredErrror < 2*leastMeanMean && fm->leastInlierStdDeviation < 2*leastMeanStdDev && fm->meanSquaredErrror < 2*meanMean && fm->stdDeviation < 2*meanStdDev && fm->leastInlierMeanSquaredErrror > 0.01*leastMeanMean && fm->leastInlierStdDeviation > 0.01*leastMeanStdDev && fm->meanSquaredErrror > 0.01*meanMean && fm->stdDeviation > 0.01*meanStdDev) {
+//            bestFundMats.push_back(fm);
+//            //bestFm = fundMats.at(i);
+//            //break;
+//        } else {
+//            if (LOG_DEBUG) {
+//                std::cout << "-- Current iteration max mean error: " << meanMean << ", max std. dev.: " << meanStdDev << ", least mean error: " << leastMeanMean << ", least max std. dev.: " << leastMeanStdDev << std::endl;
+//                std::cout << "-- Current iteration fundmat mean error: " << fm->meanSquaredErrror << ", std. dev.: " << fm->stdDeviation << ", least mean error: " << fm->leastInlierMeanSquaredErrror << ", least std. dev.: " << fm->leastInlierStdDeviation << std::endl;
+//                if(compareWithGroundTruth) {
+//                    meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
+//                }
+//                std::cout << "-- Filtering fundmat " << fm->name << " (" << i << ")" << std::endl;
+//                //std::cout << std::endl;
+//            }
+//        }
+//    }
 
+    bestFundMats = fundMats;
     bestfm = bestFundMats.at(0);
 
     if(LOG_DEBUG) std::cout << "-- Curresnt best FundMat: " << bestfm->name << ", inlier: " << bestfm->inlier << ", inlier error: " << bestfm->inlierMeanSquaredErrror << ", inlier std. dev.: " << bestfm->inlierStdDeviation << ", error: " << bestfm->meanSquaredErrror << ", std. dev.: " << bestfm->stdDeviation << std::endl;
@@ -465,21 +470,164 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     for(int i = 0; i < x1Combined.size(); i++) {
         Mat x1 = x1Combined.at(i);
         Mat x2 = x2Combined.at(i);
+        //combinedPointMatch* cpm = new combinedPointMatch;
+        //cpm->pointMatchIdx = i;
+        //fundMatMatches.push_back(cpm);
         for(int j = 0; j < bestFundMats.size(); j++) {
             fundamentalMatrix* fm = bestFundMats.at(j);
             double d = errorFunctionFPointsSquared(fm->F,  x1, x2);
             if(d < squaredErrorThr) {  //leastMeanMean squaredErrorThr
+                //cpm->fundMatrices.push_back(fm);
+                fm->pointIdx.push_back(i);
                 inlierMatrix.at<u_int8_t>(i, j) = 1;
             }
         }
     }
+
+    /*****************************************************
+     *
+     * ****************************************************/
+
+//    for(int i = 0; i < fundMatMatches.size(); i++) {
+//        if(fundMatMatches.at(i)->fundMatrices.size() > 0) {
+//            combinedPointMatch* cpm = fundMatMatches.at(i);
+//            for(int j = 0; j < fundMatMatches.size(); j++) {
+//                if(i != j) {
+
+//                }
+//            }
+//        }
+//    }
+
+    std::vector<fundamentalMatrixCluster*> fundMatCluster;
+    std::vector<fundamentalMatrixCluster*> fundMatClusterTmp;
+
+    for(int i = 0; i < bestFundMats.size(); i++) {
+        fundamentalMatrix* currentfm = bestFundMats.at(i);
+        fundamentalMatrixCluster* fmCl = new fundamentalMatrixCluster;
+        fmCl->meanMatchCount = 0;
+        fmCl->fundMatrices.push_back(currentfm);
+
+        if(currentfm->pointIdx.size() > 0) {
+            fundMatCluster.push_back(fmCl);
+            for(int j = 0; j < bestFundMats.size(); j++) {
+                if(i != j) {
+                    int matchCnt = 0;
+                    fundamentalMatrix* fm = bestFundMats.at(j);
+                    Mat pointIdx = Mat::zeros(x1Combined.size(), 1, CV_8UC1);
+                    for(int k = 0; k < currentfm->pointIdx.size(); k++) {
+                        for(int l = 0; l < fm->pointIdx.size(); l++) {
+                            if(currentfm->pointIdx.at(k) == fm->pointIdx.at(l)) {
+                                pointIdx.at<uint8_t>(currentfm->pointIdx.at(k),0) = 1;
+                                matchCnt++;
+                            }
+                        }
+                    }
+                    if(matchCnt > currentfm->pointIdx.size()*0.8) {
+                        fm->containedInCluserCnt++;
+                        fmCl->fundMatrices.push_back(fm);
+                        fmCl->fundMatUsedPointIdx.push_back(pointIdx);
+                        fmCl->meanMatchCount += matchCnt;
+                    }
+                }
+            }
+            fmCl->usedPointsInnerJoin = Mat::zeros(x1Combined.size(), 1, CV_8UC1);
+            fmCl->usedPointsOuterJoin = Mat::zeros(x1Combined.size(), 1, CV_8UC1);
+            for(int j = 0; j < fmCl->fundMatUsedPointIdx.size(); j++) {
+                fmCl->usedPointsOuterJoin += fmCl->fundMatUsedPointIdx.at(j);
+            }
+            double min, max;
+            minMaxLoc(fmCl->usedPointsOuterJoin, &min, &max);
+            threshold(fmCl->usedPointsOuterJoin, fmCl->usedPointsInnerJoin, max-1, 1, THRESH_BINARY);
+
+            fmCl->meanMatchCount/=fmCl->fundMatrices.size();
+
+            threshold(fmCl->usedPointsOuterJoin, fmCl->usedPointsOuterJoin, 0, 1, THRESH_BINARY);
+
+//            Mat tmp;
+//            hconcat(fmCl->usedPointsInnerJoin, fmCl->usedPointsOuterJoin, tmp);
+//            std::cout << tmp << std::endl;
+
+            fmCl->usedPointsInnerJoinCnt = sum(fmCl->usedPointsInnerJoin)[0];
+            fmCl->usedPointsOuterJoinCnt = sum(fmCl->usedPointsOuterJoin)[0];
+
+            if(LOG_DEBUG) std::cout << "-- Current cluster: " << i << ", cluster size: " << fmCl->fundMatrices.size() << ", mean match count: " << fmCl->meanMatchCount << ", outer join sum: " << fmCl->usedPointsOuterJoinCnt << ", inner join sum: " << fmCl->usedPointsInnerJoinCnt << std::endl;
+//            if(compareWithGroundTruth) {
+//                meanSampsonFDistanceGoodMatches(Fgt, currentfm->F, x1Combined, x2Combined, debugErr, debugUsed);
+//            }
+        }
+    }
+
+    if(LOG_DEBUG) std::cout << std::endl << std::endl;
+
+
+    for(int i = 0; i < fundMatCluster.size(); i++) {
+
+    }
+
+//    for(int i = 0; i < fundMatCluster.size(); i++) {
+//        fundamentalMatrixCluster* currentfmCl = fundMatCluster.at(i);
+//        for(int j = 0; j < fundMatCluster.size(); j++) {
+//            if(i != j) {
+//                fundamentalMatrixCluster* fmCl = fundMatCluster.at(j);
+
+//                //int sum_t = cv::sum(cv::abs(currentfmCl->usedPointsOuterJoin - fmCl->usedPointsOuterJoin))[0];
+//                int sum_t = cv::sum(cv::abs(currentfmCl->usedPointsInnerJoin - fmCl->usedPointsInnerJoin))[0];
+//                if(sum_t < currentfmCl->usedPointsInnerJoinCnt*0.2) {
+//                    for(int k = 0; k < fmCl->fundMatrices.size(); k++) {
+//                        bool add = true;
+//                        for(int l = 0; l < currentfmCl->fundMatrices.size(); l++) {
+//                            if(fmCl->fundMatrices.at(k)->id == currentfmCl->fundMatrices.at(l)->id) {
+//                                add = false;
+//                                break;
+//                            }
+//                        }
+//                        if(add) currentfmCl->fundMatrices.push_back(fmCl->fundMatrices.at(k));
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+    for(int i = 0; i < fundMatCluster.size(); i++) {
+        fundamentalMatrixCluster* fmCl = fundMatCluster.at(i);
+        if(LOG_DEBUG) std::cout << "-- Current cluster: " << i << ", cluster size: " << fmCl->fundMatrices.size() << ", mean match count: " << fmCl->meanMatchCount << ", outer join sum: " << fmCl->usedPointsOuterJoinCnt << ", inner join sum: " << fmCl->usedPointsInnerJoinCnt << std::endl;
+        double smallestdebugErr = 1e50;
+        double meanCombinedError = 0;
+        double meanCombinedStdDeviation = 0;
+        double meanInCluster = 0;
+        for(int j = 0; j < fundMatCluster.at(i)->fundMatrices.size(); j++) {
+            fundamentalMatrix* fm = fundMatCluster.at(i)->fundMatrices.at(j);
+            meanCombinedError+=fm->meanSquaredErrror;
+            meanCombinedStdDeviation+=fm->stdDeviation;
+            meanInCluster+=fm->containedInCluserCnt;
+//            if(LOG_DEBUG) {
+//                std::cout << "--   FundMat " << fm->id << ", inlier: " << fm->inlier << ", inlier error: " << fm->inlierMeanSquaredErrror << ", inlier std. dev.: " << fm->inlierStdDeviation << ", error: " << fm->meanSquaredErrror << ", std. dev.: " << fm->stdDeviation << std::endl;
+//                std::cout << "--   leastInlierMeanSquaredErrror: " << fm->leastInlierMeanSquaredErrror << ", leastInlierStdDeviation: " << fm->leastInlierStdDeviation /*<< ", least error measure: " << fnorm(fm->leastInlierStdDeviation, fm->leastInlierMeanSquaredErrror) << ", inlier errormeasure: " << fnorm(fm->inlierMeanSquaredErrror, fm->inlierStdDeviation) << ", errormeasure: " << fnorm(fm->meanSquaredErrror, fm->stdDeviation)*/ << std::endl;
+
+                if(compareWithGroundTruth) {
+                    debugErr = meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined);
+                    //std::cout << "GTerror: " << debugErr;
+                    if(debugErr < smallestdebugErr) smallestdebugErr = debugErr;
+                }
+
+
+//            }
+        }
+        meanCombinedError/=fundMatCluster.at(i)->fundMatrices.size();
+        meanCombinedStdDeviation/=fundMatCluster.at(i)->fundMatrices.size();
+        meanInCluster/=fundMatCluster.at(i)->fundMatrices.size();
+        if(LOG_DEBUG && compareWithGroundTruth) std::cout << "-- mean error: " << meanCombinedError << ", mean std. dev: " << meanCombinedStdDeviation << ", mean in cluser cnt: " << meanInCluster << ", smallest error to GT: " << smallestdebugErr << std::endl;
+    }
+
+    /*******************************************************/
 
     double meanInlierCount = 0;
 
     for(int i = 0; i < x1Combined.size(); i++) {
         Mat row = inlierMatrix.row(i);
         int cnt = sum(row)[0];
-        meanInlierCount += cnt;
+        if(cnt > 0) meanInlierCount += cnt;
     }
     meanInlierCount/=x1Combined.size();
 

@@ -959,6 +959,18 @@ void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::v
     if(LOG_DEBUG) std::cout << "-- Computed sampson distance for " << used << "/" << x1.size() << " points: " << error << std::endl;
 }
 
+double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2) {
+    double error = 0;
+    double used = 0;
+    for(int i = 0; i < x1.size(); i++) {
+        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= 1.0) {
+            error += sampsonFDistance(F, x1.at(i), x2.at(i));
+            used++;
+        }
+    }
+    return error/=used;
+}
+
 bool compareCorrespErrors(correspSubsetError ls1, correspSubsetError ls2) {
     return ls1.correspError < ls2.correspError;
 }
