@@ -7,7 +7,7 @@
 #include "FEstimatorHLines.h"
 #include "FEstimatorHPoints.h"
 #include "LevenbergMarquardtGeneral.h"
-#include "LevenbergMarquardtStandardDeviation.h"
+//#include "LevenbergMarquardtStandardDeviation.h"
 
 //SYSTEM
 #include <string>

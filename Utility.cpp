@@ -548,7 +548,7 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     if(col == 1) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(2).at<double>(0,0);
     if(col == 2) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(1).at<double>(0,0);
 
-    if(fabs(eigenValDiff) > MARGIN) {
+    if(fabs(eigenValDiff) > 0.01) {
         if(LOG_DEBUG) std::cout << "-- Other eigenvalues are not equal!" << std::endl;
         eigenvalueOK = false;
     }

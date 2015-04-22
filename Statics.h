@@ -7,7 +7,7 @@
 //Show debug messages
 #define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG false
+#define VISUAL_DEBUG true
 
 //Program parameters for selecting computation mathods
 #define F_FROM_POINTS 1
