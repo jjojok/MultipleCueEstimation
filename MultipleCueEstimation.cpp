@@ -65,6 +65,8 @@ Mat MultipleCueEstimation::compute() {
 
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
             if(it->isSuccessful()) {
+                errorFunctionCombinedMeanSquared(x1Combined, x2Combined, it->getF(), it->meanSquaredCSTError, it->inlier, 3.0, it->meanSquaredCSTErrorStandardDeviation);
+                if (LOG_DEBUG) std::cout << "Mean squared error: " << it->meanSquaredCSTError << " Std. dev: " << it->meanSquaredCSTErrorStandardDeviation << ", inliers: " << it->inlier << std::endl;
                 if(LOG_DEBUG) std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
                 if (compareWithGroundTruth) {
                     //it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
@@ -73,8 +75,6 @@ Mat MultipleCueEstimation::compute() {
                     if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << it->meanSquaredRSSTError << ", Squated distance: " << error2 << ", Mean squared symmetric tranfer error: " << it->getError() << std::endl;
                     meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1Combined, x2Combined, it->meanSampsonDistanceGoodPointMatches, it->goodPointMatchesCount);
                     if(VISUAL_DEBUG) drawEpipolarLines(x1goodPoints, x2goodPoints, it->getF(), image_1, image_2, it->name);
-                    errorFunctionCombinedMeanSquared(x1Combined, x2Combined, it->getF(), error, inlier, 3.0, stdDev);
-                    if (LOG_DEBUG) std::cout << "Mean squared error: " << error << " Std. dev: " << stdDev << ", inliers: " << inlier << std::endl;
                 } else {
                     if(VISUAL_DEBUG) {
                         //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
@@ -88,6 +88,8 @@ Mat MultipleCueEstimation::compute() {
         int cnt;
         if(F.data) {
             if(LOG_DEBUG) std::cout << "Refined F = " << std::endl << F << std::endl;
+            errorFunctionCombinedMeanSquared(x1Combined, x2Combined, F, meanSquaredCombinedError, this->inlier, 3.0, stdDev);
+            if (LOG_DEBUG) std::cout << "Mean squared error: " << meanSquaredCombinedError << " Std. dev: " << stdDev << ", inliers: " << this->inlier << std::endl;
             if (compareWithGroundTruth) {
                 //meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, F, image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
                 meanSquaredRSSTError = -2;
@@ -95,8 +97,6 @@ Mat MultipleCueEstimation::compute() {
                 if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << meanSquaredRSSTError << ", Squated distance: " << error2 << std::endl;
                 meanSampsonFDistanceGoodMatches(Fgt, F, x1Combined, x2Combined, error3, cnt);
                 if(VISUAL_DEBUG) drawEpipolarLines(x1goodPoints, x2goodPoints, F, image_1, image_2, "Refined F");
-                errorFunctionCombinedMeanSquared(x1Combined, x2Combined, F, error, inlier, 3.0, stdDev);
-                if (LOG_DEBUG) std::cout << "Mean squared error: " << error << " Std. dev: " << stdDev << ", inliers: " << inlier << std::endl;
             } else {
                 if(VISUAL_DEBUG) {
                     //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
@@ -106,7 +106,7 @@ Mat MultipleCueEstimation::compute() {
         }
 
         if (compareWithGroundTruth) {
-            std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
+            if (LOG_DEBUG) std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
             meanSampsonFDistanceGoodMatches(Fgt, Fgt, x1Combined, x2Combined, error3, cnt);
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
@@ -115,7 +115,7 @@ Mat MultipleCueEstimation::compute() {
             errorFunctionCombinedMeanSquared(x1Combined, x2Combined, Fgt, error, inlier, 3.0, stdDev);
             if (LOG_DEBUG) std::cout << "Mean squared error: " << error << " Std. dev: " << stdDev << ", inliers: " << inlier << std::endl;
             Mat bestSolution = cv::findFundamentalMat(x1goodPoints, x2goodPoints, FM_RANSAC, 3.0, 0.999);
-            std::cout << "Best possible solution = " << std::endl << bestSolution << std::endl;
+            if (LOG_DEBUG) std::cout << "Best possible solution = " << std::endl << bestSolution << std::endl;
             meanSampsonFDistanceGoodMatches(Fgt, bestSolution, x1Combined, x2Combined, error3, cnt);
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
@@ -360,28 +360,28 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
                 if (LOG_DEBUG) std::cout << "-- F has no data!" << std::endl;
             }
 
-//            if (LOG_DEBUG) std::cout << "-- Computing RANSAC: " << std::endl;
-//            fm = new fundamentalMatrix;
-//            fm->F = cv::findFundamentalMat(x1CombinedSelectionP, x2CombinedSelectionP, noArray(), FM_RANSAC, 3.0, 0.9995);
-//            if(fm->F.data) {
-////                if(LOG_DEBUG) {
-////                    if(compareWithGroundTruth) {
-////                        meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
-////                    }
-////                }
-//                fm->id = id++;
-//                fm->name = "RANSAC";
+            if (LOG_DEBUG) std::cout << "-- Computing RANSAC: " << std::endl;
+            fm = new fundamentalMatrix;
+            fm->F = cv::findFundamentalMat(x1CombinedSelectionP, x2CombinedSelectionP, noArray(), FM_RANSAC, 3.0, 0.9995);
+            if(fm->F.data) {
+//                if(LOG_DEBUG) {
+//                    if(compareWithGroundTruth) {
+//                        meanSampsonFDistanceGoodMatches(Fgt, fm->F, x1Combined, x2Combined, debugErr, debugUsed);
+//                    }
+//                }
+                fm->id = id++;
+                fm->name = "RANSAC";
 
-//                errorFunctionCombinedMeanSquared(x1Combined, x2Combined, fm->F, fm->meanSquaredErrror, fm->inlier, squaredErrorThr, fm->stdDeviation);
-//                if (LOG_DEBUG) std::cout << "-- Computing mean squared error of combined matches: " << fm->meanSquaredErrror << " Std. dev: " << fm->stdDeviation << ", inliers: " << fm->inlier << std::endl;
-//                //errorFunctionCombinedMeanSquared(x1CombinedSelection, x2CombinedSelection, fm->F, errorSelected, inlierSelected, squaredErrorThr, stdDevSelected);
-//                //if (LOG_DEBUG) std::cout << "-- Computing mean squared error of selected matches: " << errorSelected << " Std. dev: " << stdDevSelected << ", inliers: " << inlierSelected << std::endl;
+                errorFunctionCombinedMeanSquared(x1Combined, x2Combined, fm->F, fm->meanSquaredErrror, fm->inlier, squaredErrorThr, fm->stdDeviation);
+                if (LOG_DEBUG) std::cout << "-- Computing mean squared error of combined matches: " << fm->meanSquaredErrror << " Std. dev: " << fm->stdDeviation << ", inliers: " << fm->inlier << std::endl;
+                //errorFunctionCombinedMeanSquared(x1CombinedSelection, x2CombinedSelection, fm->F, errorSelected, inlierSelected, squaredErrorThr, stdDevSelected);
+                //if (LOG_DEBUG) std::cout << "-- Computing mean squared error of selected matches: " << errorSelected << " Std. dev: " << stdDevSelected << ", inliers: " << inlierSelected << std::endl;
 
-//                results.push_back(fm);
+                results.push_back(fm);
 
-//            } else {
-//                if (LOG_DEBUG) std::cout << "-- F has no data!" << std::endl;
-//            }
+            } else {
+                if (LOG_DEBUG) std::cout << "-- F has no data!" << std::endl;
+            }
         }
 
     } while(x1CombinedSelection.size() < maxPoints && featureChange > 0 && iteration < 100);

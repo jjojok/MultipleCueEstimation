@@ -93,11 +93,11 @@ int main(int argc, char** argv )
         time_t startTime = time(0);
         mce->compute();
         if(argc == 6) {
-            std::cout << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getInlier() << "," << mce->debugRefinedFGoodMatchedError << "," << mce->debugRefinedFGoodMatches << "," << mce->debugCombinedMatches << ", ";
+            std::cout << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getInlier() << "," << mce->debugRefinedFGoodMatchedError << "," << mce->debugRefinedFGoodMatches << "," << mce->debugCombinedMatches << ",";
             for(int i = 0; i < mce->getEstimations().size(); i++){
                 FEstimationMethod estimation = mce->getEstimations().at(i);
                 std::cout << estimation.name << ",";
-                if(!estimation.isSuccessful()) std::cout << ", , , , ";
+                if(!estimation.isSuccessful()) std::cout << ",,,,";
                 else {
                     std::cout << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.inlier << "," << estimation.meanSampsonDistanceGoodPointMatches << ",";
                 }
