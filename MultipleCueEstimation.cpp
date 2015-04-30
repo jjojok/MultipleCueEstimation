@@ -47,6 +47,7 @@ Mat MultipleCueEstimation::compute() {
         //double error = epipolarSADError(Fgt, x1, x2);
 
         combinePointCorrespondecies();
+        debugCombinedMatches = x1Combined.size();
         F = refineF(estimations);
 
         double error, stdDev;
@@ -95,7 +96,7 @@ Mat MultipleCueEstimation::compute() {
                 meanSquaredRSSTError = -2;
                 double error2 = squaredError(Fgt, F);
                 if(LOG_DEBUG) std::cout << "Random sample epipolar error: " << meanSquaredRSSTError << ", Squated distance: " << error2 << std::endl;
-                meanSampsonFDistanceGoodMatches(Fgt, F, x1Combined, x2Combined, error3, cnt);
+                meanSampsonFDistanceGoodMatches(Fgt, F, x1Combined, x2Combined, debugRefinedFGoodMatchedError, debugRefinedFGoodMatches);
                 if(VISUAL_DEBUG) drawEpipolarLines(x1goodPoints, x2goodPoints, F, image_1, image_2, "Refined F");
             } else {
                 if(VISUAL_DEBUG) {
