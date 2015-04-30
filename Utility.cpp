@@ -959,6 +959,16 @@ void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::v
     if(LOG_DEBUG) std::cout << "-- Computed sampson distance for " << used << "/" << x1.size() << " points: " << error << std::endl;
 }
 
+int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2) {
+    int used = 0;
+    for(int i = 0; i < x1.size(); i++) {
+        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= 3.0) {
+            used++;
+        }
+    }
+    if(LOG_DEBUG) std::cout << "-- Good matches from Fgt: " << used << "/" << x1.size() << std::endl;
+}
+
 double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2) {
     double error = 0;
     double used = 0;
@@ -985,6 +995,10 @@ bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix*
 
 bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
     return f1->meanSquaredErrror < f2->meanSquaredErrror;
+}
+
+bool compareFundMatSetsInlinerError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+    return f1->inlierMeanSquaredErrror < f2->inlierMeanSquaredErrror;
 }
 
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {

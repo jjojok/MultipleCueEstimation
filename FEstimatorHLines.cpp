@@ -62,7 +62,7 @@ bool FEstimatorHLines::compute() {
     lineSubsetStruct firstEstimation;
     lineSubsetStruct secondEstimation;
 
-    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS+0.2, HOMOGRAPHY_RANSAC_THRESHOLD)) {
+    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS+0.02, HOMOGRAPHY_RANSAC_THRESHOLD)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }

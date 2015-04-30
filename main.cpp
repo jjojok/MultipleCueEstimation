@@ -24,10 +24,6 @@
 
 Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat Rw1, Mat Rw2, Mat Tw1, Mat Tw2) {      //Compute F from K,R,t in world coords
 
-    //R1w = R1w.t();      //Strecha Rotation matrices are transposed
-    //R2w = R2w;
-
-    //Mat R12 = Rw1.t()*Rw2;                  //Rotation from camera 1 to camera 2
     Mat R12 = Rw2.t()*Rw1;                  //Rotation from camera 1 to camera 2
     Mat T12 = -Rw2.t()*Mat(Tw1 - Tw2);      //Translation from camera 1 to camera 2
 
@@ -38,7 +34,6 @@ Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat Rw1, Mat Rw2, Mat Tw1, Mat Tw2) {    
     Mat P1p, C;
     vconcat(K1.inv(DECOMP_SVD), Mat::zeros(1,3,CV_64FC1), P1p);         //Pseudo inverse of P1 (P1^t = [K1^(-1); 0^t]
     vconcat(Mat::zeros(3,1,CV_64FC1), Mat::ones(1,1,CV_64FC1), C);      //Camera center image 1
-
 
     Mat * F = new Mat(crossProductMatrix(P2*C)*P2*P1p);     //F = [P'*C]x*P'*P^+(See Hartley, Zisserman: p. 244)
     *F = *F / F->at<double>(2,2);
