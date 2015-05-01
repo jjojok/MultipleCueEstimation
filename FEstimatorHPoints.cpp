@@ -24,7 +24,7 @@ int FEstimatorHPoints::extractMatches() {
 
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << goodMatchedPoints.size() << std::endl;
 
-    visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 3, true, name+": good point matches");
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 3, true, name+": good point matches");
 }
 
 bool FEstimatorHPoints::compute() {

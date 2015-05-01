@@ -257,7 +257,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     if(numValues < 8) {
         if (LOG_DEBUG) std::cout << "-- Not enough features!" << std::endl;
-        return Mat();
+        return bestMethod->getF().clone();
     }
 
     //refinedF = bestMethod->getF().clone();
