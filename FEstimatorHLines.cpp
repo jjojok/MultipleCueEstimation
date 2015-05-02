@@ -67,8 +67,6 @@ bool FEstimatorHLines::compute() {
         return false;
     }
 
-    addPointCorrespondencies(firstEstimation.Hs, firstEstimation.lineCorrespondencies);
-
     if(VISUAL_DEBUG) {
         visualizeHomography(firstEstimation.Hs, image_1, image_2, name+": H1");
         visualizeLineMatches(image_1_color, image_2_color, firstEstimation.lineCorrespondencies, 8, true, name+": H1 used Matches");
@@ -117,6 +115,7 @@ bool FEstimatorHLines::compute() {
         return false;
     }
 
+    addPointCorrespondencies(firstEstimation.Hs, firstEstimation.lineCorrespondencies);
     addPointCorrespondencies(secondEstimation.Hs, secondEstimation.lineCorrespondencies);
 
     if(VISUAL_DEBUG) {

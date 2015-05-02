@@ -35,6 +35,10 @@ public:
     double debugRefinedFGoodMatchedError;
     int debugRefinedFGoodMatches;
     int debugCombinedMatches;
+    double meanSquaredSelectedError;
+    int selectedPoints;
+    int correctSelectedPoints;
+    int selectedInlier;
 
     Mat compute();
     double getMeanSquaredRSSTError();
@@ -53,7 +57,7 @@ private:
     FEstimationMethod* calcFfromCurves();
 
     Mat refineF(std::vector<FEstimationMethod> &estimations);
-    void computeSelectedMatches(std::vector<Mat> x1Current, std::vector<Mat> x2Current, std::vector<Mat> &x1Selected, std::vector<Mat> &x2Selected, std::vector<Mat> &x1NotSelected, std::vector<Mat> &x2NotSelected, std::vector<fundamentalMatrix*> fundMats, double squaredErrorThr);
+    void computeSelectedMatches(std::vector<Mat> x1Current, std::vector<Mat> x2Current, std::vector<Mat> &x1Selected, std::vector<Mat> &x2Selected, std::vector<Mat> &x1NotSelected, std::vector<Mat> &x2NotSelected, std::vector<fundamentalMatrix*> &fundMats, double squaredErrorThr);
 
     void combinePointCorrespondecies();
     void levenbergMarquardt(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);

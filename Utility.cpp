@@ -967,6 +967,7 @@ int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2) {
         }
     }
     if(LOG_DEBUG) std::cout << "-- Good matches from Fgt: " << used << "/" << x1.size() << std::endl;
+    return used;
 }
 
 double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2) {
@@ -990,7 +991,7 @@ bool compareFundMatSets(fundamentalMatrix* f1, fundamentalMatrix* f2) {
 }
 
 bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-    return f1->selectedInlierCount/(double)f1->inlier > f2->selectedInlierCount/(double)f2->inlier;
+    return f1->selectedInlierCount > f2->selectedInlierCount;
 }
 
 bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2) {

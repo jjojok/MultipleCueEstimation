@@ -1,0 +1,8 @@
+StartMultipleCueEstimation.sh "Datasets/entry-P10"
+StartMultipleCueEstimation.sh "Datasets/castle-P30"
+StartMultipleCueEstimation.sh "Datasets/fountain-P11"
+StartMultipleCueEstimation.sh "Datasets/Herz-Jesu-P8"
+StartMultipleCueEstimation.sh "Datasets/rathaus"
+StartMultipleCueEstimation.sh "Datasets/rathaus"
+StartMultipleCueEstimation.sh "Datasets/semper"
+StartMultipleCueEstimation.sh "Datasets/brussles"

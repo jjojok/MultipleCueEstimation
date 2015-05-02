@@ -10,10 +10,10 @@
 #define VISUAL_DEBUG false
 
 //Program parameters for selecting computation mathods
+#define F_Reined 0
 #define F_FROM_POINTS 1
 #define F_FROM_LINES_VIA_H 2
 #define F_FROM_POINTS_VIA_H 4
-#define F_FROM_PLANES_VIA_H 8
 
 //General:
 //Hard limit on number of computations for ransac & lmeds

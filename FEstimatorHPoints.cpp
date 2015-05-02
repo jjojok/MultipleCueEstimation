@@ -42,11 +42,6 @@ bool FEstimatorHPoints::compute() {
         return false;
     }
 
-    for(std::vector<pointCorrespStruct>::const_iterator pointIter = firstEstimation.pointCorrespondencies.begin(); pointIter != firstEstimation.pointCorrespondencies.end(); ++pointIter) {
-        featuresImg1.push_back(matVector(pointIter->x1));
-        featuresImg2.push_back(matVector(pointIter->x2));
-    }
-
     if(VISUAL_DEBUG) {
         visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 3, true, name+": H1 used Matches");
         visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, name+": H1");
@@ -94,6 +89,11 @@ bool FEstimatorHPoints::compute() {
         return false;
     }
 
+    for(std::vector<pointCorrespStruct>::const_iterator pointIter = firstEstimation.pointCorrespondencies.begin(); pointIter != firstEstimation.pointCorrespondencies.end(); ++pointIter) {
+        featuresImg1.push_back(matVector(pointIter->x1));
+        featuresImg2.push_back(matVector(pointIter->x2));
+    }
+
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = secondEstimation.pointCorrespondencies.begin(); pointIter != secondEstimation.pointCorrespondencies.end(); ++pointIter) {
         featuresImg1.push_back(matVector(pointIter->x1));
         featuresImg2.push_back(matVector(pointIter->x2));
@@ -131,6 +131,8 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
     double dError = 0;
     int removedMatches = 0;
     double errThr = 0;
+
+    threshold = 2.0;
 
     double errorThr = normalizeThr(normT1, normT2, threshold);
 

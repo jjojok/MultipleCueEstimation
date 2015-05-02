@@ -40,7 +40,9 @@ public:
 
     double meanSquaredCSTError;
     double meanSquaredCSTErrorStandardDeviation;
+    double meanSquaredCSTErrorSelectedInlier;
     int meanSquaredCSTErrorInliers;
+    int selectedInlier;
     double meanCSTError;
     double meanCSTErrorStandardDeviation;
     int meanCSTErrorInliers;
