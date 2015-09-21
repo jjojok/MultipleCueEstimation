@@ -79,7 +79,7 @@ int extractPointMatches(Mat image_1, Mat image_2, std::vector<pointCorrespStruct
 
 int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> &allMatchedLines) {
     /********************************************************************
-     * From: http://docs.opencv.org/trunk/modules/line_descriptor/doc/tutorial.html
+     * From: http://docs.opencv.org/master/dc/ddd/group__line__descriptor.html
      * ******************************************************************/
 
     /* create binary masks */
@@ -91,7 +91,7 @@ int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> 
 
     bd->setNumOfOctaves(OCTAVES);
     bd->setReductionRatio(SCALING);
-    bd->setWidthOfBand(9);
+    bd->setWidthOfBand(3);
 
     Ptr<cv::line_descriptor::LSDDetector> lsd = cv::line_descriptor::LSDDetector::createLSDDetector();
 

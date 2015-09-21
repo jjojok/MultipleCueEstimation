@@ -5,9 +5,9 @@
 #include <math.h>
 
 //Show debug messages
-#define LOG_DEBUG false
+#define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG false
+#define VISUAL_DEBUG true
 
 //Program parameters for selecting computation mathods
 #define F_Reined 0
@@ -23,19 +23,19 @@
 //Max squared distance of lines to be considered as a correct projection (pixel)
 #define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to be considered as stable
-#define MAX_ERROR_CHANGE 0.01
+#define MAX_ERROR_CHANGE 5.0
 //max features changing for error to be considered as stable
 #define MAX_FEATURE_CHANGE 3
 //How close two values have to be to be considered equal
-#define MARGIN 0.1
+#define MARGIN 0.15
 //Number of attempts to compute a second Homography if it is equal to the forst one
-#define MAX_H2_ESTIMATIONS 20
+#define MAX_H2_ESTIMATIONS 40
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
 //Ransac reproj threshold for Homography computation
-#define HOMOGRAPHY_RANSAC_THRESHOLD 1.25
+#define HOMOGRAPHY_RANSAC_THRESHOLD 1.5
 
 //Points:
 //Sift features
@@ -64,13 +64,13 @@
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
 //Ransac confidence
-#define CONFIDENCE 0.9995
+#define CONFIDENCE 0.99995
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define HOMOGRAPHY_OUTLIERS 0.8
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig
-#define MAX_HEMMING_DIST 10
+#define MAX_HEMMING_DIST 15
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
 //Factor for selecting wrong matches in refinement step after first homography estimation

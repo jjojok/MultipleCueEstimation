@@ -548,7 +548,7 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     if(col == 1) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(2).at<double>(0,0);
     if(col == 2) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(1).at<double>(0,0);
 
-    if(fabs(eigenValDiff) > 0.01) {
+    if(fabs(eigenValDiff) > lastDist*0.005) {
         if(LOG_DEBUG) std::cout << "-- Other eigenvalues are not equal!" << std::endl;
         eigenvalueOK = false;
     }
@@ -755,14 +755,19 @@ double symmeticTransferError(Mat F, Mat x1, Mat x2) {
 }
 
 double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    Mat A = H*crossProductMatrix(line2Start)*line2End;
+    Mat A = H.t()*crossProductMatrix(line2Start)*line2End;
     Mat start1 = line1Start.t()*A;
     Mat end1 = line1End.t()*A;
-    homogMat(A);
+    //homogMat(A);
+    //std::cout << A << std::endl;
     double Ax = std::pow(A.at<double>(0,0), 2);
     double Ay = std::pow(A.at<double>(1,0), 2);
     Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
     return result.at<double>(0,0);
+//    Mat result1 = line1Start.t()*H.t()*crossProductMatrix(line2Start)*line2End;
+//    Mat result2 = line1End.t()*H.t()*crossProductMatrix(line2Start)*line2End;
+//    return result1.at<double>(0,0)*result1.at<double>(0,0) + result2.at<double>(0,0)*result2.at<double>(0,0);
+
 }
 
 double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
@@ -819,8 +824,8 @@ double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2) {    //For LM opt
     double n = Mat(x2.t()*F*x1).at<double>(0,0);
     Mat b1 = F*x1;
     Mat b2 = F.t()*x2;
-    homogMat(b1);
-    homogMat(b2);
+    //homogMat(b1);
+    //homogMat(b2);
     return n/(b1.at<double>(0,0) + b1.at<double>(1,0) + b2.at<double>(0,0) + b2.at<double>(1,0));
 }
 
@@ -832,8 +837,8 @@ double sampsonFDistance(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
     double n = Mat(x2.t()*F*x1).at<double>(0,0);
     Mat b1 = F*x1;
     Mat b2 = F.t()*x2;
-    homogMat(b1);
-    homogMat(b2);
+    //homogMat(b1);
+    //homogMat(b2);
     return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
 }
 
@@ -959,10 +964,10 @@ void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::v
     if(LOG_DEBUG) std::cout << "-- Computed sampson distance for " << used << "/" << x1.size() << " points: " << error << std::endl;
 }
 
-int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2) {
+int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2, double thr) {
     int used = 0;
     for(int i = 0; i < x1.size(); i++) {
-        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= 3.0) {
+        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= thr) {
             used++;
         }
     }

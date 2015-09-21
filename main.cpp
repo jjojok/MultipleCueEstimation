@@ -25,7 +25,7 @@
 Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat Rw1, Mat Rw2, Mat Tw1, Mat Tw2) {      //Compute F from K,R,t in world coords
 
     Mat R12 = Rw2.t()*Rw1;                  //Rotation from camera 1 to camera 2
-    Mat T12 = -Rw2.t()*Mat(Tw1 - Tw2);      //Translation from camera 1 to camera 2
+    Mat T12 = Rw2.t()*Mat(Tw2 - Tw1);      //Translation from camera 1 to camera 2
 
     Mat P2;
     hconcat(R12, T12, P2);

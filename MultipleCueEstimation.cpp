@@ -68,6 +68,7 @@ Mat MultipleCueEstimation::compute() {
             if(it->isSuccessful()) {
                 errorFunctionCombinedMeanSquared(x1Combined, x2Combined, it->getF(), it->meanSquaredCSTError, it->inlier, 3.0, it->meanSquaredCSTErrorStandardDeviation);
                 if (LOG_DEBUG) std::cout << "Mean squared error: " << it->meanSquaredCSTError << " Std. dev: " << it->meanSquaredCSTErrorStandardDeviation << ", inlier: " << it->inlier << std::endl;
+                if (LOG_DEBUG) std::cout << "Mean squared selected point error: " << it->meanSquaredCSTErrorSelectedInlier << ", inlier: " << it->selectedInlier << std::endl;
                 if(LOG_DEBUG) std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
                 if (compareWithGroundTruth) {
                     //it->meanSquaredRSSTError = randomSampleSymmeticTransferError(Fgt, it->getF(), image_1_color, image_2_color, NUM_SAMPLES_F_COMARATION);
@@ -208,7 +209,8 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     std::vector<Mat> goodCombindX1;
     std::vector<Mat> goodCombindX2;
 
-    std::vector<fundamentalMatrix*> fundMats;
+    //std::vector<fundamentalMatrix*> fundMats;
+    std::vector<fundamentalMatrix*> results;
 
     if(estimations.size() == 0) {
         if (LOG_DEBUG) std::cout << "-- No Fundamental Matrix found!" << std::endl;
@@ -241,7 +243,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             fm->name = estimationIter->name;
             fm->id = est;
             //fm->containedInCluserCnt = 0;
-            fundMats.push_back(fm);
+            results.push_back(fm);
             if (LOG_DEBUG) std::cout << "Added to vector of fundamental matrices" << std::endl;
 
             est--;
@@ -257,7 +259,6 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     std::vector<Mat> x1CombinedSelection, x2CombinedSelection, x1NotSelected, x2NotSelected;
     std::vector<Mat> x1FeatureSet, x2FeatureSet;
-    std::vector<fundamentalMatrix*> results;
 
     for(int i = 0; i < x1Combined.size(); i++) {
         x1FeatureSet.push_back(x1Combined.at(i));
@@ -268,7 +269,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     int oldFeatures = 0;
     int featureChange = 0;
 
-    int maxPoints = std::max(30, ((int)(x1Combined.size()*0.1)));
+    int maxPoints = std::max(30, ((int)(x1Combined.size()*0.2)));
 
     do {
 
@@ -308,7 +309,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     refinedF = bestfm->F;
 
     if(compareWithGroundTruth) {
-        correctSelectedPoints = goodMatchesCount(Fgt, x1CombinedSelection, x2CombinedSelection);
+        correctSelectedPoints = goodMatchesCount(Fgt, x1CombinedSelection, x2CombinedSelection, 10.0);
     }
 
     errorFunctionCombinedMeanSquared(x1CombinedSelection, x2CombinedSelection, bestfm->F, meanSquaredSelectedError, debugUsed, squaredErrorThr, debugStdDev);
@@ -317,12 +318,14 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     selectedInlier = bestfm->selectedInlierCount;
 
     for(int i = 0; i < estimations.size(); i++) {
-        errorFunctionCombinedMeanSquared(x1CombinedSelection, x2CombinedSelection, estimations.at(i).getF(), estimations.at(i).meanSquaredCSTErrorSelectedInlier, estimations.at(i).selectedInlier, squaredErrorThr, debugStdDev);
-        if(debugUsed > bestfm->selectedInlierCount) {
-            if (LOG_DEBUG) std::cout << "-- Found better solution then refined: " << estimations.at(i).name << ", selected inlier: " << estimations.at(i).selectedInlier << std::endl;
-            refinedF = estimations.at(i).getF();
-            selectedInlier = estimations.at(i).selectedInlier;
-            meanSquaredSelectedError = estimations.at(i).meanSquaredCSTErrorSelectedInlier;
+        if(estimations.at(i).isSuccessful()) {
+            errorFunctionCombinedMeanSquared(x1CombinedSelection, x2CombinedSelection, estimations.at(i).getF(), estimations.at(i).meanSquaredCSTErrorSelectedInlier, estimations.at(i).selectedInlier, squaredErrorThr, debugStdDev);
+            if(debugUsed > bestfm->selectedInlierCount) {
+                if (LOG_DEBUG) std::cout << "-- Found better solution then refined: " << estimations.at(i).name << ", selected inlier: " << estimations.at(i).selectedInlier << std::endl;
+                refinedF = estimations.at(i).getF();
+                selectedInlier = estimations.at(i).selectedInlier;
+                meanSquaredSelectedError = estimations.at(i).meanSquaredCSTErrorSelectedInlier;
+            }
         }
     }
 
@@ -379,7 +382,7 @@ void MultipleCueEstimation::computeSelectedMatches(std::vector<Mat> x1Current, s
 
         fundamentalMatrix* fm = new fundamentalMatrix;
 
-        fm->F = findFundamentalMat(x1CombinedTmp, x2CombinedTmp, noArray(), FM_RANSAC, squaredErrorThr, 0.9995);
+        fm->F = findFundamentalMat(x1CombinedTmp, x2CombinedTmp, noArray(), FM_LMEDS, squaredErrorThr, 0.9995);
 
         if(!fm->F.data) {
             if (LOG_DEBUG) std::cout << "-- Computed F has no data!" << std::endl;
@@ -456,7 +459,7 @@ void MultipleCueEstimation::computeSelectedMatches(std::vector<Mat> x1Current, s
         for(int j = 0; j < currentFundMats.size(); j++) {
             fundamentalMatrix* fm = currentFundMats.at(j);
             double d = errorFunctionFPointsSquared(fm->F, x1, x2);
-            if(d < squaredErrorThr) {
+            if(d < 10) {      //squaredErrorThr
                 inlierMatrix.at<u_int8_t>(i, j) = 1;
                 inlierCount++;
             }

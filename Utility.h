@@ -81,7 +81,7 @@ bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix*
 bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2);
 bool compareFundMatSetsInlinerError(fundamentalMatrix* f1, fundamentalMatrix* f2);
 double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2);
-int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2);
+int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2, double thr);
 
 //Error functions:
 //double calc2DHomogSampsonErr(Mat x1, Mat x2, Mat H);
