@@ -1,0 +1,21 @@
+%
+% main routine
+%
+
+source ("clm.m");
+
+function F = SPLM (X, F0)
+
+	X1 = X(1:4:end);
+	Y1 = X(2:4:end);
+	X2 = X(3:4:end);
+	Y2 = X(4:4:end);
+
+	u0 = LS (X1, Y1, X2, Y2, F0);
+	u = CLM (X1, Y1, X2, Y2, F0, u0);
+
+	format long;
+	F = reshape(u, 3, 3);
+	F = F.'
+
+endfunction

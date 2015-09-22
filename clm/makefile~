@@ -1,0 +1,11 @@
+makefile:
+all: SevenpointLevenbergMarquardt
+
+#clean:
+#     -rm SevenpointLevenbergMarquardt.o SevenpointLevenbergMarquardt
+
+SevenpointLevenbergMarquardt: 
+	SevenpointLevenbergMarquardt.o mkoctfile -o SevenpointLevenbergMarquardt SevenpointLevenbergMarquardt.o
+
+SevenpointLevenbergMarquardt.o: 
+	SevenpointLevenbergMarquardt.cpp g++ -c -I/usr/local/include/octave-4.0.0/octave -I/usr/local/include/octave-4.0.0/octave -o SevenpointLevenbergMarquardt.o SevenpointLevenbergMarquardt.cpp 

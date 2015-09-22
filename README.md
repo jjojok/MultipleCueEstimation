@@ -3,6 +3,8 @@ MultipleQueEstimation
 
 Used Libs:
 	OpenCV 3.0.0 - latest
+	Eigen
+	Octave
 
 Cmake Open CV: 
 	cmake -D CMAKE_BUILD_TYPE=RELEASE -D BUILD_EXAMPLES=ON -D WITH_EIGEN=ON -D EIGEN_INCLUDE_PATH=<path to eigen> -D BUILD_DOCS=ON -D OPENCV_EXTRA_MODULES_PATH=<path to opencv_contrib>/modules -D BUILD_opencv_legacy=OFF -D CMAKE_INSTALL_PREFIX=<path to opencv install> ..

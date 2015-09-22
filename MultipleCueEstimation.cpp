@@ -257,6 +257,12 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         return bestMethod->getF().clone();
     }
 
+    Mat FSPLM = Mat::ones(3,3,CV_64FC1);
+    SPLM(FSPLM, x1Combined, x2Combined);
+    return FSPLM;
+
+    //Compute selected features
+
     std::vector<Mat> x1CombinedSelection, x2CombinedSelection, x1NotSelected, x2NotSelected;
     std::vector<Mat> x1FeatureSet, x2FeatureSet;
 
@@ -356,6 +362,28 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     if(compareWithGroundTruth) meanSampsonFDistanceGoodMatches(Fgt, refinedF, x1Combined, x2Combined, debugRefinedFGoodMatchedError, debugRefinedFGoodMatches);
 
     return refinedF;
+}
+
+bool MultipleCueEstimation::SPLM(Mat &F, std::vector<Mat> x1m, std::vector<Mat> x2m) {
+    std::vector<double> x1, x2, y1, y2;
+    std::vector<double>* Fvect = new std::vector<double>();
+
+    for(int i = 0; i < x1m.size(); i++) {
+        x1.push_back(x1m.at(i).at<double>(0,0));
+        x2.push_back(x2m.at(i).at<double>(0,0));
+        y1.push_back(x1m.at(i).at<double>(1,0));
+        y2.push_back(x2m.at(i).at<double>(1,0));
+    }
+
+    bool result = SevenpointLevenbergMarquardt(Fvect, x1, y1, x2, y2);
+    if(!result) return false;
+
+    for(int i = 0; i < 3; i++) {
+        for(int j = 0; j < 3; j++)
+            F.at<double>(i,j) = Fvect->at(i+j);
+    }
+    homogMat(F);
+    return true;
 }
 
 void MultipleCueEstimation::computeSelectedMatches(std::vector<Mat> x1Current, std::vector<Mat> x2Current, std::vector<Mat> &x1Selected, std::vector<Mat> &x2Selected, std::vector<Mat> &x1NotSelected, std::vector<Mat> &x2NotSelected, std::vector<fundamentalMatrix*> &fundMats, double squaredErrorThr) {

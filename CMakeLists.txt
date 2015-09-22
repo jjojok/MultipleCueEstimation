@@ -9,13 +9,15 @@ MESSAGE(Eigen: ${Eigen_DIR})
 
 FIND_PACKAGE(OpenCV REQUIRED)
 FIND_PACKAGE(Eigen3 REQUIRED)
-#FIND_PACKAGE(BIAS REQUIRED)
+#FIND_PACKAGE(Octave REQUIRED)
 
 SET(BUILD_SHARED_LIBS ON)
 SET(CMAKE_BUILD_TYPE Debug)
 
 #INCLUDE_DIRECTORIES(/LineMatchingSourceCode)
 #INCLUDE_DIRECTORIES(${BIAS_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(/usr/local/include/octave-4.0.0)
+INCLUDE_DIRECTORIES(/usr/local/include/octave-4.0.0/octave)
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 #INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIRS})
 #INCLUDE_DIRECTORIES(/usr/include/eigen3)
@@ -33,6 +35,8 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_
 #INCLUDE(${BIAS_USE_FILE})
 #LINK_DIRECTORIES( ${BIAS_LINK_DIRECTORIES})
 
+LINK_DIRECTORIES(/usr/local/lib/octave/4.0.0)
+
 #MESSAGE(BIAS: ${BIAS_DIR})
 
 #MESSAGE(STATUS ${BIAS_LIBRARIES})
@@ -40,7 +44,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_
 #ADD_EXECUTABLE( MultipleCueEstimation main.cpp MCE.cpp MCE.h LineMatcher.cpp LineMatcher.h)
 #TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} ${BIAS_LIBRARIES} ${CMAKE_SOURCE_DIR}/LineMatchingSourceCode/build/libLineMatching.so)
 ADD_EXECUTABLE( MultipleCueEstimation main.cpp MultipleCueEstimation.cpp MultipleCueEstimation.h FEstimatorPoints.cpp FEstimatorPoints.h FEstimatorHPoints.cpp FEstimatorHPoints.h FEstimatorHLines.cpp FEstimatorHLines.h Utility.cpp Utility.h FEstimationMethod.cpp FEstimationMethod.h Statics.h LevenbergMarquardtLines.h LevenbergMarquardtGeneral.h FeatureMatchers.cpp FeatureMatchers.h DataStructs.h LevenbergMarquardtPoints.h)
-TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} )
+TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} ${CMAKE_CURRENT_SOURCE_DIR}/clm/build/libSevenpointLevenbergMarquardt.so)
 #MESSAGE(MultipleCueEstimation: ${CMAKE_CURRENT_SOURCE_DIR})
 #LevenbergMarquardtStandardDeviation.h
 

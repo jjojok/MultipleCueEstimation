@@ -1,0 +1,44 @@
+NAME		clm.m
+
+VERSION		1.0.0
+
+DESCRIPTION	Given 2D corresponding points over two images, this
+		program computes the fundamental matrix using the
+		Levenberg-Marquard method.
+
+EXAMPLE
+		% octave
+                octave:1> source ("test.m");
+
+FILES
+		README     : this file
+		README.jp  : README file for Japanese
+		clm.m      : clm octave code 
+		test.m     : test octave code
+		data1.dat  : simulated data 1
+		data2.dat  : simulated data 2
+		data1.jpg  : jpeg file of the simulated data 1
+		data2.jpg  : jpeg file of the simulated data 2
+		noise1.dat : added random Gaussian noise of mean 0 and
+			     standard deviation 0.1 to the data1.dat
+		noise2.dat : added random Gaussian noise of mean 0 and
+			     standard deviation 0.1 to the data2.dat
+		true_F.dat : ground truth
+		
+REFERENCE	Y. Sugaya and K. Kanatani, High accuracy computation
+		of rank-constrained fundamental matrix by efficient
+		search, 
+		
+ENVIRONMENT	octave 2.0.17
+
+NOTES		a. Please keep in mind that we cannot grantee our
+		   programs to be bug free.
+		b. Please do not use our programs for commercial
+		   purposes without our permission.
+		c. When you publish or present your work in which our
+		   programs are used, we are happy if you inform us so
+		   and publicly acknowledge so.
+
+LAST UPDATED	2007/01/30
+
+AUTHOR		Yasuyuki Sugaya <sugaya@iim.ics.tut.ac.jp>

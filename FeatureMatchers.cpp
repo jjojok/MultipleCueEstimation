@@ -122,9 +122,12 @@ int extractLineMatches(Mat image_1, Mat image_2, std::vector<lineCorrespStruct> 
 
     /* create a BinaryDescriptorMatcher object */
     Ptr<cv::line_descriptor::BinaryDescriptorMatcher> bdm = cv::line_descriptor::BinaryDescriptorMatcher::createBinaryDescriptorMatcher();
-
     /* require match */
     bdm->match( descr1, descr2, matches );
+
+//    FlannBasedMatcher matcher;
+//    matcher.match(descr1, descr2, matches);
+
 
     /************************************************************************/
 

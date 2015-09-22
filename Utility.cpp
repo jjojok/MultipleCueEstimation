@@ -533,7 +533,7 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
         for(int j = 0; j < eigenvalues.rows; j ++) {
             dist[i] += fabs(eig.at<double>(0,0) - eigenvalues.row(j).at<double>(0,0));
         }
-        if(dist[i] > MARGIN) eigenvalueOK = true;
+        if(dist[i] > MARGIN && eig.at<double>(0,0) > 0) eigenvalueOK = true;
         if(dist[i] > lastDist) {
             col = i;
             lastDist = dist[i];
