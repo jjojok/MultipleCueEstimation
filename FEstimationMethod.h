@@ -33,6 +33,8 @@ public:
     bool isSuccessful();
     std::vector<Mat> getFeaturesImg1();
     std::vector<Mat> getFeaturesImg2();
+    std::vector<Mat> getCompleteFeaturesImg1();
+    std::vector<Mat> getCompleteFeaturesImg2();
     int getType();
     double getError();
     double getMeanSquaredCSTError();
@@ -67,6 +69,8 @@ protected:
     int computationType;
     std::vector<Mat> featuresImg1;
     std::vector<Mat> featuresImg2;
+    std::vector<Mat> compfeaturesImg1;
+    std::vector<Mat> compfeaturesImg2;
     double error;
 
 private:

@@ -23,6 +23,8 @@ int FEstimatorPoints::extractMatches() {
             x1.push_back(iter->x1);
             x2.push_back(iter->x2);
         }
+        compfeaturesImg1.push_back(matVector(iter->x1));
+        compfeaturesImg2.push_back(matVector(iter->x2));
     }
 
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << x1.size() << std::endl;
@@ -40,25 +42,27 @@ bool FEstimatorPoints::compute() {
         if(mask.at<int>(i,0)) {
             x1_used.push_back(x1.at(i));
             x2_used.push_back(x2.at(i));
-            featuresImg1.push_back(matVector(x1.at(i)));
-            featuresImg2.push_back(matVector(x2.at(i)));
+//            featuresImg1.push_back(matVector(x1.at(i)));
+//            featuresImg2.push_back(matVector(x2.at(i)));
         }
     }
     if(LOG_DEBUG) std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
 
-    for(int i = 0; i < allPointCorrespondencies.size(); i++) {
-        pointCorrespStruct pc = allPointCorrespondencies.at(i);
-        Mat xx1 = matVector(pc.x1);
-        Mat xx2 = matVector(pc.x2);
-        if(errorFunctionFPointsSquared(F, xx1, xx2) <= 3.0) {
-            featuresImg1.push_back(xx1);
-            featuresImg2.push_back(xx2);
-        }
-    }
+    findGoodCombinedMatches(compfeaturesImg1, compfeaturesImg2, featuresImg1, featuresImg2, F, RANSAC_THREDHOLD);
+
+//    for(int i = 0; i < allPointCorrespondencies.size(); i++) {
+//        pointCorrespStruct pc = allPointCorrespondencies.at(i);
+//        Mat xx1 = matVector(pc.x1);
+//        Mat xx2 = matVector(pc.x2);
+//        if(errorFunctionFPointsSquared(F, xx1, xx2) <= 3.0) {
+//            featuresImg1.push_back(xx1);
+//            featuresImg2.push_back(xx2);
+//        }
+//    }
 
     if(featuresImg1.size() >= 7) successful = true;
 
-    error = meanSquaredSymmeticTransferError(F, x1_used, x2_used);
+    error = sampsonFDistance(F, x1_used, x2_used);
 
     if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, name+": Used point matches");
 

@@ -57,6 +57,14 @@ std::vector<Mat> FEstimationMethod::getFeaturesImg2() {
     return featuresImg2;
 }
 
+std::vector<Mat> FEstimationMethod::getCompleteFeaturesImg1() {
+    return compfeaturesImg1;
+}
+
+std::vector<Mat> FEstimationMethod::getCompleteFeaturesImg2() {
+    return compfeaturesImg2;
+}
+
 int FEstimationMethod::getType() {
     return computationType;
 }

@@ -47,6 +47,7 @@ Mat MultipleCueEstimation::compute() {
         //double error = epipolarSADError(Fgt, x1, x2);
 
         combinePointCorrespondecies();
+        combineAllPointCorrespondecies();
         debugCombinedMatches = x1Combined.size();
         F = refineF(estimations);
 
@@ -257,8 +258,30 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         return bestMethod->getF().clone();
     }
 
-    Mat FSPLM = Mat::ones(3,3,CV_64FC1);
-    SPLM(FSPLM, x1Combined, x2Combined);
+    Mat FSPLM = bestMethod->getF().clone();
+    std::vector<Mat> x1goodPointsSPLM;
+    std::vector<Mat> x2goodPointsSPLM;
+    int lastFeatureCnt = 0, featureCnt = 0;
+
+    SevenpointLevenbergMarquardtInit();
+    double errorThrSPLM = 100;
+    int iter = 1;
+
+    std::cout << "SPLM start ground truth error: " << meanSampsonFDistanceGoodMatches(Fgt, FSPLM, x1Combined, x2Combined) << std::endl;
+
+    do
+    {
+        findGoodCombinedMatches(x1Combined, x2Combined, x1goodPointsSPLM, x2goodPointsSPLM, FSPLM, errorThrSPLM/iter++);
+        lastFeatureCnt = featureCnt;
+        featureCnt = x1goodPointsSPLM.size();
+        SPLM(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
+        std::cout << "SPLM iter: " << iter-1 << " error thr: " << errorThrSPLM/iter << " ground truth error: " << meanSampsonFDistanceGoodMatches(Fgt, FSPLM, x1Combined, x2Combined) << std::endl;
+        std::cout << "Features: " << featureCnt << ", Change: " << (lastFeatureCnt - featureCnt) << std::endl;
+
+    }while(abs(lastFeatureCnt - featureCnt) > 5);
+
+    visualizePointMatches(image_1_color, image_2_color, x1goodPointsSPLM, x2goodPointsSPLM, 2, true, "FSPLM used point matches");
+
     return FSPLM;
 
     //Compute selected features
@@ -366,7 +389,17 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
 bool MultipleCueEstimation::SPLM(Mat &F, std::vector<Mat> x1m, std::vector<Mat> x2m) {
     std::vector<double> x1, x2, y1, y2;
-    std::vector<double>* Fvect = new std::vector<double>();
+    std::vector<double>* Fvect = new std::vector<double>(9);
+
+    //homogMat(F);
+
+    //std::cout << F << std::endl;
+
+    int k = 0;
+    for(int i = 0; i < 3; i++) {
+        for(int j = 0; j < 3; j++)
+            Fvect->at(k++) = F.at<double>(i,j);
+    }
 
     for(int i = 0; i < x1m.size(); i++) {
         x1.push_back(x1m.at(i).at<double>(0,0));
@@ -375,13 +408,15 @@ bool MultipleCueEstimation::SPLM(Mat &F, std::vector<Mat> x1m, std::vector<Mat> 
         y2.push_back(x2m.at(i).at<double>(1,0));
     }
 
-    bool result = SevenpointLevenbergMarquardt(Fvect, x1, y1, x2, y2);
+    bool result = SevenpointLevenbergMarquardt(Fvect, x1, y1, x2, y2, 1, 20, 0.5e-12);  //2560, 3072
     if(!result) return false;
 
+    k = 0;
     for(int i = 0; i < 3; i++) {
         for(int j = 0; j < 3; j++)
-            F.at<double>(i,j) = Fvect->at(i+j);
+            F.at<double>(i,j) = Fvect->at(k++);
     }
+    F = F.t();
     homogMat(F);
     return true;
 }
@@ -550,6 +585,29 @@ void MultipleCueEstimation::combinePointCorrespondecies() {
             }
         }
         if(LOG_DEBUG) std::cout << estimationIter->name << ": Added " << cnt << "/" << estimationIter->getFeaturesImg1().size() << " Point correspondencies to combined feature vector" << std::endl;
+    }
+}
+
+void MultipleCueEstimation::combineAllPointCorrespondecies() {
+    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
+        int cnt = 0;
+        for(int i = 0; i < estimationIter->getCompleteFeaturesImg1().size(); i++) {
+            Mat x11 = estimationIter->getCompleteFeaturesImg1().at(i);
+            Mat x12 = estimationIter->getCompleteFeaturesImg2().at(i);
+//            bool add = true;
+//            for(int j = 0; j < x1Complete.size(); j++) {
+//                if(isEqualPointCorresp(x11, x12, x1Complete.at(j), x2Complete.at(j))) {
+//                    add = false;
+//                    break;
+//                }
+//            }
+//            if(add) {
+                x1Complete.push_back(x11);
+                x2Complete.push_back(x12);
+                cnt++;
+//            }
+        }
+        if(LOG_DEBUG) std::cout << estimationIter->name << ": Added " << cnt << " Point correspondencies to complete feature vector" << std::endl;
     }
 }
 

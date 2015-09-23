@@ -655,6 +655,41 @@ void FEstimatorHLines::addPointCorrespondencies(Mat H, std::vector<lineCorrespSt
         featuresImg1.push_back(l1eProjection);
         featuresImg2.push_back(l2sProjection);
         featuresImg2.push_back(l2eProjection);
+
+        compfeaturesImg1.push_back(iter->line1Start);
+        compfeaturesImg1.push_back(iter->line1End);
+        compfeaturesImg2.push_back(iter->line2Start);
+        compfeaturesImg2.push_back(iter->line2End);
+
+        compfeaturesImg1.push_back(l1sProjection);
+        compfeaturesImg1.push_back(l1eProjection);
+        compfeaturesImg2.push_back(l2sProjection);
+        compfeaturesImg2.push_back(l2eProjection);
+    }
+}
+
+void FEstimatorHLines::addAllPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches) {
+    Mat H_inv = H.inv(DECOMP_SVD);
+    for(std::vector<lineCorrespStruct>::const_iterator iter = goodLineMatches.begin(); iter != goodLineMatches.end(); ++iter) {
+        Mat l2sProjection = H*iter->line1Start;
+        Mat l2eProjection = H*iter->line1End;
+        Mat l1sProjection = H_inv*iter->line2Start;
+        Mat l1eProjection = H_inv*iter->line2End;
+
+        homogMat(l1sProjection);
+        homogMat(l1eProjection);
+        homogMat(l2sProjection);
+        homogMat(l2eProjection);
+
+        compfeaturesImg1.push_back(iter->line1Start);
+        compfeaturesImg1.push_back(iter->line1End);
+        compfeaturesImg2.push_back(iter->line2Start);
+        compfeaturesImg2.push_back(iter->line2End);
+
+        compfeaturesImg1.push_back(l1sProjection);
+        compfeaturesImg1.push_back(l1eProjection);
+        compfeaturesImg2.push_back(l2sProjection);
+        compfeaturesImg2.push_back(l2eProjection);
     }
 }
 

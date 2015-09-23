@@ -533,7 +533,8 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
         for(int j = 0; j < eigenvalues.rows; j ++) {
             dist[i] += fabs(eig.at<double>(0,0) - eigenvalues.row(j).at<double>(0,0));
         }
-        if(dist[i] > MARGIN && eig.at<double>(0,0) > 0) eigenvalueOK = true;
+        if(dist[i] > MARGIN && eig.at<double>(0,0) > 0)
+            eigenvalueOK = true;
         if(dist[i] > lastDist) {
             col = i;
             lastDist = dist[i];
@@ -774,7 +775,7 @@ double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Ma
     Mat A = H*crossProductMatrix(line2Start)*line2End;
     Mat start1 = line1Start.t()*A;
     Mat end1 = line1End.t()*A;
-    homogMat(A);
+    //homogMat(A);
     double Ax = A.at<double>(0,0);
     double Ay = A.at<double>(1,0);
     Mat result = (start1 + end1)/(Ax + Ay);

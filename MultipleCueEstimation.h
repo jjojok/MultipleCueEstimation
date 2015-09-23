@@ -61,6 +61,7 @@ private:
     void computeSelectedMatches(std::vector<Mat> x1Current, std::vector<Mat> x2Current, std::vector<Mat> &x1Selected, std::vector<Mat> &x2Selected, std::vector<Mat> &x1NotSelected, std::vector<Mat> &x2NotSelected, std::vector<fundamentalMatrix*> &fundMats, double squaredErrorThr);
 
     void combinePointCorrespondecies();
+    void combineAllPointCorrespondecies();
     void levenbergMarquardt(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);
     void levenbergMarquardtStandardDeviation(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);
 
@@ -79,6 +80,7 @@ private:
     Mat Fgt;    //Ground truth
     std::vector<Point2d> x1, x2;   //corresponding points in image 1 and 2 (for debug only)
     std::vector<Mat> x1Combined, x2Combined;   //combined corresponding points in image 1 and 2 from all computation
+    std::vector<Mat> x1Complete, x2Complete;   //complete set of extracted correspondences
     std::vector<FEstimationMethod> estimations;
 
 };
