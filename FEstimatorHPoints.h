@@ -24,10 +24,11 @@ private:
     int filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold);
     bool isColinear(std::vector<pointCorrespStruct> fixedCorresp, pointCorrespStruct pcNew);
     double levenbergMarquardt(pointSubsetStruct &bestSubset);
-    Mat* normalizePoints(std::vector<pointCorrespStruct> &correspondencies , std::vector<pointCorrespStruct> &goodCorrespondencies);
+    Mat* normalizePoints(std::vector<pointCorrespStruct> &correspondencies);
     bool isUniqe(std::vector<pointCorrespStruct> existingCorresp, pointCorrespStruct newCorresp);
-    double errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp);
-    double meanSquaredPointError(Mat H, std::vector<pointCorrespStruct> pointCorresp);
+//    double errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp);
+    double sampsonDistanceHomography_(Mat H, std::vector<pointCorrespStruct> pointCorresp);
+    double sampsonDistanceHomography_(Mat H, pointCorrespStruct pointCorresp);
 
     std::vector<pointCorrespStruct> goodMatchedPoints;  //Vector of (good) corresponing points
     std::vector<pointCorrespStruct> allMatchedPoints;  //Vector of (all) corresponing points

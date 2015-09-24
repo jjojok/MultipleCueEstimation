@@ -36,24 +36,21 @@ public:
     std::vector<Mat> getCompleteFeaturesImg1();
     std::vector<Mat> getCompleteFeaturesImg2();
     int getType();
-    double getError();
-    double getMeanSquaredCSTError();
-    double getMeanSquaredRSSTError();
 
-    double meanSquaredCSTError;
-    double meanSquaredCSTErrorStandardDeviation;
-    double meanSquaredCSTErrorSelectedInlier;
-    int meanSquaredCSTErrorInliers;
-    int selectedInlier;
-    double meanCSTError;
-    double meanCSTErrorStandardDeviation;
-    int meanCSTErrorInliers;
-    int inlier;
+    int featureCount;
+    int featureCountComplete;
+    int inlierCountOwn;
+    int inlierCountCombined;
 
-    double meanSquaredRSSTError;
+    int featureCountCorrect;
+    int inlierCountOwnCorrect;
+    int inlierCountCombinedCorrect;
 
-    double meanSampsonDistanceGoodPointMatches;
-    int goodPointMatchesCount;
+    double sampsonErrOwn;
+    double sampsonErrCombined;
+    double sampsonErrCorrect;
+
+    double sampsonErrStdDevCombined;
 
 protected:
     virtual void init();
@@ -71,7 +68,6 @@ protected:
     std::vector<Mat> featuresImg2;
     std::vector<Mat> compfeaturesImg1;
     std::vector<Mat> compfeaturesImg2;
-    double error;
 
 private:
 

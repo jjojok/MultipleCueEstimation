@@ -7,7 +7,7 @@
 //Show debug messages
 #define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG true
+#define VISUAL_DEBUG false
 
 //Program parameters for selecting computation mathods
 #define F_Reined 0
@@ -16,12 +16,16 @@
 #define F_FROM_POINTS_VIA_H 4
 
 //General:
+//Threshold to determine "inlier", compared with square root of sampson distance, e.g. by RANSAC
+#define INLIER_THRESHOLD 2.0
+//Initial threshold to determine "inlier" by LM in refinement step
+#define INLIER_LM_THRESHOLD 100.0
+//Threshold to determine "correct" points by checking the sampson distance using the ground truth
+//#define GROUND_TRUTH_THRESHOLD 0.8
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
 //Max number of numerical refinement steps after a first homographie was found
 #define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 100
-//Max squared distance of lines to be considered as a correct projection (pixel)
-#define MAX_TRANSFER_DIST 1.25
 //max Percentage of error changing for error to be considered as stable
 #define MAX_ERROR_CHANGE 5.0
 //max features changing for error to be considered as stable
@@ -34,8 +38,6 @@
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
-//Ransac reproj threshold for Homography computation
-#define HOMOGRAPHY_RANSAC_THRESHOLD 1.5
 
 //Points:
 //Sift features
@@ -44,12 +46,8 @@
 #define SIFT_MIN_DIST 0.06
 //Factor of min Sift distance from all generated points where correspondence is still acceptable
 #define SIFT_MIN_DIST_FACTOR 3.0
-//Ransac thredshold
-#define RANSAC_THREDHOLD 2.0
 //Ransac confidence
 #define RANSAC_CONFIDENCE 0.9995
-////Refinement thredshold
-//#define REFINEMENT_THREDHOLD 3.0
 //Number of point correspondencies per homography estimation
 #define NUM_POINT_CORRESP 4//6
 //Max distance from point to line for 3 points to be colinear

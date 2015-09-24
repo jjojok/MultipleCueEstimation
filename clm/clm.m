@@ -185,18 +185,35 @@ endfunction
 
 %
 % CLM function
-%
-function u = CLM (X1, Y1, X2, Y2, F0, u0)
+% FS: Startpoint for FM
+% X1, X2, Y1, Y2: x and y values of point corresp.
+% F0: Normalization factor
+% maxIter: max iterations
+% stopdist: min error
+function u = CLM (F, X1, Y1, X2, Y2, F0, maxIter, stopDist)
+
+	format long;
+
+	%F
+	%F0
+	%maxIter	
+	%stopDist
+
+	warning('off','all');
 
 	 iter = 0;
-	 iter_max = 100;
+	 iter_max = maxIter;
 	 c = 0.0001;
          eps = 1.0e-15;
+	stopDist = stopDist;
 	 
 	 Xi = calcXi (X1, Y1, X2, Y2, F0);
 	 
-	 F = reshape (u0, 3, 3);
-	 F = F';
+	 F = reshape (F, 3, 3);
+	 %F = F';
+	 
+	%F
+
 	 [U, S, V] = svd (F);
 	 theta = asin (S(2,2) / sqrt (S(1,1) * S(1,1) + S(2,2) * S(2,2)));
 	 S(1, 1) = cos (theta);
@@ -242,7 +259,7 @@ function u = CLM (X1, Y1, X2, Y2, F0, u0)
 		     end
 	       end
 	       
-	       if (calcDistance (F, F_) < 0.5e-12)
+	       if (calcDistance (F, F_) < stopDist)
 			u = reshape (F_', 9, 1);
 			break;
 	       else
@@ -253,6 +270,7 @@ function u = CLM (X1, Y1, X2, Y2, F0, u0)
 			theta = theta_;	       
 	       end       
 	 end
+
 endfunction
 
 %

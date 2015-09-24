@@ -68,15 +68,3 @@ std::vector<Mat> FEstimationMethod::getCompleteFeaturesImg2() {
 int FEstimationMethod::getType() {
     return computationType;
 }
-
-double FEstimationMethod::getError() {
-    return error;
-}
-
-double FEstimationMethod::getMeanSquaredCSTError() {
-    return meanSquaredCSTError;
-}
-
-double FEstimationMethod::getMeanSquaredRSSTError() {
-    return meanSquaredRSSTError;
-}

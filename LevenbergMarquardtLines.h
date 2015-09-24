@@ -31,8 +31,7 @@ struct LineFunctor : Functor<double>
 
         homogMat(newH);
 
-//        H_T = newH.t();
-//        H_invT = newH.inv(DECOMP_SVD).t();
+        //Mat H_inv = newH.inv(DECOMP_SVD);
 
         lineCorrespStruct lc;
 
@@ -42,7 +41,8 @@ struct LineFunctor : Functor<double>
             //fvec(i) = std::fabs(errorFunctionHLines(H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized)) + std::fabs(errorFunctionHLines(H_invT, lc.line2StartNormalized, lc.line2EndNormalized, lc.line1StartNormalized, lc.line1EndNormalized));
             //fvec(i) = std::fabs(errorFunctionHLines(H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End)) + std::fabs(errorFunctionHLines(H_invT, lc.line2Start, lc.line2End, lc.line1Start, lc.line1End));
             //fvec(i) = errorFunctionHLines(H_T, H_invT, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized);
-            fvec(i) = squaredTransferLineError(newH, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+            //fvec(i) = sampsonDistanceHomographySymmetric(newH, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+            fvec(i) = sampsonDistanceHomography(newH, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
         }
 
         return 0;

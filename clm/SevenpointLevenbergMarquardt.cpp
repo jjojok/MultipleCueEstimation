@@ -6,6 +6,10 @@
 #include <toplev.h>
 #include <ov.h>
 
+void SevenpointLevenbergMarquardtExit() {
+    clean_up_and_exit(0);
+}
+
 void SevenpointLevenbergMarquardtInit() {
 
     //run octave code

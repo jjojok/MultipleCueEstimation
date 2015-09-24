@@ -33,18 +33,16 @@ public:
     MultipleCueEstimation(Mat *img1, Mat *img2, int comp);
     MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat *F_groudtruth);
 
-    double debugRefinedFGoodMatchedError;
-    int debugRefinedFGoodMatches;
-    int debugCombinedMatches;
-    double meanSquaredSelectedError;
-    int selectedPoints;
-    int correctSelectedPoints;
-    int selectedInlier;
+    int combinedFeatures;
+    int combinedFeaturesCorrect;
+    int refinedFInlierCombined;
+
+    double refinedFSampsonDistCombined;
+    double refinedFSampsonDistCorrect;
+
+    double refinedFSampsonErrStdDevCombined;
 
     Mat compute();
-    double getMeanSquaredRSSTError();
-    double getMeanSquaredCSTError();
-    int getInlier();
     std::vector<FEstimationMethod> getEstimations();
 
 private:
@@ -62,17 +60,13 @@ private:
 
     void combinePointCorrespondecies();
     void combineAllPointCorrespondecies();
-    void levenbergMarquardt(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);
-    void levenbergMarquardtStandardDeviation(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);
+//    void levenbergMarquardt(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);
 
     bool SPLM(Mat &F, std::vector<Mat> x1, std::vector<Mat> x2);
 
     int arguments;
     unsigned int computations;
     bool compareWithGroundTruth;
-    double meanSquaredRSSTError;    //Mean squared random sample symmetic transfer error
-    double meanSquaredCombinedError;     //Mean squared error of combined matches
-    int inlier;
     Mat F;                          //Final Fundamental Matrix
 
     Mat image_1, image_2;

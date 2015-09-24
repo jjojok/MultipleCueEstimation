@@ -248,84 +248,84 @@ bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
     }
 }
 
-double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
-    double error = 0;
-    for(int i = 0; i < points1.size(); i++) {
-        error+=std::pow(symmeticTransferError(F, matVector(points1.at(i)), matVector(points2.at(i))),2);
-    }
-    return error/points1.size();
-}
+//double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
+//    double error = 0;
+//    for(int i = 0; i < points1.size(); i++) {
+//        error+=std::pow(symmeticTransferError(F, matVector(points1.at(i)), matVector(points2.at(i))),2);
+//    }
+//    return error/points1.size();
+//}
 
-double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
-    //std::srand(std::time(0));
-    std::srand(1);  //Pseudo random: Try to use the same points for every image
-    double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image1, image2, numOfSamples);
-    if(err1 == -1) return -1;
-    double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image1, image2, numOfSamples);
-    if(err2 == -1) return -1;
-    return (err1 + err2)/2.0;
-}
+//double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
+//    //std::srand(std::time(0));
+//    std::srand(1);  //Pseudo random: Try to use the same points for every image
+//    double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image1, image2, numOfSamples);
+//    if(err1 == -1) return -1;
+//    double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image1, image2, numOfSamples);
+//    if(err2 == -1) return -1;
+//    return (err1 + err2)/2.0;
+//}
 
-double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
-    double epipolarDistSum = 0;
-    int imgWidth = image1.cols;
-    int imgHeight = image1.rows;
-    for(int i = 0; i < numOfSamples; i++) {
-        //line ax + by + c = 0 <-> ax + c = -by <-> (-a/b)x + (-c/b) = y; (-a/b) = -l1/l2, (-c/b) = -l3/l2
-        Mat p1homog;
-        int xMin;
-        int xMax;
-        double l2F1a = 0, l2F1b = 0;
+//double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
+//    double epipolarDistSum = 0;
+//    int imgWidth = image1.cols;
+//    int imgHeight = image1.rows;
+//    for(int i = 0; i < numOfSamples; i++) {
+//        //line ax + by + c = 0 <-> ax + c = -by <-> (-a/b)x + (-c/b) = y; (-a/b) = -l1/l2, (-c/b) = -l3/l2
+//        Mat p1homog;
+//        int xMin;
+//        int xMax;
+//        double l2F1a = 0, l2F1b = 0;
 
-        Mat l2F1homog;
+//        Mat l2F1homog;
 
-        int trys = 1;
-        do {    //Draw random point until it's epipolar line intersects image 2
-            int x = rand()%(imgWidth-20)+10;
-            int y = rand()%(imgHeight-20)+10;
-            p1homog = matVector(x, y, 1);
-            l2F1homog = F1*p1homog;
-            l2F1a = -l2F1homog.at<double>(0,0) / l2F1homog.at<double>(1,0);
-            l2F1b = -l2F1homog.at<double>(2,0) / l2F1homog.at<double>(1,0);
-            if(l2F1a > 0) {
-                xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
-                xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
-            } else if(l2F1a < 0) {
-                xMax = std::min(imgWidth, (int)std::floor(-l2F1b/l2F1a));
-                xMin = std::max(0, (int)std::ceil((imgHeight-l2F1b)/l2F1a));
-            } else {
-                xMax = imgWidth;
-                xMin = 0;
-            }
+//        int trys = 1;
+//        do {    //Draw random point until it's epipolar line intersects image 2
+//            int x = rand()%(imgWidth-20)+10;
+//            int y = rand()%(imgHeight-20)+10;
+//            p1homog = matVector(x, y, 1);
+//            l2F1homog = F1*p1homog;
+//            l2F1a = -l2F1homog.at<double>(0,0) / l2F1homog.at<double>(1,0);
+//            l2F1b = -l2F1homog.at<double>(2,0) / l2F1homog.at<double>(1,0);
+//            if(l2F1a > 0) {
+//                xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
+//                xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
+//            } else if(l2F1a < 0) {
+//                xMax = std::min(imgWidth, (int)std::floor(-l2F1b/l2F1a));
+//                xMin = std::max(0, (int)std::ceil((imgHeight-l2F1b)/l2F1a));
+//            } else {
+//                xMax = imgWidth;
+//                xMin = 0;
+//            }
 
-            trys++;
+//            trys++;
 
-        } while((xMin > xMax) && (trys < MAX_SAMPLE_TRYS));
+//        } while((xMin > xMax) && (trys < MAX_SAMPLE_TRYS));
 
-        if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
+//        if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
 
-        double x, y;
-        if(xMax == xMin) x = xMax;
-        else x = (rand()%(xMax-xMin)) + xMin;
-        y = l2F1a*x + l2F1b;
+//        double x, y;
+//        if(xMax == xMin) x = xMax;
+//        else x = (rand()%(xMax-xMin)) + xMin;
+//        y = l2F1a*x + l2F1b;
 
-        Mat img2 = image2.clone();
-        circle(img2, cvPoint(x,y), 5, Scalar(255,255,255), 3);
-        circle(img2, cvPoint(x,y), 30, Scalar(255,255,255), 6);
+//        Mat img2 = image2.clone();
+//        circle(img2, cvPoint(x,y), 5, Scalar(255,255,255), 3);
+//        circle(img2, cvPoint(x,y), 30, Scalar(255,255,255), 6);
 
-        //Compute distance of chosen random point to epipolar line of F2
-        Mat p2homog = matVector(x, y, 1);
-        Mat l2F2homog = F2*p1homog;
-        l2F2homog /= l2F2homog.at<double>(1,0);
-        epipolarDistSum+=fabs(Mat(p2homog.t()*l2F2homog).at<double>(0,0));
+//        //Compute distance of chosen random point to epipolar line of F2
+//        Mat p2homog = matVector(x, y, 1);
+//        Mat l2F2homog = F2*p1homog;
+//        l2F2homog /= l2F2homog.at<double>(1,0);
+//        epipolarDistSum+=fabs(Mat(p2homog.t()*l2F2homog).at<double>(0,0));
 
-        //Compute distance of point1 to epipolar line from random point using F2^T in image 1
-        Mat l1F2homog = F2.t()*p2homog;
-        l1F2homog /= l1F2homog.at<double>(1,0);
-        epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
-    }
-    return epipolarDistSum/(2.0*numOfSamples);
-}
+//        //Compute distance of point1 to epipolar line from random point using F2^T in image 1
+//        Mat l1F2homog = F2.t()*p2homog;
+//        l1F2homog /= l1F2homog.at<double>(1,0);
+//        epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
+//    }
+//    return epipolarDistSum/(2.0*numOfSamples);
+//}
 
 Mat matVector(double x, double y, double z) {
     Mat vect = Mat::zeros(3,1,CV_64FC1);
@@ -529,11 +529,12 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     int col = 0;
     for(int i = 0; i < eigenvalues.rows; i ++) {        //find non-unary eigenvalue & its eigenvector
         Mat eig = eigenvalues.row(i);
+        if(eig.at<double>(0,0) < 0.2) return false;
         dist[i] = 0;
         for(int j = 0; j < eigenvalues.rows; j ++) {
             dist[i] += fabs(eig.at<double>(0,0) - eigenvalues.row(j).at<double>(0,0));
         }
-        if(dist[i] > MARGIN && eig.at<double>(0,0) > 0)
+        if(dist[i] > MARGIN)
             eigenvalueOK = true;
         if(dist[i] > lastDist) {
             col = i;
@@ -563,21 +564,6 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     return eigenvalueOK;
 }
 
-//std::vector<double> computeCombinedErrorVect(std::vector<FEstimationMethod> estimations, Mat F) {
-
-//    std::vector<double> *errorVect = new std::vector<double>();
-
-//    for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
-//        for(unsigned int i = 0; i < estimationIter->getFeaturesImg1().size(); i++)   //Distance form features to correspondig epipolarline in other image
-//        {
-//            Mat x1 = estimationIter->getFeaturesImg1().at(i);
-//            Mat x2 = estimationIter->getFeaturesImg2().at(i);
-//            errorVect->push_back(errorFunctionFPoints(F, x1, x2));
-//        }
-//    }
-//    return *errorVect;
-//}
-
 std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Mat> x2, Mat F) {
 
     std::vector<double> *errorVect = new std::vector<double>();
@@ -585,7 +571,7 @@ std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Ma
     for(int i = 0; i < x1.size(); i++) {
         Mat p1 = x1.at(i);
         Mat p2 = x2.at(i);
-        errorVect->push_back(errorFunctionFPoints(F, p1, p2));
+        errorVect->push_back(sampsonDistanceFundamentalMat(F, p1, p2));
     }
     return *errorVect;
 }
@@ -597,19 +583,10 @@ std::vector<double> computeCombinedSquaredErrorVect(std::vector<Mat> x1, std::ve
     for(int i = 0; i < x1.size(); i++) {
         Mat p1 = x1.at(i);
         Mat p2 = x2.at(i);
-        errorVect->push_back(errorFunctionFPointsSquared(F, p1, p2));
+        errorVect->push_back(sampsonDistanceFundamentalMat(F, p1, p2));
     }
     return *errorVect;
 }
-
-//double errorFunctionCombinedMeanSquared(std::vector<FEstimationMethod> estimations, Mat impF) {
-//    std::vector<double> errorVect = computeCombinedErrorVect(estimations, impF);
-//    double combinedError = 0;
-//    for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
-//        combinedError += std::pow(*errorIter,2);
-//    }
-//    return combinedError/(double)errorVect.size();
-//}
 
 void errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation) {
     std::vector<double> errorVect = computeCombinedSquaredErrorVect(x1, x2, impF);
@@ -618,7 +595,7 @@ void errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, 
     standardDeviation = 0;
     for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
         error += *errorIter;
-        if(*errorIter < inlierThr) inliers++;
+        if(sqrt(*errorIter) < inlierThr) inliers++;
     }
     error = error/((double)errorVect.size());
     for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
@@ -649,7 +626,7 @@ void findGoodCombinedMatches(std::vector<Mat> x1Combined, std::vector<Mat> x2Com
     x1.clear();
     x2.clear();
     for(int i = 0; i < x1Combined.size(); i++) {
-        if(errorFunctionFPointsSquared(F, x1Combined.at(i), x2Combined.at(i)) < maxDist) {
+        if(sqrt(sampsonDistanceFundamentalMat(F, x1Combined.at(i), x2Combined.at(i))) < maxDist) {
             x1.push_back(x1Combined.at(i));
             x2.push_back(x2Combined.at(i));
         }
@@ -660,7 +637,7 @@ void findGoodCombinedMatches(std::vector<Point2d> x1Combined, std::vector<Point2
     x1.clear();
     x2.clear();
     for(int i = 0; i < x1Combined.size(); i++) {
-        double err = errorFunctionFPointsSquared(F, matVector(x1Combined.at(i)), matVector(x2Combined.at(i)));
+        double err = sqrt(sampsonDistanceFundamentalMat(F, matVector(x1Combined.at(i)), matVector(x2Combined.at(i))));
         if(minDist < err && err < maxDist) {
             x1.push_back(x1Combined.at(i));
             x2.push_back(x2Combined.at(i));
@@ -698,109 +675,6 @@ Mat computeGeneralHomography(Mat F) {       //See Hartley, Ziss p.243
     return H;
 }
 
-double errorFunctionHLinesSqared(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    return squaredTransferLineError(H, line1Start, line1End, line2Start, line2End);
-}
-
-double errorFunctionFPointsSquared(Mat F, Mat x1, Mat x2) {
-    return sampsonFDistance(F, x1, x2);
-}
-
-double errorFunctionHPointsSqared(Mat H, Mat x1, Mat x2) {
-    return sampsonHDistance(H, x1, x2);
-}
-
-double errorFunctionHLines(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    //return std::sqrt(errorFunctionHLinesSqared(H, line1Start, line1End, line2Start, line2End));
-    return transferLineError(H, line1Start, line1End, line2Start, line2End);
-}
-
-double errorFunctionHLines(Mat H, Mat H_invT, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    //return std::sqrt(errorFunctionHLinesSqared(H, line1Start, line1End, line2Start, line2End));
-    return std::sqrt(squaredTransferLineError(H, line1Start, line1End, line2Start, line2End) + squaredTransferLineError(H_invT, line2Start, line2End, line1Start, line1End));
-}
-
-double errorFunctionFPoints(Mat F, Mat x1, Mat x2) {
-    return std::sqrt(errorFunctionFPointsSquared(F, x1, x2));
-    //return errorFunctionFPointsSquared(F, x1, x2);
-    //return computeUnsquaredSampsonFDistance(F, x1, x2);
-}
-
-double errorFunctionHPoints(Mat H, Mat x1, Mat x2) {
-//    Mat E = crossProductMatrix(x2)*H*x1;
-//    Mat J = Mat::zeros(3,4,CV_64FC1);
-
-//    Mat H1 = H.row(0).t();
-//    Mat H2 = H.row(1).t();
-//    Mat H3 = H.row(2).t();
-
-//    //dE/dx
-//    J.col(0) = x2.cross(H1);
-//    //dE/dy
-//    J.col(1) = x2.cross(H2);
-//    //dE/dx'
-//    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
-//    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
-//    //dE/dy'
-//    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
-//    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
-
-//    Mat error = -J.t()*(J*J.t()).inv(DECOMP_SVD)*E;
-
-//    return error.at<double>(0,0);
-    return std::sqrt(errorFunctionHPointsSqared(H, x1, x2));
-}
-
-double symmeticTransferError(Mat F, Mat x1, Mat x2) {
-    return Mat(x2.t()*F*x1 + x1.t()*F.t()*x2).at<double>(0,0);
-}
-
-double squaredTransferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    Mat A = H.t()*crossProductMatrix(line2Start)*line2End;
-    Mat start1 = line1Start.t()*A;
-    Mat end1 = line1End.t()*A;
-    //homogMat(A);
-    //std::cout << A << std::endl;
-    double Ax = std::pow(A.at<double>(0,0), 2);
-    double Ay = std::pow(A.at<double>(1,0), 2);
-    Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
-    return result.at<double>(0,0);
-//    Mat result1 = line1Start.t()*H.t()*crossProductMatrix(line2Start)*line2End;
-//    Mat result2 = line1End.t()*H.t()*crossProductMatrix(line2Start)*line2End;
-//    return result1.at<double>(0,0)*result1.at<double>(0,0) + result2.at<double>(0,0)*result2.at<double>(0,0);
-
-}
-
-double transferLineError(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    Mat A = H*crossProductMatrix(line2Start)*line2End;
-    Mat start1 = line1Start.t()*A;
-    Mat end1 = line1End.t()*A;
-    //homogMat(A);
-    double Ax = A.at<double>(0,0);
-    double Ay = A.at<double>(1,0);
-    Mat result = (start1 + end1)/(Ax + Ay);
-    return result.at<double>(0,0);
-}
-
-double transferPointError(Mat H, Mat x1, Mat x2) {
-    Mat __x2 = x2/x2.at<double>(2,0);
-    Mat _x2 = H*x1;
-    _x2 /= _x2.at<double>(2,0);
-    return norm(_x2 - __x2);
-}
-
-double symmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2) {
-    return transferPointError(H, x1, x2) + transferPointError(H_inv, x2, x1);
-}
-
-double squaredTransferPointError(Mat H, Mat x1, Mat x2) {
-    return std::pow(transferPointError(H, x1, x2), 2);
-}
-
-double squaredSymmetricTransferPointError(Mat H, Mat H_inv, Mat x1, Mat x2) {
-    return squaredTransferPointError(H, x1, x2) + squaredTransferPointError(H_inv, x2, x1);
-}
-
 double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount) {
     double outliers = generalOutliers*(uesdCorresp/correspCount);
     if(LOG_DEBUG) std::cout << "-- Filtering matches, new outlier/matches ratio: " << outliers << std::endl;
@@ -819,69 +693,6 @@ bool isUniqe(std::vector<int> subsetsIdx, int newIdx) {
         if(*iter == newIdx) return false;
     }
     return true;
-}
-
-double computeUnsquaredSampsonFDistance(Mat F, Mat x1, Mat x2) {    //For LM optimization
-    double n = Mat(x2.t()*F*x1).at<double>(0,0);
-    Mat b1 = F*x1;
-    Mat b2 = F.t()*x2;
-    //homogMat(b1);
-    //homogMat(b2);
-    return n/(b1.at<double>(0,0) + b1.at<double>(1,0) + b2.at<double>(0,0) + b2.at<double>(1,0));
-}
-
-double computeUnsquaredSampsonHDistance(Mat H, Mat H_inv, Mat x1, Mat x2) {   //For LM optimization
-
-}
-
-double sampsonFDistance(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
-    double n = Mat(x2.t()*F*x1).at<double>(0,0);
-    Mat b1 = F*x1;
-    Mat b2 = F.t()*x2;
-    //homogMat(b1);
-    //homogMat(b2);
-    return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
-}
-
-double sampsonFDistance(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {
-    double error = 0;
-    for(int i = 0; i < points1.size(); i++) {
-        error+=sampsonFDistance(F, matVector(points1.at(i)), matVector(points2.at(i)));
-    }
-    return error/points1.size();
-}
-
-double sampsonFDistance(Mat F, std::vector<Mat> points1, std::vector<Mat> points2) {
-    double error = 0;
-    for(int i = 0; i < points1.size(); i++) {
-        error+=sampsonFDistance(F, points1.at(i), points2.at(i));
-    }
-    return error/points1.size();
-}
-
-double sampsonHDistance(Mat H, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
-
-    Mat E = crossProductMatrix(x2)*H*x1;
-    Mat J = Mat::zeros(3,4,CV_64FC1);
-
-    Mat H1 = H.row(0).t();
-    Mat H2 = H.row(1).t();
-    Mat H3 = H.row(2).t();
-
-    //dE/dx
-    J.col(0) = x2.cross(H1);
-    //dE/dy
-    J.col(1) = x2.cross(H2);
-    //dE/dx'
-    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
-    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
-    //dE/dy'
-    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
-    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
-
-    Mat error = E.t()*(J*J.t()).inv(DECOMP_SVD)*E;
-
-    return error.at<double>(0,0);
 }
 
 void homogMat(Mat &m) {
@@ -956,8 +767,8 @@ void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::v
     error = 0;
     used = 0;
     for(int i = 0; i < x1.size(); i++) {
-        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= 1.0) {
-            error += sampsonFDistance(F, x1.at(i), x2.at(i));
+        if(sqrt(sampsonDistanceFundamentalMat(Fgt, x1.at(i), x2.at(i))) <= INLIER_THRESHOLD) {
+            error += sampsonDistanceFundamentalMat(F, x1.at(i), x2.at(i));
             used++;
         }
     }
@@ -968,7 +779,7 @@ void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::v
 int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2, double thr) {
     int used = 0;
     for(int i = 0; i < x1.size(); i++) {
-        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= thr) {
+        if(sqrt(sampsonDistanceFundamentalMat(Fgt, x1.at(i), x2.at(i))) <= thr) {
             used++;
         }
     }
@@ -980,8 +791,8 @@ double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std:
     double error = 0;
     double used = 0;
     for(int i = 0; i < x1.size(); i++) {
-        if(sampsonFDistance(Fgt, x1.at(i), x2.at(i)) <= 1.0) {
-            error += sampsonFDistance(F, x1.at(i), x2.at(i));
+        if(sqrt(sampsonDistanceFundamentalMat(Fgt, x1.at(i), x2.at(i))) <= INLIER_THRESHOLD) {
+            error += sampsonDistanceFundamentalMat(F, x1.at(i), x2.at(i));
             used++;
         }
     }
@@ -1019,4 +830,86 @@ void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout) {
         p.y = xin.at(i).at<double>(1,0);
         xout.push_back(p);
     }
+}
+
+//error functions
+
+//Fundamental matrix
+
+double sampsonDistanceFundamentalMatSymmetric(Mat F, Mat x1, Mat x2) {
+    sampsonDistanceFundamentalMat(F, x1, x2) + sampsonDistanceFundamentalMat(F.t(), x2, x1);
+}
+
+double sampsonDistanceFundamentalMat(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
+    double n = Mat(x2.t()*F*x1).at<double>(0,0);
+    Mat b1 = F*x1;
+    Mat b2 = F.t()*x2;
+    //homogMat(b1);
+    //homogMat(b2);
+    return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
+}
+
+double sampsonDistanceFundamentalMat(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {
+    double error = 0;
+    for(int i = 0; i < points1.size(); i++) {
+        error+=sampsonDistanceFundamentalMat(F, matVector(points1.at(i)), matVector(points2.at(i)));
+    }
+    return error/points1.size();
+}
+
+double sampsonDistanceFundamentalMat(Mat F, std::vector<Mat> points1, std::vector<Mat> points2) {
+    double error = 0;
+    for(int i = 0; i < points1.size(); i++) {
+        error+=sampsonDistanceFundamentalMat(F, points1.at(i), points2.at(i));
+    }
+    return error/points1.size();
+}
+
+//error point homogrpahy
+
+double sampsonDistanceHomographySymmetric(Mat H, Mat H_inv, Mat x1, Mat x2) {
+    return sampsonDistanceHomography(H, x1, x2) + sampsonDistanceHomography(H_inv, x2, x1);
+}
+
+double sampsonDistanceHomography(Mat H, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
+
+    Mat E = crossProductMatrix(x2)*H*x1;
+    Mat J = Mat::zeros(3,4,CV_64FC1);
+
+    Mat H1 = H.row(0).t();
+    Mat H2 = H.row(1).t();
+    Mat H3 = H.row(2).t();
+
+    //dE/dx
+    J.col(0) = x2.cross(H1);
+    //dE/dy
+    J.col(1) = x2.cross(H2);
+    //dE/dx'
+    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
+    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
+    //dE/dy'
+    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
+    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
+
+    Mat error = E.t()*(J*J.t()).inv(DECOMP_SVD)*E;
+
+    return error.at<double>(0,0);
+}
+
+//error line homography
+
+double sampsonDistanceHomographySymmetric(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    return sampsonDistanceHomography(H, line1Start, line1End, line2Start, line2End) + sampsonDistanceHomography(H_inv, line2Start, line2End, line1Start, line1End);
+}
+
+double sampsonDistanceHomography(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    Mat A = H.t()*crossProductMatrix(line2Start)*line2End;
+    Mat start1 = line1Start.t()*A;
+    Mat end1 = line1End.t()*A;
+    //homogMat(A);
+    //std::cout << A << std::endl;
+    double Ax = std::pow(A.at<double>(0,0), 2);
+    double Ay = std::pow(A.at<double>(1,0), 2);
+    Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
+    return result.at<double>(0,0);
 }

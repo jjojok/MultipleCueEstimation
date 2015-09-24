@@ -36,7 +36,7 @@ bool FEstimatorPoints::compute() {
     //std::vector<int> mask;
     Mat mask;
     extractMatches();
-    F = findFundamentalMat(x1, x2, CV_FM_RANSAC, RANSAC_THREDHOLD, RANSAC_CONFIDENCE, mask);
+    F = findFundamentalMat(x1, x2, CV_FM_RANSAC, INLIER_THRESHOLD, RANSAC_CONFIDENCE, mask);
     //F.convertTo(F, CV_64FC1);
     for(int i = 0; i < x1.size(); i++) {
         if(mask.at<int>(i,0)) {
@@ -48,7 +48,7 @@ bool FEstimatorPoints::compute() {
     }
     if(LOG_DEBUG) std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
 
-    findGoodCombinedMatches(compfeaturesImg1, compfeaturesImg2, featuresImg1, featuresImg2, F, RANSAC_THREDHOLD);
+    findGoodCombinedMatches(compfeaturesImg1, compfeaturesImg2, featuresImg1, featuresImg2, F, INLIER_THRESHOLD);
 
 //    for(int i = 0; i < allPointCorrespondencies.size(); i++) {
 //        pointCorrespStruct pc = allPointCorrespondencies.at(i);
@@ -62,7 +62,10 @@ bool FEstimatorPoints::compute() {
 
     if(featuresImg1.size() >= 7) successful = true;
 
-    error = sampsonFDistance(F, x1_used, x2_used);
+    sampsonErrOwn = sampsonDistanceFundamentalMat(F, featuresImg1, featuresImg2);
+    featureCount = x1.size();
+    inlierCountOwn = featuresImg1.size();
+    featureCountComplete = compfeaturesImg1.size();
 
     if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, name+": Used point matches");
 

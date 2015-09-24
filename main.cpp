@@ -4,6 +4,7 @@
 #include "Utility.h"
 #include <iostream>
 #include <fstream>
+#include "clm/SevenpointLevenbergMarquardt.h"
 
 //TODO:
 //- Fro refinement: select best F based on inlaiers not genral error
@@ -89,20 +90,42 @@ int main(int argc, char** argv )
             mce = new MultipleCueEstimation(&image_1_color, &image_2_color, computations, getGroundTruthKRt(K1, K2, R1w, R2w, t1w, t2w));
         }
     }
+
+
+
     if(mce != 0) {
+
+
         time_t startTime = time(0);
         mce->compute();
         if(argc == 6) {
-            std::cout << argv[1] << "," << argv[2] << "," << mce->getMeanSquaredCSTError() << "," << mce->getInlier() << "," << mce->meanSquaredSelectedError << "," << mce->selectedInlier << "," << mce->selectedPoints << "," << mce->correctSelectedPoints << "," << mce->debugRefinedFGoodMatchedError << "," << mce->debugRefinedFGoodMatches << "," << mce->debugCombinedMatches << ",";
+
+            std::cout << "first image, second image, combined features, true combined features using ground truth, refined F combined features inlier, refined F sampson dist from combined matches, refined F sampson dist from true features selected using the ground truth,";
+
             for(int i = 0; i < mce->getEstimations().size(); i++){
                 FEstimationMethod estimation = mce->getEstimations().at(i);
-                std::cout << estimation.name << ",";
-                if(!estimation.isSuccessful()) std::cout << ",,,,,,";
+                std::cout << estimation.name << ": own feature correps count, " << estimation.name << ": own true feature correps count, "
+                          << estimation.name << ": own feature inlier count, " << estimation.name << ": own true feature inlier count, "
+                          << estimation.name << ": combined feature inlier count, " << estimation.name << ": combined true feature inlier count, "
+                          << estimation.name << ": sampson dist own features, " << estimation.name << ": sampson dist combined features, " << estimation.name << ": sampson dist true features, ";
+            }
+
+            std::cout << "Time (sec)" << std::endl;
+
+            std::cout << argv[1] << "," << argv[2] << "," << mce->combinedFeatures << "," << mce->combinedFeaturesCorrect << "," << mce->refinedFInlierCombined << "," << mce->refinedFSampsonDistCombined << "," << mce->refinedFSampsonDistCorrect << ",";
+            for(int i = 0; i < mce->getEstimations().size(); i++){
+                FEstimationMethod estimation = mce->getEstimations().at(i);
+                if(!estimation.isSuccessful()) std::cout << ",,,,,,,,,";
                 else {
-                    std::cout << estimation.getError() << "," << estimation.getMeanSquaredCSTError() << "," << estimation.meanSquaredCSTErrorInliers <<"," << estimation.meanSquaredCSTErrorSelectedInlier << "," << estimation.selectedInlier << "," << estimation.meanSampsonDistanceGoodPointMatches << ",";
+                    std::cout << estimation.featureCountComplete << "," << estimation.featureCountCorrect << ","
+                              << estimation.inlierCountOwn << "," << estimation.inlierCountOwnCorrect << ","
+                              << estimation.inlierCountCombined << "," << estimation.inlierCountCombinedCorrect << ","
+                              << estimation.sampsonErrOwn << "," << estimation.sampsonErrCombined << ","
+                                 << estimation.sampsonErrCorrect << ",";
                 }
             }
             std::cout << time(0) - startTime << std::endl;
         }
     }
+     SevenpointLevenbergMarquardtExit();
 }

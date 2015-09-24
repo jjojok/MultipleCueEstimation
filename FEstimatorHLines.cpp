@@ -62,7 +62,7 @@ bool FEstimatorHLines::compute() {
     lineSubsetStruct firstEstimation;
     lineSubsetStruct secondEstimation;
 
-    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS, HOMOGRAPHY_RANSAC_THRESHOLD)) {
+    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, HOMOGRAPHY_OUTLIERS, INLIER_THRESHOLD)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -92,7 +92,7 @@ bool FEstimatorHLines::compute() {
 
         if(LOG_DEBUG) std::cout << "-- Second estimation " << estCnt << "/" << MAX_H2_ESTIMATIONS << "..." << std::endl;
 
-        if(!findLineHomography(secondEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, outliers, HOMOGRAPHY_RANSAC_THRESHOLD)) {
+        if(!findLineHomography(secondEstimation, goodMatchedLines, allMatchedLines, RANSAC, CONFIDENCE, outliers, INLIER_THRESHOLD)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -130,7 +130,10 @@ bool FEstimatorHLines::compute() {
 
     enforceRankTwoConstraint(F);
 
-    error = sampsonFDistance(F, featuresImg1, featuresImg2);
+    sampsonErrOwn = sampsonDistanceFundamentalMat(F, featuresImg1, featuresImg2);
+    featureCount = goodMatchedLines.size();
+    inlierCountOwn = featuresImg1.size();
+    featureCountComplete = allMatchedLines.size();
 
     successful = true;
 
@@ -182,7 +185,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 //    cvWaitKey(0);
 
     //errorThr = errorThr;
-    errorThr = bestSubset.subsetError;
+    //errorThr = bestSubset.subsetError;
 
     int iterationLM = 0;
 
@@ -204,7 +207,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         for(int i = 0; i < allMatches.size(); i++) {
             lineCorrespStruct lc = allMatches.at(i);
             //if(squaredTransferLineError(H_invT, H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) < errThr) {        //errorThr
-            if(squaredTransferLineError(bestSubset.Hs, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End) < errThr) {
+            if(sqrt(sampsonDistanceHomography(bestSubset.Hs, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End)) < errThr) {
             //if(errorFunctionHLinesSqared_(H_invT, H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End) < errThr) {
                 bestSubset.lineCorrespondencies.push_back(lc);
             }
@@ -287,7 +290,7 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
 //    Mat H_invT = bestSubset.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::const_iterator it = bestSubset.lineCorrespondencies.begin(); it != bestSubset.lineCorrespondencies.end(); ++it) {
         //error += errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
-        error += errorFunctionHLinesSqared(bestSubset.Hs, it->line1Start, it->line1End, it->line2Start, it->line2End);
+        error += sampsonDistanceHomography(bestSubset.Hs, it->line1Start, it->line1End, it->line2Start, it->line2End);
     }
 
     if(bestSubset.lineCorrespondencies.size() > 0) bestSubset.subsetError = error/bestSubset.lineCorrespondencies.size();
@@ -422,15 +425,11 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
     bestSolution.qualityMeasure = 0;
     double error = 0;
     for(std::vector<lineSubsetStruct>::iterator subset = subsets.begin() ; subset != subsets.end(); ++subset) {
-//        Mat H_T = subset->Hs.t();
-//        Mat H_invT = subset->Hs.inv(DECOMP_SVD).t();
         subset->qualityMeasure = 0;       //count inlainers
         subset->subsetError = 0;
         for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
-            //error = errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
-            //std::cout << it->line1Start << ", " << it->line1End << ", " << it->line2Start << ", " << it->line2End << std::endl;
-            error = squaredTransferLineError(subset->Hs, it->line1Start, it->line1End, it->line2Start, it->line2End);//errorFunctionHLinesSqared_(H_invT, H_T, it->line1Start, it->line1End, it->line2Start, it->line2End);
-            if(error <= threshold) {
+            error = sampsonDistanceHomography(subset->Hs, it->line1Start, it->line1End, it->line2Start, it->line2End);
+            if(sqrt(error) <= threshold) {
                 subset->subsetError += error;
                 subset->qualityMeasure++;
             }
@@ -441,13 +440,9 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
     }
 
     bestSolution.lineCorrespondencies.clear();
-//    Mat H_T = bestSolution.Hs.t();
-//    Mat H_invT = bestSolution.Hs.inv(DECOMP_SVD).t();
     for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
-        //error = errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
-        //error = errorFunctionHLinesSqared_(H_invT, H_T, it->line1Start, it->line1End, it->line2Start, it->line2End);
-        error = squaredTransferLineError(bestSolution.Hs, it->line1Start, it->line1End, it->line2Start, it->line2End);
-        if(error <= threshold) {
+        error = sampsonDistanceHomography(bestSolution.Hs, it->line1Start, it->line1End, it->line2Start, it->line2End);
+        if(sqrt(error) <= threshold) {
             bestSolution.lineCorrespondencies.push_back(*it);
         }
     }
@@ -480,12 +475,10 @@ lineSubsetStruct FEstimatorHLines::calcLMedS(std::vector<lineSubsetStruct> &subs
 
 
 double FEstimatorHLines::calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies) {
-    Mat H_invT = subset.Hs.inv(DECOMP_SVD).t();
-    Mat H_T = subset.Hs.t();
     std::vector<double> errors;
     double error;
     for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
-        error = errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
+        error = sampsonDistanceHomography(subset.Hs, it->line1Start, it->line1End, it->line2Start, it->line2End);
         errors.push_back(error);
         subset.subsetError += error;
     }
@@ -699,28 +692,26 @@ void FEstimatorHLines::addAllPointCorrespondencies(Mat H, std::vector<lineCorres
 //    return squaredSymmeticTransferLineError(H_invT, H_T, lc);
 //}
 
-double FEstimatorHLines::errorFunctionHLinesSqaredAlgebraic_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
-    Mat A = (l1s.t()*H_T*crossProductMatrix(l2s)*l2e)*(l1s.t()*H_T*crossProductMatrix(l2s)*l2e) + (l1e.t()*H_T*crossProductMatrix(l2s)*l2e)*(l1e.t()*H_T*crossProductMatrix(l2s)*l2e);
-    Mat C = (l2s.t()*H_invT*crossProductMatrix(l1s)*l1e)*(l2s.t()*H_invT*crossProductMatrix(l1s)*l1e) + (l2e.t()*H_invT*crossProductMatrix(l1s)*l1e)*(l2e.t()*H_invT*crossProductMatrix(l1s)*l1e);
-    return std::pow(A.at<double>(0,0),2) + std::pow(C.at<double>(0,0),2);
-}
+//double FEstimatorHLines::errorFunctionHLinesSqaredAlgebraic_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
+//    Mat A = (l1s.t()*H_T*crossProductMatrix(l2s)*l2e)*(l1s.t()*H_T*crossProductMatrix(l2s)*l2e) + (l1e.t()*H_T*crossProductMatrix(l2s)*l2e)*(l1e.t()*H_T*crossProductMatrix(l2s)*l2e);
+//    Mat C = (l2s.t()*H_invT*crossProductMatrix(l1s)*l1e)*(l2s.t()*H_invT*crossProductMatrix(l1s)*l1e) + (l2e.t()*H_invT*crossProductMatrix(l1s)*l1e)*(l2e.t()*H_invT*crossProductMatrix(l1s)*l1e);
+//    return std::pow(A.at<double>(0,0),2) + std::pow(C.at<double>(0,0),2);
+//}
 
-double FEstimatorHLines::errorFunctionHLinesSqared_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
-    return errorFunctionHLinesSqared(H_T, l1s, l1e, l2s, l2e) + errorFunctionHLinesSqared(H_invT, l2s, l2e, l1s, l1e);
-}
+//double FEstimatorHLines::errorFunctionHLinesSqared_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
+//    return errorFunctionHLinesSqared(H_T, l1s, l1e, l2s, l2e) + errorFunctionHLinesSqared(H_invT, l2s, l2e, l1s, l1e);
+//}
 
-double FEstimatorHLines::errorFunctionHLines_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
-    return fabs(errorFunctionHLines(H_T, l1s, l1e, l2s, l2e)) + fabs(errorFunctionHLines(H_invT, l2s, l2e, l1s, l1e));
-    //return errorFunctionHLinesSqared_(H_invT, H_T, l1s, l1e, l2s, l2e);
-}
+//double FEstimatorHLines::errorFunctionHLines_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e) {
+//    return fabs(errorFunctionHLines(H_T, l1s, l1e, l2s, l2e)) + fabs(errorFunctionHLines(H_invT, l2s, l2e, l1s, l1e));
+//    //return errorFunctionHLinesSqared_(H_invT, H_T, l1s, l1e, l2s, l2e);
+//}
 
 int FEstimatorHLines::filterBadLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &lineCorresp, double threshold) {
-    Mat H_invT = subset.Hs.inv(DECOMP_SVD).t();
-    Mat H_T = subset.Hs.t();
     int removed = 0;
     std::vector<lineCorrespStruct>::iterator it= lineCorresp.begin();
     while (it!=lineCorresp.end()) {
-        if(errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized) > threshold) {
+        if(sqrt(sampsonDistanceHomography(subset.Hs, it->line1Start, it->line1End, it->line2Start, it->line2End)) > threshold) {
             removed++;
             lineCorresp.erase(it);
         } else it++;

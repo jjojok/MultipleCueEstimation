@@ -32,11 +32,11 @@ private:
     bool estimateHomography(lineSubsetStruct &result, std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets, double ransacThr);
     void addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
     void addAllPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
-    double errorFunctionHLines_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
-    double errorFunctionHLinesSqared_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
+    //double errorFunctionHLines_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
+    //double errorFunctionHLinesSqared_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
     int filterBadLineMatches(lineSubsetStruct subset, std::vector<lineCorrespStruct> &lineCorresp, double threshold);
     bool isUniqe(std::vector<lineCorrespStruct> existingCorresp, lineCorrespStruct newCorresp);
-    double errorFunctionHLinesSqaredAlgebraic_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
+    //double errorFunctionHLinesSqaredAlgebraic_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
 
     std::vector<lineCorrespStruct> goodMatchedLines;  //Vector of (good) corresponing line segments (start & endpoints)
     std::vector<lineCorrespStruct> allMatchedLines;  //Vector of (all) corresponing line segments (start & endpoints)
