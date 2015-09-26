@@ -23,8 +23,8 @@ private:
     //int filterLineMatches(std::vector<DMatch> &matches);
     void fillHLinEq(Mat &linEq, std::vector<lineCorrespStruct> correspondencies);
     void fillHLinEqBase(Mat &linEq, double x, double y, double A, double B, double C, int row);
-    lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies);
-    double calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
+//    lineSubsetStruct calcLMedS(std::vector<lineSubsetStruct> &subsets, std::vector<lineCorrespStruct> lineCorrespondencies);
+//    double calcMedS(lineSubsetStruct &subset, std::vector<lineCorrespStruct> lineCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies, std::vector<lineCorrespStruct> &goodCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
     int filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);

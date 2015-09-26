@@ -494,9 +494,11 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat
 bool isUnity(Mat m) {       //Check main diagonal for being close to 1
     Mat diff = abs(m - Mat::eye(m.rows, m.cols, CV_64FC1));
     for(int i = 0; i < m.cols; i++) {
-        if(diff.at<double>(i,i) > MARGIN) {
-            if(LOG_DEBUG) std::cout << "-- Is Unity matrix: false" << std::endl;
-            return false;
+        for(int j = 0; j < m.rows; j++) {
+            if(fabs(diff.at<double>(i,j)) > 0.5) {
+                if(LOG_DEBUG) std::cout << "-- Is Unity matrix: false" << std::endl;
+                return false;
+            }
         }
     }
     if(LOG_DEBUG) std::cout << "-- Is Unity matrix: true" << std::endl;
@@ -529,7 +531,6 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     int col = 0;
     for(int i = 0; i < eigenvalues.rows; i ++) {        //find non-unary eigenvalue & its eigenvector
         Mat eig = eigenvalues.row(i);
-        if(eig.at<double>(0,0) < 0.2) return false;
         dist[i] = 0;
         for(int j = 0; j < eigenvalues.rows; j ++) {
             dist[i] += fabs(eig.at<double>(0,0) - eigenvalues.row(j).at<double>(0,0));
@@ -542,6 +543,8 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
         }
     }
 
+    if(LOG_DEBUG) std::cout << "-- Largest eigenvalue distance: " << lastDist << std::endl;
+
     if(LOG_DEBUG && eigenvalueOK) std::cout << "-- Found uniqe eigenvalue: " << eigenvalues.row(col).at<double>(0,0) << std::endl;
     if(LOG_DEBUG && !eigenvalueOK) std::cout << "-- Found no uniqe eigenvalue!" << std::endl;
 
@@ -550,9 +553,14 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     if(col == 1) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(2).at<double>(0,0);
     if(col == 2) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(1).at<double>(0,0);
 
-    if(fabs(eigenValDiff) > lastDist*0.005) {
+    if(fabs(eigenValDiff) > 0.005) {
         if(LOG_DEBUG) std::cout << "-- Other eigenvalues are not equal!" << std::endl;
-        eigenvalueOK = false;
+        return false;
+    }
+
+    if(!eigenvalueOK) {
+        if(isUnity(H)) return false;
+        eigenvalueOK = true;
     }
 
     std::vector<Mat> e2;
@@ -783,7 +791,6 @@ int goodMatchesCount(Mat Fgt, std::vector<Mat> x1, std::vector<Mat> x2, double t
             used++;
         }
     }
-    if(LOG_DEBUG) std::cout << "-- Good matches from Fgt: " << used << "/" << x1.size() << std::endl;
     return used;
 }
 
@@ -836,16 +843,14 @@ void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout) {
 
 //Fundamental matrix
 
-double sampsonDistanceFundamentalMatSymmetric(Mat F, Mat x1, Mat x2) {
-    sampsonDistanceFundamentalMat(F, x1, x2) + sampsonDistanceFundamentalMat(F.t(), x2, x1);
+double sampsonDistanceFundamentalMat(Mat F, Mat x1, Mat x2) {
+    return sampsonDistanceFundamentalMatSingle(F, x1, x2) + sampsonDistanceFundamentalMatSingle(F.t(), x2, x1);
 }
 
-double sampsonDistanceFundamentalMat(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
+double sampsonDistanceFundamentalMatSingle(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
     double n = Mat(x2.t()*F*x1).at<double>(0,0);
     Mat b1 = F*x1;
     Mat b2 = F.t()*x2;
-    //homogMat(b1);
-    //homogMat(b2);
     return std::pow(n, 2)/(std::pow(b1.at<double>(0,0), 2) + std::pow(b1.at<double>(1,0), 2) + std::pow(b2.at<double>(0,0), 2) + std::pow(b2.at<double>(1,0), 2));
 }
 
@@ -867,12 +872,7 @@ double sampsonDistanceFundamentalMat(Mat F, std::vector<Mat> points1, std::vecto
 
 //error point homogrpahy
 
-double sampsonDistanceHomographySymmetric(Mat H, Mat H_inv, Mat x1, Mat x2) {
-    return sampsonDistanceHomography(H, x1, x2) + sampsonDistanceHomography(H_inv, x2, x1);
-}
-
-double sampsonDistanceHomography(Mat H, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
-
+double sampsonDistanceHomographySingle(Mat H, Mat x1, Mat x2) {
     Mat E = crossProductMatrix(x2)*H*x1;
     Mat J = Mat::zeros(3,4,CV_64FC1);
 
@@ -896,20 +896,23 @@ double sampsonDistanceHomography(Mat H, Mat x1, Mat x2) {      //See: Hartley Zi
     return error.at<double>(0,0);
 }
 
-//error line homography
-
-double sampsonDistanceHomographySymmetric(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    return sampsonDistanceHomography(H, line1Start, line1End, line2Start, line2End) + sampsonDistanceHomography(H_inv, line2Start, line2End, line1Start, line1End);
+double sampsonDistanceHomography(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
+    return sampsonDistanceHomographySingle(H, x1, x2) + sampsonDistanceHomographySingle(H_inv, x2, x1);
 }
 
-double sampsonDistanceHomography(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+//error line homography
+
+double sampsonDistanceHomographySingle(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
     Mat A = H.t()*crossProductMatrix(line2Start)*line2End;
-    Mat start1 = line1Start.t()*A;
-    Mat end1 = line1End.t()*A;
-    //homogMat(A);
-    //std::cout << A << std::endl;
+    Mat start = line1Start.t()*A;
+    Mat end = line1End.t()*A;
     double Ax = std::pow(A.at<double>(0,0), 2);
     double Ay = std::pow(A.at<double>(1,0), 2);
-    Mat result = (start1*start1 + end1*end1)/(Ax + Ay);
+    Mat result = (start*start + end*end)/(Ax + Ay);
+
     return result.at<double>(0,0);
+}
+
+double sampsonDistanceHomography(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
+    return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End) + sampsonDistanceHomographySingle(H_inv, line2Start, line2End, line1Start, line1End);
 }

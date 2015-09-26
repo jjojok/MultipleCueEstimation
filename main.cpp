@@ -98,9 +98,11 @@ int main(int argc, char** argv )
 
         time_t startTime = time(0);
         mce->compute();
-        if(argc == 6) {
 
-            std::cout << "first image, second image, combined features, true combined features using ground truth, refined F combined features inlier, refined F sampson dist from combined matches, refined F sampson dist from true features selected using the ground truth,";
+
+        //Output results
+        if(argc == 6) {
+            std::cout << "first image, second image, combined features, true combined features using ground truth, sampson distance from ground truth and true features, refined F combined features inlier, refined F sampson dist from combined matches, refined F sampson dist from true features selected using the ground truth,";
 
             for(int i = 0; i < mce->getEstimations().size(); i++){
                 FEstimationMethod estimation = mce->getEstimations().at(i);
@@ -112,7 +114,7 @@ int main(int argc, char** argv )
 
             std::cout << "Time (sec)" << std::endl;
 
-            std::cout << argv[1] << "," << argv[2] << "," << mce->combinedFeatures << "," << mce->combinedFeaturesCorrect << "," << mce->refinedFInlierCombined << "," << mce->refinedFSampsonDistCombined << "," << mce->refinedFSampsonDistCorrect << ",";
+            std::cout << argv[1] << "," << argv[2] << "," << mce->combinedFeatures << "," << mce->combinedFeaturesCorrect << "," << mce->groundTruthSampsonDistCombined << "," << mce->refinedFInlierCombined << "," << mce->refinedFSampsonDistCombined << "," << mce->refinedFSampsonDistCorrect << ",";
             for(int i = 0; i < mce->getEstimations().size(); i++){
                 FEstimationMethod estimation = mce->getEstimations().at(i);
                 if(!estimation.isSuccessful()) std::cout << ",,,,,,,,,";
@@ -127,5 +129,5 @@ int main(int argc, char** argv )
             std::cout << time(0) - startTime << std::endl;
         }
     }
-     SevenpointLevenbergMarquardtExit();
+    SevenpointLevenbergMarquardtExit();        //prevent octave from crashing
 }

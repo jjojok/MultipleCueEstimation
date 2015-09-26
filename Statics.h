@@ -7,7 +7,7 @@
 //Show debug messages
 #define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG false
+#define VISUAL_DEBUG true
 
 //Program parameters for selecting computation mathods
 #define F_Reined 0
@@ -17,11 +17,13 @@
 
 //General:
 //Threshold to determine "inlier", compared with square root of sampson distance, e.g. by RANSAC
-#define INLIER_THRESHOLD 2.0
+#define INLIER_THRESHOLD 3.0
 //Initial threshold to determine "inlier" by LM in refinement step
 #define INLIER_LM_THRESHOLD 100.0
-//Threshold to determine "correct" points by checking the sampson distance using the ground truth
-//#define GROUND_TRUTH_THRESHOLD 0.8
+//Weights for fundamental matrix quality function
+#define QI 1.0
+#define QE 1.0
+#define QS 0.1
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
 //Max number of numerical refinement steps after a first homographie was found
@@ -30,14 +32,16 @@
 #define MAX_ERROR_CHANGE 5.0
 //max features changing for error to be considered as stable
 #define MAX_FEATURE_CHANGE 3
-//How close two values have to be to be considered equal
-#define MARGIN 0.15
+//How close two eigenvalues have to be to be considered equal
+#define MARGIN 0.6
 //Number of attempts to compute a second Homography if it is equal to the forst one
-#define MAX_H2_ESTIMATIONS 40
+#define MAX_H2_ESTIMATIONS 80
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
+//Ransac confidence
+#define RANSAC_CONFIDENCE 0.999
 
 //Points:
 //Sift features
@@ -46,11 +50,9 @@
 #define SIFT_MIN_DIST 0.06
 //Factor of min Sift distance from all generated points where correspondence is still acceptable
 #define SIFT_MIN_DIST_FACTOR 3.0
-//Ransac confidence
-#define RANSAC_CONFIDENCE 0.9995
 //Number of point correspondencies per homography estimation
 #define NUM_POINT_CORRESP 4//6
-//Max distance from point to line for 3 points to be colinear
+//distance from point to line for 3 points below they are colinear
 #define MAX_COLINEAR_DIST 4.0
 
 //Number of segements for image pyramid
@@ -58,11 +60,9 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.003;
+#define MIN_LENGTH_FACTOR 0.002;       //0.003
 //Max angle between matched lines
-#define MAX_LINE_ANGLE M_PI/4.0
-//Ransac confidence
-#define CONFIDENCE 0.99995
+#define MAX_LINE_ANGLE M_PI/2.0       //M_PI/4.0
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define HOMOGRAPHY_OUTLIERS 0.8
 //Number of correspondencies per homography estimation
@@ -71,10 +71,8 @@
 #define MAX_HEMMING_DIST 15
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
-//Factor for selecting wrong matches in refinement step after first homography estimation
-#define OUTLIER_THESHOLD_FACTOR 2.0
-//Max Angle difference for lines being parallel
-#define MAX_ANGLE_DIFF M_PI/20.0        //M_PI/20.0
+//Angle difference blow lines being parallel
+#define MAX_ANGLE_DIFF M_PI/8.0        //M_PI/20.0
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

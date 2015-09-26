@@ -13,6 +13,23 @@ FEstimatorPoints::FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
 
     normT1 = Mat::eye(3,3,CV_64FC1);
     normT2 = Mat::eye(3,3,CV_64FC1);
+
+    quality = 0;
+
+    featureCount = -1;
+    featureCountComplete = -1;
+    inlierCountOwn = -1;
+    inlierCountCombined = -1;
+
+    featureCountCorrect = -1;
+    inlierCountOwnCorrect = -1;
+    inlierCountCombinedCorrect = -1;
+
+    sampsonErrOwn = -1;
+    sampsonErrCombined = -1;
+    sampsonErrCorrect = -1;
+
+    sampsonErrStdDevCombined = -1;
 }
 
 int FEstimatorPoints::extractMatches() {

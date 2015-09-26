@@ -52,6 +52,8 @@ public:
 
     double sampsonErrStdDevCombined;
 
+    double quality;
+
 protected:
     virtual void init();
     virtual Mat normalize(Mat T, Mat p);

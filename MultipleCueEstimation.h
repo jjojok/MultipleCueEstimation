@@ -42,6 +42,8 @@ public:
 
     double refinedFSampsonErrStdDevCombined;
 
+    double groundTruthSampsonDistCombined;
+
     Mat compute();
     std::vector<FEstimationMethod> getEstimations();
 
@@ -56,11 +58,12 @@ private:
     FEstimationMethod* calcFfromCurves();
 
     Mat refineF(std::vector<FEstimationMethod> &estimations);
-    void computeSelectedMatches(std::vector<Mat> x1Current, std::vector<Mat> x2Current, std::vector<Mat> &x1Selected, std::vector<Mat> &x2Selected, std::vector<Mat> &x1NotSelected, std::vector<Mat> &x2NotSelected, std::vector<fundamentalMatrix*> &fundMats, double squaredErrorThr);
 
     void combinePointCorrespondecies();
     void combineAllPointCorrespondecies();
-//    void levenbergMarquardt(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);
+    //double qualitiy(double sampsonErrCombined, int inlierCountCombined, int combinedMatches, double sampsonErrStdDevCombined);
+    double qualitiy(double sampsonErrCombined, double smallestSampsonErr, int inlierCountCombined, int largestInlier, double sampsonErrStdDevCombined, double smallestSampsonErrStdDev);
+    //    void levenbergMarquardt(Mat &Flm, std::vector<Mat> x1, std::vector<Mat> x2, std::vector<Mat> &goodCombindX1, std::vector<Mat> &goodCombindX2, double &errorThr, int minFeatureChange, double minErrorChange, double lmErrorThr, double errorDecay, int &inliers, int minStableSolutions, int maxIterations, double maxError, double &stdDeviation, double &error);
 
     bool SPLM(Mat &F, std::vector<Mat> x1, std::vector<Mat> x2);
 
