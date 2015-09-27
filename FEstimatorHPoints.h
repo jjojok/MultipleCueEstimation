@@ -17,7 +17,7 @@ private:
     pointSubsetStruct calcRANSAC(std::vector<pointSubsetStruct> &subsets, double threshold, std::vector<pointCorrespStruct> pointCorresp);
 //    pointSubsetStruct calcLMedS(std::vector<pointSubsetStruct> &subsets, std::vector<pointCorrespStruct> pointCorresp);
 //    double calcMedS(pointSubsetStruct &subset, std::vector<pointCorrespStruct> pointCorresp);
-    bool findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold);
+    bool findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, std::vector<pointCorrespStruct> &ransacInlier, int method, double confidence, double outliers, double threshold);
     double errorFunctionHPointsSquared_(Mat H, pointCorrespStruct pointCorresp);
     int filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp);
     void computeHomography(pointSubsetStruct &subset);
@@ -32,6 +32,11 @@ private:
 
     std::vector<pointCorrespStruct> goodMatchedPoints;  //Vector of (good) corresponing points
     std::vector<pointCorrespStruct> allMatchedPoints;  //Vector of (all) corresponing points
+
+    std::vector<pointCorrespStruct> goodMatchedPointsConst;  //Vector of (good) corresponing points, does not change
+    std::vector<pointCorrespStruct> allMatchedPointsConst;  //Vector of (all) corresponing points, does not change
+
+    std::vector<pointCorrespStruct> inlierUsed;
 
 };
 

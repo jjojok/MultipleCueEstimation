@@ -37,21 +37,43 @@ public:
     std::vector<Mat> getCompleteFeaturesImg2();
     int getType();
 
-    int featureCount;
+    void setGroundTruth(Mat Fgt);
+
+    //Features which are thought to be "good" after extraction, used for ransac
+    int featureCountGood;
+    //Complete set of extracted features
     int featureCountComplete;
-    int inlierCountOwn;
+    //Solution inlier of "good" extracted features
+    int inlierCountOwnGood;
+    //Solution inlier of complete set of extracted features
+    int inlierCountOwnComplete;
+    //Solution inlier of combined feature sets from all estimations
     int inlierCountCombined;
 
-    int featureCountCorrect;
-    int inlierCountOwnCorrect;
-    int inlierCountCombinedCorrect;
+    //Amount of features which are thought to be "good" after extraction which are described by the ground truth (error < INLIER_THRESHOLD)
+    int trueFeatureCountGood;
+    //Amount of features extracted features which are described by the ground truth (error < INLIER_THRESHOLD)
+    int trueFeatureCountComplete;
+    //Solution inlier of "good" extracted features which match the ground truth (error < INLIER_THRESHOLD)
+    int trueInlierCountOwnGood;
+    //Solution inlier of complete set of extracted features which are described by the ground truth (error < INLIER_THRESHOLD)
+    int trueInlierCountOwnComplete;
+    //Solution inlier of combined feature sets from all estimations which are described by the ground truth (error < INLIER_THRESHOLD)
+    int trueInlierCountCombined;
 
+    //Mean sampson distance in both images from "good" features
     double sampsonErrOwn;
+    //Mean sampson distance in both images from complete set of extraced features
+    double sampsonErrComplete;
+    //Mean sampson distance in both images from combined feature sets from all estimations
     double sampsonErrCombined;
-    double sampsonErrCorrect;
+    //Mean sampson distance in both images from combined feature sets which are described by the ground truth (error < INLIER_THRESHOLD)
+    double trueSampsonErr;
 
+    //Standarddeviation of mean sampson distance in both images from combined feature sets from all estimations
     double sampsonErrStdDevCombined;
 
+    //Quality measure for best estimation selection
     double quality;
 
 protected:
@@ -60,6 +82,9 @@ protected:
     virtual Mat normalize(Mat T, double x, double y, double z = 1);
     virtual Mat denormalize(Mat M, Mat T1, Mat T2);
 
+
+    double compareWithGroundTruth;
+    Mat Fgt;
 	Mat F;
     Mat normT1, normT2;
     Mat image_1_color, image_2_color, image_1, image_2;

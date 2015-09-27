@@ -28,9 +28,9 @@ private:
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies, std::vector<lineCorrespStruct> &goodCorrespondencies);
     Mat* normalizeLines(std::vector<lineCorrespStruct> &correspondencies);
     int filterUsedLineMatches(std::vector<lineCorrespStruct> &matches, std::vector<lineCorrespStruct> usedMatches);
-    bool findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold);
+    bool findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, std::vector<lineCorrespStruct> &ransacInlier, int method, double confidence, double outliers, double threshold);
     bool estimateHomography(lineSubsetStruct &result, std::vector<lineCorrespStruct> lineCorrespondencies, int method, int sets, double ransacThr);
-    void addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
+    void computePointCorrespondencies(Mat H, std::vector<lineCorrespStruct> lineMatches, std::vector<Mat> &pointMatchesX1, std::vector<Mat> &pointMatchesX2);
     void addAllPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches);
     //double errorFunctionHLines_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
     //double errorFunctionHLinesSqared_(Mat H_invT, Mat H_T, Mat l1s, Mat l1e, Mat l2s, Mat l2e);
@@ -40,6 +40,10 @@ private:
 
     std::vector<lineCorrespStruct> goodMatchedLines;  //Vector of (good) corresponing line segments (start & endpoints)
     std::vector<lineCorrespStruct> allMatchedLines;  //Vector of (all) corresponing line segments (start & endpoints)
+
+
+    std::vector<lineCorrespStruct> goodMatchedLinesConst;  //Vector of (good) corresponing line segments (start & endpoints), does not change
+    std::vector<lineCorrespStruct> allMatchedLinesConst;  //Vector of (all) corresponing line segments (start & endpoints), does not change
 };
 
 #endif // FESTIMATORHLINES_H

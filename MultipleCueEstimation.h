@@ -36,6 +36,7 @@ public:
     int combinedFeatures;
     int combinedFeaturesCorrect;
     int refinedFInlierCombined;
+    int refinedFTrueInlierCombined;
 
     double refinedFSampsonDistCombined;
     double refinedFSampsonDistCorrect;

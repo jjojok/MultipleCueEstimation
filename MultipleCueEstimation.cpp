@@ -21,6 +21,7 @@ MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat
     combinedFeatures = -1;
     combinedFeaturesCorrect = -1;
     refinedFInlierCombined = -1;
+    refinedFTrueInlierCombined = -1;
 
     refinedFSampsonDistCombined = -1;
     refinedFSampsonDistCorrect = -1;
@@ -63,15 +64,15 @@ Mat MultipleCueEstimation::compute() {
             matToPoint(x1goodPointsMat, x1goodPoints);
             matToPoint(x2goodPointsMat, x2goodPoints);
 
-            visualizePointMatches(image_1_color, image_2_color, x1goodPointsMat, x2goodPointsMat, 2, true, "True Combined Matches");
+            if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsMat, x2goodPointsMat, 2, true, "True Combined Matches");
         }
 
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
             if(it->isSuccessful()) {
                 if(LOG_DEBUG) std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
-                if (LOG_DEBUG) std::cout << "Mean squared error: " << it->sampsonErrCombined << " Std. dev: " << it->sampsonErrStdDevCombined << ", inlier: " << it->inlierCountCombined << std::endl;
+                if (LOG_DEBUG) std::cout << "Mean squared error: " << it->sampsonErrCombined << " Std. dev: " << it->sampsonErrStdDevCombined << ", inlier: " << it->inlierCountCombined  << ", true inlier: " << it->trueInlierCountCombined << std::endl;
                 if (compareWithGroundTruth) {
-                    meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1Combined, x2Combined, it->sampsonErrCorrect, it->inlierCountCombinedCorrect);
+                    it->trueSampsonErr = meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1Combined, x2Combined);
                     if(VISUAL_DEBUG) drawEpipolarLines(x1goodPoints, x2goodPoints, it->getF(), image_1, image_2, it->name);
                 } else {
                     if(VISUAL_DEBUG) {
@@ -82,13 +83,12 @@ Mat MultipleCueEstimation::compute() {
             }
         }
 
-        int cnt;
         if(F.data) {
             if(LOG_DEBUG) std::cout << "Refined F = " << std::endl << F << std::endl;
             errorFunctionCombinedMeanSquared(x1Combined, x2Combined, F, refinedFSampsonDistCombined, refinedFInlierCombined, 3.0, refinedFSampsonErrStdDevCombined);
-            if (LOG_DEBUG) std::cout << "Mean squared error: " << refinedFSampsonDistCombined << " Std. dev: " << refinedFSampsonErrStdDevCombined << ", inlier: " << refinedFInlierCombined << std::endl;
+            if (LOG_DEBUG) std::cout << "Mean squared error: " << refinedFSampsonDistCombined << " Std. dev: " << refinedFSampsonErrStdDevCombined << ", inlier: " << refinedFInlierCombined << ", true inlier: " << refinedFInlierCombined << std::endl;
             if (compareWithGroundTruth) {
-                meanSampsonFDistanceGoodMatches(Fgt, F, x1Combined, x2Combined, refinedFSampsonDistCorrect, combinedFeaturesCorrect);
+                refinedFSampsonDistCorrect = meanSampsonFDistanceGoodMatches(Fgt, F, x1Combined, x2Combined);
                 if(VISUAL_DEBUG) drawEpipolarLines(x1goodPoints, x2goodPoints, F, image_1, image_2, "Refined F");
             } else {
                 if(VISUAL_DEBUG) {
@@ -102,15 +102,14 @@ Mat MultipleCueEstimation::compute() {
             if (LOG_DEBUG) std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
             errorFunctionCombinedMeanSquared(x1Combined, x2Combined, Fgt, error, inlier, INLIER_THRESHOLD, stdDev);
             if (LOG_DEBUG) std::cout << "Mean squared error: " << error << " Std. dev: " << stdDev << ", inlier: " << inlier << std::endl;
-            meanSampsonFDistanceGoodMatches(Fgt, Fgt, x1Combined, x2Combined, groundTruthSampsonDistCombined, cnt);
+            meanSampsonFDistanceGoodMatches(Fgt, Fgt, x1Combined, x2Combined, groundTruthSampsonDistCombined, combinedFeaturesCorrect);
             if(VISUAL_DEBUG) {
                 //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
                 drawEpipolarLines(x1goodPoints,x2goodPoints, Fgt, image_1, image_2, "F_groundtruth");
             }
         }
 
-        if(LOG_DEBUG) std::cout << "done." << std::endl;
-        if(VISUAL_DEBUG) waitKey(0);
+        if(LOG_DEBUG) std::cout << "done." << std::endl << "#######################################################" << std::endl << std::endl;
     }
     return F;
 }
@@ -151,6 +150,7 @@ int MultipleCueEstimation::checkData() {
 
 FEstimationMethod* MultipleCueEstimation::calcFfromPoints() {
     FEstimatorPoints* estimatorPoints = new FEstimatorPoints(image_1, image_2, image_1_color, image_2_color, "F_points");
+    if(compareWithGroundTruth) estimatorPoints->setGroundTruth(Fgt);
     estimatorPoints->compute();
     x1 = estimatorPoints->getUsedX1();
     x2 = estimatorPoints->getUsedX2();
@@ -159,12 +159,14 @@ FEstimationMethod* MultipleCueEstimation::calcFfromPoints() {
 
 FEstimationMethod* MultipleCueEstimation::calcFfromHLines() {     // From Paper: "Robust line matching in image pairs of scenes with dominant planes", Sagúes C., Guerrero J.J.
     FEstimatorHLines* estomatorLines = new FEstimatorHLines(image_1, image_2, image_1_color, image_2_color, "F_Hlines");
+    if(compareWithGroundTruth) estomatorLines->setGroundTruth(Fgt);
     estomatorLines->compute();
     return estomatorLines;
 }
 
 FEstimationMethod* MultipleCueEstimation::calcFfromHPoints() {    // From: two Homographies (one in each image) computed from points in general position
     FEstimatorHPoints* estomatorHPoints = new FEstimatorHPoints(image_1, image_2, image_1_color, image_2_color, "F_HPoints");
+    if(compareWithGroundTruth) estomatorHPoints->setGroundTruth(Fgt);
     estomatorHPoints->compute();
     return estomatorHPoints;
 }
@@ -202,18 +204,19 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     int largestInlier = 0;
     int smallestInlier = std::numeric_limits<int>::max();
 
+    std::vector<Mat> estimationInlierX1, estimationInlierX2;
+
     for(std::vector<FEstimationMethod>::iterator estimationIter = estimations.begin(); estimationIter != estimations.end(); ++estimationIter) {
         if(estimationIter->isSuccessful()) {
             if (LOG_DEBUG) std::cout << estimationIter->name << std::endl;
             errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF(), estimationIter->sampsonErrCombined, estimationIter->inlierCountCombined, squaredErrorThr, estimationIter->sampsonErrStdDevCombined);
             //if (LOG_DEBUG) std::cout << "Computing mean error of combined matches for " << estimationIter->name << ": " << estimationIter->meanCSTError << " Std. dev: " << estimationIter->meanCSTErrorStandardDeviation << ", inliers: " << estimationIter->meanCSTErrorInliers << std::endl;
-            meanSampsonFDistanceGoodMatches(Fgt, estimationIter->getF(), x1Combined, x2Combined, estimationIter->sampsonErrCorrect, combinedFeaturesCorrect);
+            meanSampsonFDistanceGoodMatches(Fgt, estimationIter->getF(), x1Combined, x2Combined, estimationIter->trueSampsonErr, combinedFeaturesCorrect);
 
-            estimationIter->featureCountCorrect = goodMatchesCount(estimationIter->getF(), estimationIter->getFeaturesImg1(), estimationIter->getFeaturesImg2(), INLIER_THRESHOLD);
-            if(LOG_DEBUG) std::cout << "-- Inlier from good features: " << estimationIter->featureCountCorrect << "/" << estimationIter->getFeaturesImg1().size() << std::endl;
-            estimationIter->inlierCountOwnCorrect = goodMatchesCount(estimationIter->getF(), estimationIter->getCompleteFeaturesImg1(), estimationIter->getCompleteFeaturesImg2(), INLIER_THRESHOLD);
-            if(LOG_DEBUG) std::cout << "-- Inlier from all features: " << estimationIter->inlierCountOwnCorrect << "/" << estimationIter->getCompleteFeaturesImg1().size() << std::endl;
-
+            if(compareWithGroundTruth) {
+                findGoodCombinedMatches(x1Combined, x2Combined, estimationInlierX1, estimationInlierX2, estimationIter->getF(), INLIER_THRESHOLD);
+                estimationIter->trueInlierCountCombined = goodMatchesCount(Fgt, estimationInlierX1, estimationInlierX2, INLIER_THRESHOLD);
+            }
             //if(bestMethod->sampsonErrCombined > estimationIter->sampsonErrCombined) {
 
             numValues += estimationIter->getFeaturesImg1().size();
@@ -234,7 +237,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             estimationIter->quality = qualitiy(estimationIter->sampsonErrCombined, smallestSampsonErr, estimationIter->inlierCountCombined, largestInlier, estimationIter->sampsonErrStdDevCombined, smallestSampsonErrStdDev);
 
             //estimationIter->quality = qualitiy(estimationIter->sampsonErrCombined, estimationIter->inlierCountCombined, x1Combined.size(), estimationIter->sampsonErrStdDevCombined);
-            if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for " << estimationIter->name << ": " << estimationIter->sampsonErrCombined << " Std. dev: " << estimationIter->sampsonErrStdDevCombined << ", inliers: " << estimationIter->inlierCountCombined << ", quality: " << estimationIter->quality << std::endl;
+            if (LOG_DEBUG) std::cout << "Computing mean squared error of combined matches for " << estimationIter->name << ": " << estimationIter->sampsonErrCombined << " Std. dev: " << estimationIter->sampsonErrStdDevCombined << ", inlier: " << estimationIter->inlierCountCombined << " thereof true inlier: " << estimationIter->trueInlierCountCombined << ", quality: " << estimationIter->quality << std::endl;
             if (LOG_DEBUG) std::cout << "Ground truth error: " << meanSampsonFDistanceGoodMatches(Fgt, estimationIter->getF(), x1Combined, x2Combined) << std::endl;
             if(bestMethod->quality < estimationIter->quality) {
                 bestMethod = estimationIter;
@@ -265,7 +268,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     //double quality = 0;
 
-    return FSPLM;
+    //return FSPLM;
     do
     {
         SPLM(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
@@ -282,6 +285,8 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         //errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF(), errorSPLM, estimationIter->inlierCountCombined, squaredErrorThr, estimationIter->sampsonErrStdDevCombined);
         //quality = estimationIter->quality = qualitiy(errorSPLM, smallestSampsonErr, estimationIter->inlierCountCombined, largestInlier, estimationIter->sampsonErrStdDevCombined, smallestSampsonErrStdDev);
     }while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.1 && errorSPLM > 0.5);
+
+    if(compareWithGroundTruth) refinedFTrueInlierCombined = goodMatchesCount(Fgt, x1goodPointsSPLM, x2goodPointsSPLM, INLIER_THRESHOLD);
 
     //if((lastErrorSPLM - errorSPLM)/errorSPLM > 0.02) SPLM(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
 

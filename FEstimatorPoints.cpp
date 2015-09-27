@@ -14,22 +14,28 @@ FEstimatorPoints::FEstimatorPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
     normT1 = Mat::eye(3,3,CV_64FC1);
     normT2 = Mat::eye(3,3,CV_64FC1);
 
-    quality = 0;
+    compareWithGroundTruth = false;
 
-    featureCount = -1;
+    featureCountGood = -1;
     featureCountComplete = -1;
-    inlierCountOwn = -1;
+    inlierCountOwnGood = -1;
+    inlierCountOwnComplete = -1;
     inlierCountCombined = -1;
 
-    featureCountCorrect = -1;
-    inlierCountOwnCorrect = -1;
-    inlierCountCombinedCorrect = -1;
+    trueFeatureCountGood = -1;
+    trueFeatureCountComplete = -1;
+    trueInlierCountOwnGood = -1;
+    trueInlierCountOwnComplete = -1;
+    trueInlierCountCombined = -1;
 
     sampsonErrOwn = -1;
+    sampsonErrComplete = -1;
     sampsonErrCombined = -1;
-    sampsonErrCorrect = -1;
+    trueSampsonErr = -1;
 
     sampsonErrStdDevCombined = -1;
+
+    quality = -1;
 }
 
 int FEstimatorPoints::extractMatches() {
@@ -46,22 +52,26 @@ int FEstimatorPoints::extractMatches() {
 
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << x1.size() << std::endl;
 
-    visualizePointMatches(image_1_color, image_2_color, x1, x2, 3, true, name+": good point matches");
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, compfeaturesImg1, compfeaturesImg2, 4, false, "All point matches");
+    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1, x2, 3, true, "Good point matches");
 }
 
 bool FEstimatorPoints::compute() {
     //std::vector<int> mask;
     Mat mask;
     extractMatches();
+    std::vector<Mat> goodX1, goodX2, goodInlierX1, goodInlierX2;;
     F = findFundamentalMat(x1, x2, CV_FM_RANSAC, INLIER_THRESHOLD, RANSAC_CONFIDENCE, mask);
     //F.convertTo(F, CV_64FC1);
     for(int i = 0; i < x1.size(); i++) {
-        if(mask.at<int>(i,0)) {
+        if(sqrt(sampsonDistanceFundamentalMat(F, matVector(x1.at(i)), matVector(x2.at(i)))) <= INLIER_THRESHOLD) {
             x1_used.push_back(x1.at(i));
             x2_used.push_back(x2.at(i));
-//            featuresImg1.push_back(matVector(x1.at(i)));
-//            featuresImg2.push_back(matVector(x2.at(i)));
+            goodInlierX1.push_back(matVector(x1.at(i)));
+            goodInlierX2.push_back(matVector(x2.at(i)));
         }
+        goodX1.push_back(matVector(x1.at(i)));
+        goodX2.push_back(matVector(x2.at(i)));
     }
     if(LOG_DEBUG) std::cout << "-- Used matches (RANSAC): " << x1_used.size() << std::endl;
 
@@ -79,10 +89,26 @@ bool FEstimatorPoints::compute() {
 
     if(featuresImg1.size() >= 7) successful = true;
 
-    sampsonErrOwn = sampsonDistanceFundamentalMat(F, featuresImg1, featuresImg2);
-    featureCount = x1.size();
-    inlierCountOwn = featuresImg1.size();
+    featureCountGood = x1.size();
     featureCountComplete = compfeaturesImg1.size();
+    inlierCountOwnGood = goodInlierX1.size();
+    inlierCountOwnComplete = featuresImg1.size();
+    //inlierCountCombined = -1;
+
+    if(compareWithGroundTruth) {
+        trueFeatureCountGood = goodMatchesCount(Fgt, goodX1, goodX2, INLIER_THRESHOLD);
+        trueFeatureCountComplete = goodMatchesCount(Fgt, compfeaturesImg1, compfeaturesImg2, INLIER_THRESHOLD);
+        trueInlierCountOwnGood = goodMatchesCount(Fgt, goodInlierX1, goodInlierX2, INLIER_THRESHOLD);
+        trueInlierCountOwnComplete = goodMatchesCount(Fgt, featuresImg1, featuresImg2, INLIER_THRESHOLD);
+        //trueInlierCountCombined = -1;
+    }
+
+    sampsonErrOwn = sampsonDistanceFundamentalMat(F, featuresImg1, featuresImg2);
+    sampsonErrComplete = sampsonDistanceFundamentalMat(F, compfeaturesImg1, compfeaturesImg2);
+//    sampsonErrCombined = -1;
+//    trueSampsonErr = -1;
+
+//    sampsonErrStdDevCombined = -1;
 
     if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 3, true, name+": Used point matches");
 

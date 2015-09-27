@@ -20,6 +20,11 @@ Mat FEstimationMethod::getF() {
     return F;
 }
 
+void FEstimationMethod::setGroundTruth(Mat Fgt) {
+    this->Fgt = Fgt;
+    compareWithGroundTruth = true;
+}
+
 void FEstimationMethod::init() {
 
 }

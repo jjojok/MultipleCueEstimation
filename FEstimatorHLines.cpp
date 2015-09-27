@@ -11,22 +11,29 @@ FEstimatorHLines::FEstimatorHLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, s
     if(LOG_DEBUG) std::cout << "Estimating: " << name << std::endl;
     successful = false;
     computationType = F_FROM_LINES_VIA_H;
-    quality = 0;
 
-    featureCount = -1;
+    compareWithGroundTruth = false;
+
+    featureCountGood = -1;
     featureCountComplete = -1;
-    inlierCountOwn = -1;
+    inlierCountOwnGood = -1;
+    inlierCountOwnComplete = -1;
     inlierCountCombined = -1;
 
-    featureCountCorrect = -1;
-    inlierCountOwnCorrect = -1;
-    inlierCountCombinedCorrect = -1;
+    trueFeatureCountGood = -1;
+    trueFeatureCountComplete = -1;
+    trueInlierCountOwnGood = -1;
+    trueInlierCountOwnComplete = -1;
+    trueInlierCountCombined = -1;
 
     sampsonErrOwn = -1;
+    sampsonErrComplete = -1;
     sampsonErrCombined = -1;
-    sampsonErrCorrect = -1;
+    trueSampsonErr = -1;
 
     sampsonErrStdDevCombined = -1;
+
+    quality = -1;
 }
 
 FEstimatorHLines::~FEstimatorHLines() {
@@ -36,11 +43,19 @@ FEstimatorHLines::~FEstimatorHLines() {
 int FEstimatorHLines::extractMatches() {
     extractLineMatches(image_1, image_2, allMatchedLines);
 
-    Mat* T = normalizeLines(allMatchedLines, goodMatchedLines);
-    normT1 = T[0].clone();
-    normT2 = T[1].clone();
+    //Mat* T = normalizeLines(allMatchedLines, goodMatchedLines);
+    //normT1 = T[0].clone();
+    //normT2 = T[1].clone();
 
-    //if(VISUAL_DEBUG) visualizeMatches(image_1, image_2, allMatchedLines, 2, true, "All line matches");
+    for(std::vector<lineCorrespStruct>::const_iterator it = allMatchedLines.begin() ; it != allMatchedLines.end(); ++it) {
+        if(it->isGoodMatch) {
+            goodMatchedLines.push_back(getlineCorrespStruct(*it));
+            goodMatchedLinesConst.push_back(getlineCorrespStruct(*it));
+        }
+        allMatchedLinesConst.push_back(getlineCorrespStruct(*it));
+    }
+
+    if(VISUAL_DEBUG) visualizeLineMatches(image_1, image_2, allMatchedLines, 3, false, "All line matches");
     if(VISUAL_DEBUG) visualizeLineMatches(image_1, image_2, goodMatchedLines, 2, true, "Good line matches");
 }
 
@@ -78,7 +93,10 @@ bool FEstimatorHLines::compute() {
     lineSubsetStruct firstEstimation;
     lineSubsetStruct secondEstimation;
 
-    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, RANSAC, RANSAC_CONFIDENCE, HOMOGRAPHY_OUTLIERS, INLIER_THRESHOLD)) {
+
+    std::vector<lineCorrespStruct> ransacInleirH1, ransacInleirH2;
+
+    if(!findLineHomography(firstEstimation, goodMatchedLines, allMatchedLines, ransacInleirH1, RANSAC, RANSAC_CONFIDENCE, HOMOGRAPHY_OUTLIERS, INLIER_THRESHOLD)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -94,7 +112,7 @@ bool FEstimatorHLines::compute() {
     int removed = filterUsedLineMatches(goodMatchedLines, firstEstimation.lineCorrespondencies);
 
     if(VISUAL_DEBUG) {
-        visualizeLineMatches(image_1_color, image_2_color, goodMatchedLines, 8, true, name+": Remaining matches for 2ed estimation");
+        //visualizeLineMatches(image_1_color, image_2_color, goodMatchedLines, 8, true, name+": Remaining matches for 2ed estimation");
     }
 
     double outliers = computeRelativeOutliers(HOMOGRAPHY_OUTLIERS, goodMatchedLines.size(), goodMatchedLines.size() + removed);
@@ -108,7 +126,7 @@ bool FEstimatorHLines::compute() {
 
         if(LOG_DEBUG) std::cout << "-- Second estimation " << estCnt << "/" << MAX_H2_ESTIMATIONS << "..." << std::endl;
 
-        if(!findLineHomography(secondEstimation, goodMatchedLines, allMatchedLines, RANSAC, RANSAC_CONFIDENCE, outliers, INLIER_THRESHOLD)) {
+        if(!findLineHomography(secondEstimation, goodMatchedLines, allMatchedLines, ransacInleirH2, RANSAC, RANSAC_CONFIDENCE, outliers, INLIER_THRESHOLD)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -131,8 +149,16 @@ bool FEstimatorHLines::compute() {
         return false;
     }
 
-    addPointCorrespondencies(firstEstimation.Hs, firstEstimation.lineCorrespondencies);
-    addPointCorrespondencies(secondEstimation.Hs, secondEstimation.lineCorrespondencies);
+    std::vector<Mat> ransacInleirX1, ransacInleirX2;
+
+    computePointCorrespondencies(firstEstimation.Hs, ransacInleirH1, ransacInleirX1, ransacInleirX2);
+    computePointCorrespondencies(secondEstimation.Hs, ransacInleirH2, ransacInleirX1, ransacInleirX2);
+
+    computePointCorrespondencies(firstEstimation.Hs, firstEstimation.lineCorrespondencies, featuresImg1, featuresImg2);
+    computePointCorrespondencies(secondEstimation.Hs, secondEstimation.lineCorrespondencies, featuresImg1, featuresImg2);
+
+    compfeaturesImg1 = featuresImg1;
+    compfeaturesImg2 = featuresImg2;
 
     if(VISUAL_DEBUG) {
         visualizeHomography(secondEstimation.Hs, image_1, image_2, name+" H2");
@@ -143,13 +169,50 @@ bool FEstimatorHLines::compute() {
     }
 
     F = crossProductMatrix(e2)*firstEstimation.Hs;
-
     enforceRankTwoConstraint(F);
 
+    featureCountGood = goodMatchedLinesConst.size();
+    featureCountComplete = allMatchedLinesConst.size();
+    inlierCountOwnGood = ransacInleirX1.size()/2.0;   //number of lines = 2 x number of points
+    inlierCountOwnComplete = featuresImg1.size()/2.0;
+    //inlierCountCombined = -1;
+
+    if(compareWithGroundTruth) {
+//        trueFeatureCountGood = -1;
+//        trueFeatureCountComplete = -1;
+
+        trueInlierCountOwnGood = goodMatchesCount(Fgt, ransacInleirX1, ransacInleirX2, INLIER_THRESHOLD)/2.0;
+        trueInlierCountOwnComplete = goodMatchesCount(Fgt, featuresImg1, featuresImg2, INLIER_THRESHOLD)/2.0;
+
+        //trueInlierCountCombined = -1;
+
+    }
+
+
     sampsonErrOwn = sampsonDistanceFundamentalMat(F, featuresImg1, featuresImg2);
-    featureCount = goodMatchedLines.size();
-    inlierCountOwn = featuresImg1.size();
-    featureCountComplete = allMatchedLines.size();
+    //sampsonErrComplete = -1;
+    //sampsonErrCombined = -1;
+    //trueSampsonErr = -1;
+
+
+
+//    double sampsonH1 = 0, sampsonH2 = 0;
+
+//    Mat H_inv = firstEstimation.Hs.inv(DECOMP_SVD);
+//    for(int i = 0; i < firstEstimation.lineCorrespondencies.size(); i++) {
+//        lineCorrespStruct lc = firstEstimation.lineCorrespondencies.at(i);
+//        sampsonH1 += sampsonDistanceHomography(firstEstimation.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+//    }
+//    sampsonH1 /= firstEstimation.lineCorrespondencies.size();
+
+//    H_inv = secondEstimation.Hs.inv(DECOMP_SVD);
+//    for(int i = 0; i < secondEstimation.lineCorrespondencies.size(); i++) {
+//        lineCorrespStruct lc = secondEstimation.lineCorrespondencies.at(i);
+//        sampsonH2 += sampsonDistanceHomography(secondEstimation.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+//    }
+//    sampsonH2 /= secondEstimation.lineCorrespondencies.size();
+
+//    if(LOG_DEBUG) std::cout << "-- sampsonH1: " << sampsonH1 << ", sampsonH2: " << sampsonH2 << std::endl;
 
     successful = true;
 
@@ -160,7 +223,7 @@ bool FEstimatorHLines::compute() {
     return true;
 }
 
-bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold) {
+bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, std::vector<lineCorrespStruct> &ransacInlier, int method, double confidence, double outliers, double threshold) {
     double lastError = 0;
     int N;
     //std::vector<lineCorrespStruct> lastIterLineMatches;
@@ -188,12 +251,17 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         return false;
     }
 
-    outliers = computeRelativeOutliers(outliers, goodLineMatches.size(), goodLineMatches.size() + removedMatches);
+    //outliers = computeRelativeOutliers(outliers, goodLineMatches.size(), goodLineMatches.size() + removedMatches);
     N = computeNumberOfEstimations(confidence, outliers, NUM_LINE_CORRESP);
     if(!estimateHomography(bestSubset, goodLineMatches, method, N, errorThr)) {
         if(LOG_DEBUG) std::cout << "-- Only colinear points left! ";
         if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
         return false;
+    }
+
+    ransacInlier.clear();
+    for(std::vector<lineCorrespStruct>::const_iterator it = bestSubset.lineCorrespondencies.begin() ; it != bestSubset.lineCorrespondencies.end(); ++it) {
+        ransacInlier.push_back(getlineCorrespStruct(*it));
     }
 
 //    visualizeHomography(bestSubset.Hs, image_1, image_2, "estimateHomography result");
@@ -641,9 +709,9 @@ Mat* FEstimatorHLines::normalizeLines(std::vector<lineCorrespStruct> &correspond
     return normalizationMats;
 }
 
-void FEstimatorHLines::addPointCorrespondencies(Mat H, std::vector<lineCorrespStruct> goodLineMatches) {
+void FEstimatorHLines::computePointCorrespondencies(Mat H, std::vector<lineCorrespStruct> lineMatches, std::vector<Mat> &pointMatchesX1, std::vector<Mat> &pointMatchesX2) {
     Mat H_inv = H.inv(DECOMP_SVD);
-    for(std::vector<lineCorrespStruct>::const_iterator iter = goodLineMatches.begin(); iter != goodLineMatches.end(); ++iter) {
+    for(std::vector<lineCorrespStruct>::const_iterator iter = lineMatches.begin(); iter != lineMatches.end(); ++iter) {
         Mat l2sProjection = H*iter->line1Start;
         Mat l2eProjection = H*iter->line1End;
         Mat l1sProjection = H_inv*iter->line2Start;
@@ -654,25 +722,25 @@ void FEstimatorHLines::addPointCorrespondencies(Mat H, std::vector<lineCorrespSt
         homogMat(l2sProjection);
         homogMat(l2eProjection);
 
-        featuresImg1.push_back(iter->line1Start);
-        featuresImg1.push_back(iter->line1End);
-        featuresImg2.push_back(iter->line2Start);
-        featuresImg2.push_back(iter->line2End);
+        pointMatchesX1.push_back(iter->line1Start);
+        pointMatchesX1.push_back(iter->line1End);
+        pointMatchesX2.push_back(iter->line2Start);
+        pointMatchesX2.push_back(iter->line2End);
 
-        featuresImg1.push_back(l1sProjection);
-        featuresImg1.push_back(l1eProjection);
-        featuresImg2.push_back(l2sProjection);
-        featuresImg2.push_back(l2eProjection);
+        pointMatchesX1.push_back(l1sProjection);
+        pointMatchesX1.push_back(l1eProjection);
+        pointMatchesX2.push_back(l2sProjection);
+        pointMatchesX2.push_back(l2eProjection);
 
-        compfeaturesImg1.push_back(iter->line1Start);
-        compfeaturesImg1.push_back(iter->line1End);
-        compfeaturesImg2.push_back(iter->line2Start);
-        compfeaturesImg2.push_back(iter->line2End);
+//        compfeaturesImg1.push_back(iter->line1Start);
+//        compfeaturesImg1.push_back(iter->line1End);
+//        compfeaturesImg2.push_back(iter->line2Start);
+//        compfeaturesImg2.push_back(iter->line2End);
 
-        compfeaturesImg1.push_back(l1sProjection);
-        compfeaturesImg1.push_back(l1eProjection);
-        compfeaturesImg2.push_back(l2sProjection);
-        compfeaturesImg2.push_back(l2eProjection);
+//        compfeaturesImg1.push_back(l1sProjection);
+//        compfeaturesImg1.push_back(l1eProjection);
+//        compfeaturesImg2.push_back(l2sProjection);
+//        compfeaturesImg2.push_back(l2eProjection);
     }
 }
 

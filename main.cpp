@@ -2,6 +2,8 @@
 #include <opencv2/opencv.hpp>
 #include "MultipleCueEstimation.h"
 #include "Utility.h"
+#include "Statics.h"
+
 #include <iostream>
 #include <fstream>
 #include "clm/SevenpointLevenbergMarquardt.h"
@@ -102,32 +104,39 @@ int main(int argc, char** argv )
 
         //Output results
         if(argc == 6) {
-            std::cout << "first image, second image, combined features, true combined features using ground truth, sampson distance from ground truth and true features, refined F combined features inlier, refined F sampson dist from combined matches, refined F sampson dist from true features selected using the ground truth,";
+//            std::cout << "first image, second image, featureCountCombined, trueFeatureCountCombined, Fgt: trueSampsonErr, refined F: inlierCountCombined, refined F: trueInlierCountCombined, refined F: sampsonErrCombined, refined F: trueSampsonErr,";
 
+//            for(int i = 0; i < mce->getEstimations().size(); i++){
+//                FEstimationMethod estimation = mce->getEstimations().at(i);
+//                std::cout << estimation.name << ": featureCountGood, " << estimation.name << ": trueFeatureCountGood, "
+//                          << estimation.name << ": featureCountComplete, " << estimation.name << ": trueFeatureCountComplete, "
+//                          << estimation.name << ": inlierCountOwnGood, " << estimation.name << ": trueInlierCountOwnGood, "
+//                          << estimation.name << ": inlierCountOwnComplete, " << estimation.name << ": trueInlierCountOwnComplete, "
+//                          << estimation.name << ": inlierCountCombined, " << estimation.name << ": trueInlierCountCombined, "
+//                          << estimation.name << ": sampsonErrOwn, " << estimation.name << ": sampsonErrComplete, "
+//                          << estimation.name << ": sampsonErrCombined, " << estimation.name << ": sampsonErrStdDevCombined, " << estimation.name << ": trueSampsonErr, " << estimation.name << ": quality, ";
+//            }
+
+            //std::cout << "Time (min)" << std::endl;
+
+            std::cout << argv[1] << "," << argv[2] << "," << mce->combinedFeatures << "," << mce->combinedFeaturesCorrect << "," << mce->groundTruthSampsonDistCombined << "," << mce->refinedFInlierCombined << "," << mce->refinedFTrueInlierCombined << "," << mce->refinedFSampsonDistCombined << "," << mce->refinedFSampsonDistCorrect << ",";
             for(int i = 0; i < mce->getEstimations().size(); i++){
                 FEstimationMethod estimation = mce->getEstimations().at(i);
-                std::cout << estimation.name << ": own feature correps count, " << estimation.name << ": own true feature correps count, "
-                          << estimation.name << ": own feature inlier count, " << estimation.name << ": own true feature inlier count, "
-                          << estimation.name << ": combined feature inlier count, " << estimation.name << ": combined true feature inlier count, "
-                          << estimation.name << ": sampson dist own features, " << estimation.name << ": sampson dist combined features, " << estimation.name << ": sampson dist true features, ";
-            }
-
-            std::cout << "Time (sec)" << std::endl;
-
-            std::cout << argv[1] << "," << argv[2] << "," << mce->combinedFeatures << "," << mce->combinedFeaturesCorrect << "," << mce->groundTruthSampsonDistCombined << "," << mce->refinedFInlierCombined << "," << mce->refinedFSampsonDistCombined << "," << mce->refinedFSampsonDistCorrect << ",";
-            for(int i = 0; i < mce->getEstimations().size(); i++){
-                FEstimationMethod estimation = mce->getEstimations().at(i);
-                if(!estimation.isSuccessful()) std::cout << ",,,,,,,,,";
+                if(!estimation.isSuccessful()) std::cout << ",,,,,,,,,,,,,,,,";
                 else {
-                    std::cout << estimation.featureCountComplete << "," << estimation.featureCountCorrect << ","
-                              << estimation.inlierCountOwn << "," << estimation.inlierCountOwnCorrect << ","
-                              << estimation.inlierCountCombined << "," << estimation.inlierCountCombinedCorrect << ","
-                              << estimation.sampsonErrOwn << "," << estimation.sampsonErrCombined << ","
-                                 << estimation.sampsonErrCorrect << ",";
+                    std::cout << estimation.featureCountGood << "," << estimation.trueFeatureCountGood << ","
+                              << estimation.featureCountComplete << "," << estimation.trueFeatureCountComplete << ","
+                              << estimation.inlierCountOwnGood << "," << estimation.trueInlierCountOwnGood << ","
+                              << estimation.inlierCountOwnComplete << "," << estimation.trueInlierCountOwnComplete << ","
+                              << estimation.inlierCountCombined << "," << estimation.trueInlierCountCombined << ","
+                              << estimation.sampsonErrOwn << "," << estimation.sampsonErrComplete << ","
+                              << estimation.sampsonErrCombined << "," << estimation.sampsonErrStdDevCombined << ","
+                              << estimation.trueSampsonErr << "," << estimation.quality << ",";
                 }
             }
-            std::cout << time(0) - startTime << std::endl;
+            std::cout << (time(0) - startTime)/60.0 << std::endl;
         }
     }
+    if(VISUAL_DEBUG) waitKey(0);
     SevenpointLevenbergMarquardtExit();        //prevent octave from crashing
 }

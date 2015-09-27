@@ -5,9 +5,9 @@
 #include <math.h>
 
 //Show debug messages
-#define LOG_DEBUG true
+#define LOG_DEBUG false
 //Show debug images
-#define VISUAL_DEBUG true
+#define VISUAL_DEBUG false
 
 //Program parameters for selecting computation mathods
 #define F_Reined 0

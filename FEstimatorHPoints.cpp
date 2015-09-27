@@ -14,31 +14,39 @@ FEstimatorHPoints::FEstimatorHPoints(Mat img1, Mat img2, Mat img1_c, Mat img2_c,
     normT1 = Mat::eye(3,3,CV_64FC1);
     normT2 = Mat::eye(3,3,CV_64FC1);
 
-    quality = 0;
+    compareWithGroundTruth = false;
 
-    featureCount = -1;
+    featureCountGood = -1;
     featureCountComplete = -1;
-    inlierCountOwn = -1;
+    inlierCountOwnGood = -1;
+    inlierCountOwnComplete = -1;
     inlierCountCombined = -1;
 
-    featureCountCorrect = -1;
-    inlierCountOwnCorrect = -1;
-    inlierCountCombinedCorrect = -1;
+    trueFeatureCountGood = -1;
+    trueFeatureCountComplete = -1;
+    trueInlierCountOwnGood = -1;
+    trueInlierCountOwnComplete = -1;
+    trueInlierCountCombined = -1;
 
     sampsonErrOwn = -1;
+    sampsonErrComplete = -1;
     sampsonErrCombined = -1;
-    sampsonErrCorrect = -1;
+    trueSampsonErr = -1;
 
     sampsonErrStdDevCombined = -1;
+
+    quality = -1;
 }
 
 int FEstimatorHPoints::extractMatches() {
     extractPointMatches(image_1, image_2, allMatchedPoints);
 
-    //Mat* T = normalizePoints(allMatchedPoints, goodMatchedPoints);
-    for(int i = 0; i < allMatchedPoints.size(); i++) {
-        if(allMatchedPoints.at(i).isGoodMatch)
-            goodMatchedPoints.push_back(getPointCorrespStruct(allMatchedPoints.at(i)));
+    for(std::vector<pointCorrespStruct>::const_iterator it = allMatchedPoints.begin() ; it != allMatchedPoints.end(); ++it) {
+        if(it->isGoodMatch) {
+            goodMatchedPoints.push_back(getPointCorrespStruct(*it));
+            goodMatchedPointsConst.push_back(getPointCorrespStruct(*it));
+        }
+        allMatchedPointsConst.push_back(getPointCorrespStruct(*it));
     }
 
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << goodMatchedPoints.size() << std::endl;
@@ -55,8 +63,9 @@ bool FEstimatorHPoints::compute() {
     pointSubsetStruct firstEstimation;
     pointSubsetStruct secondEstimation;
 
+    std::vector<pointCorrespStruct> ransacInleirH1, ransacInleirH2;
 
-    if(!findPointHomography(firstEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, RANSAC_CONFIDENCE, HOMOGRAPHY_OUTLIERS, INLIER_THRESHOLD)) {
+    if(!findPointHomography(firstEstimation, goodMatchedPoints, allMatchedPoints,ransacInleirH1, RANSAC, RANSAC_CONFIDENCE, HOMOGRAPHY_OUTLIERS, INLIER_THRESHOLD)) {
         if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
         return false;
     }
@@ -69,7 +78,7 @@ bool FEstimatorHPoints::compute() {
     if(LOG_DEBUG) std::cout << "-- Used matches: " << firstEstimation.pointCorrespondencies.size() << std::endl;
 
     if(VISUAL_DEBUG) {
-        visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 8, true, name+": Remaining matches for 2ed estimation");
+        //visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 8, true, name+": Remaining matches for 2ed estimation");
     }
 
     bool homographies_equal = true;
@@ -84,7 +93,7 @@ bool FEstimatorHPoints::compute() {
 
         if(LOG_DEBUG) std::cout << "-- Second estimation " << estCnt << "/" << MAX_H2_ESTIMATIONS << "..." << std::endl;
 
-        if(!findPointHomography(secondEstimation, goodMatchedPoints, allMatchedPoints, RANSAC, RANSAC_CONFIDENCE, outliers, INLIER_THRESHOLD)) {
+        if(!findPointHomography(secondEstimation, goodMatchedPoints, allMatchedPoints, ransacInleirH2, RANSAC, RANSAC_CONFIDENCE, outliers, INLIER_THRESHOLD)) {
             if(LOG_DEBUG) std::cout << "-- Estimation FAILED!" << std::endl;
             return false;
         }
@@ -130,19 +139,68 @@ bool FEstimatorHPoints::compute() {
 
     if(LOG_DEBUG) std::cout << "-- Used matches: " << secondEstimation.pointCorrespondencies.size() << std::endl;
 
-    successful = true;
+    featureCountGood = goodMatchedPointsConst.size();
+    featureCountComplete = allMatchedPointsConst.size();
+    inlierCountOwnGood = ransacInleirH1.size() + ransacInleirH2.size();
+    inlierCountOwnComplete = featuresImg1.size() + featuresImg2.size();
+    //inlierCountCombined = -1;
+
+    std::vector<Mat> goodPointsX1, goodPointsX2, allPointsX1, allPointsX2, goodInlierX1, goodInlierX2;
+
+    for(std::vector<pointCorrespStruct>::const_iterator pointIter = goodMatchedPointsConst.begin(); pointIter != goodMatchedPointsConst.end(); ++pointIter) {
+        goodPointsX1.push_back(matVector(pointIter->x1));
+        goodPointsX2.push_back(matVector(pointIter->x2));
+    }
+
+    for(std::vector<pointCorrespStruct>::const_iterator pointIter = allMatchedPointsConst.begin(); pointIter != allMatchedPointsConst.end(); ++pointIter) {
+        allPointsX1.push_back(matVector(pointIter->x1));
+        allPointsX2.push_back(matVector(pointIter->x2));
+    }
+
+    for(std::vector<pointCorrespStruct>::const_iterator pointIter = ransacInleirH1.begin(); pointIter != ransacInleirH1.end(); ++pointIter) {
+        goodInlierX1.push_back(matVector(pointIter->x1));
+        goodInlierX2.push_back(matVector(pointIter->x2));
+    }
+
+    for(std::vector<pointCorrespStruct>::const_iterator pointIter = ransacInleirH2.begin(); pointIter != ransacInleirH2.end(); ++pointIter) {
+        goodInlierX1.push_back(matVector(pointIter->x1));
+        goodInlierX2.push_back(matVector(pointIter->x2));
+    }
+
+    if(compareWithGroundTruth) {
+
+        trueFeatureCountGood = goodMatchesCount(Fgt, goodPointsX1, goodPointsX2, INLIER_THRESHOLD);
+        trueFeatureCountComplete = goodMatchesCount(Fgt, allPointsX1, allPointsX2, INLIER_THRESHOLD);
+        trueInlierCountOwnGood = goodMatchesCount(Fgt, goodInlierX1, goodInlierX2, INLIER_THRESHOLD);
+        trueInlierCountOwnComplete = goodMatchesCount(Fgt, featuresImg1, featuresImg2, INLIER_THRESHOLD);
+        //trueInlierCountCombined = -1;
+    }
+
+//    std::vector<Mat> ransacInleirX1, ransacInleirX2;
+//    for(std::vector<pointCorrespStruct>::const_iterator pointIter = ransacInleirH1.begin(); pointIter != ransacInleirH1.end(); ++pointIter) {
+//        ransacInleirX1.push_back(matVector(pointIter->x1));
+//        ransacInleirX2.push_back(matVector(pointIter->x2));
+//    }
+//    for(std::vector<pointCorrespStruct>::const_iterator pointIter = ransacInleirH2.begin(); pointIter != ransacInleirH2.end(); ++pointIter) {
+//        ransacInleirX1.push_back(matVector(pointIter->x1));
+//        ransacInleirX2.push_back(matVector(pointIter->x2));
+//    }
 
     sampsonErrOwn = sampsonDistanceFundamentalMat(F, featuresImg1, featuresImg2);
-    featureCount = goodMatchedPoints.size();
-    inlierCountOwn = featuresImg1.size();
-    featureCountComplete = allMatchedPoints.size();
+    sampsonErrComplete = sampsonDistanceFundamentalMat(F, allPointsX1, allPointsX2);
+//    sampsonErrCombined = -1;
+//    trueSampsonErr = -1;
+
+//    sampsonErrStdDevCombined = -1;
+
+    successful = true;
 
     if(LOG_DEBUG) std::cout << std::endl << std::endl;
 
     return successful;
 }
 
-bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, int method, double confidence, double outliers, double threshold) {
+bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, std::vector<pointCorrespStruct> &ransacInlier, int method, double confidence, double outliers, double threshold) {
     double lastError = 0;
     int N;
     std::vector<pointCorrespStruct> goodPointMatches;
@@ -171,12 +229,17 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
         return false;
     }
 
-    outliers = computeRelativeOutliers(outliers, goodPointMatches.size(), goodPointMatches.size() + removedMatches);
+    //outliers = computeRelativeOutliers(outliers, goodPointMatches.size(), goodPointMatches.size() + removedMatches);
     N = computeNumberOfEstimations(confidence, outliers, NUM_POINT_CORRESP);
     if(!estimateHomography(bestSubset, goodPointMatches, method, N, errorThr)) {
         if(LOG_DEBUG) std::cout << "-- Only colinear points left! ";
         if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
         return false;
+    }
+
+    ransacInlier.clear();
+    for(std::vector<pointCorrespStruct>::const_iterator it = bestSubset.pointCorrespondencies.begin() ; it != bestSubset.pointCorrespondencies.end(); ++it) {
+        ransacInlier.push_back(getPointCorrespStruct(*it));
     }
 
     //errorThr = bestSubset.subsetError;
@@ -341,6 +404,13 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
         if(it->qualityMeasure > bestSolution.qualityMeasure)
             bestSolution = *it;
     }
+
+//    Mat H_inv = bestSolution.Hs.inv(DECOMP_SVD);
+//    for(std::vector<pointCorrespStruct>::iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
+//        error = sampsonDistanceHomography_(bestSolution.Hs, H_inv, *pointIter);
+//        if(sqrt(error) <= threshold) {
+
+//        }
 
     computeHomography(bestSolution);
 
