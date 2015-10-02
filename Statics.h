@@ -5,9 +5,9 @@
 #include <math.h>
 
 //Show debug messages
-#define LOG_DEBUG false
+#define LOG_DEBUG true
 //Show debug images
-#define VISUAL_DEBUG false
+#define VISUAL_DEBUG true
 
 //Program parameters for selecting computation mathods
 #define F_Reined 0
@@ -29,17 +29,17 @@
 //Max number of numerical refinement steps after a first homographie was found
 #define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 100
 //max Percentage of error changing for error to be considered as stable
-#define MAX_ERROR_CHANGE 5.0
+#define MAX_ERROR_CHANGE 0.005
 //max features changing for error to be considered as stable
 #define MAX_FEATURE_CHANGE 3
 //How close two eigenvalues have to be to be considered equal
-#define MARGIN 0.6
+#define MARGIN 0.4
 //Number of attempts to compute a second Homography if it is equal to the forst one
 #define MAX_H2_ESTIMATIONS 80
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
-#define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
+#define NUMERICAL_OPTIMIZATION_MIN_MATCHES 8
 //Ransac confidence
 #define RANSAC_CONFIDENCE 0.999
 
@@ -72,7 +72,7 @@
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
 //Angle difference blow lines being parallel
-#define MAX_ANGLE_DIFF M_PI/8.0        //M_PI/20.0
+#define MAX_ANGLE_DIFF M_PI/20.0        //M_PI/20.0
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices

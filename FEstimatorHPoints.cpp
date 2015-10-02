@@ -58,6 +58,107 @@ bool FEstimatorHPoints::compute() {
 
     extractMatches();
 
+
+//    //For debuggin: Hand picked points from castle 3 + 4
+//    pointCorrespStruct pc1, pc2, pc3, pc4, pc5, pc6;
+//    pc1.x1 = cv::Point2d(304, 1238);
+//    pc1.x2 = cv::Point2d(315, 1167);
+
+//    pc2.x1 = cv::Point2d(137, 1394);
+//    pc2.x2 = cv::Point2d(150, 1313);
+
+//    pc3.x1 = cv::Point2d(399, 1105);
+//    pc3.x2 = cv::Point2d(409, 1040);
+
+//    pc4.x1 = cv::Point2d(99, 1047);
+//    pc4.x2 = cv::Point2d(106, 1017);
+
+//    pc5.x1 = cv::Point2d(1430, 748);
+//    pc5.x2 = cv::Point2d(1517, 658);
+
+//    pc6.x1 = cv::Point2d(1528, 1545);
+//    pc6.x2 = cv::Point2d(1634, 1449);
+
+//    pointCorrespStruct pc12, pc22, pc32, pc42;
+//    pc12.x1 = cv::Point2d(1932, 906);
+//    pc12.x2 = cv::Point2d(2045, 801);
+
+//    pc22.x1 = cv::Point2d(2025,1342);
+//    pc22.x2 = cv::Point2d(2136, 1245);
+
+//    pc32.x1 = cv::Point2d(2712, 632);
+//    pc32.x2 = cv::Point2d(2844, 486);
+
+//    pc42.x1 = cv::Point2d(2706, 1374);
+//    pc42.x2 = cv::Point2d(2826, 1277);
+
+//    goodMatchedPoints.push_back(pc1);
+//    //goodMatchedPoints.push_back(pc2);
+//    goodMatchedPoints.push_back(pc3);
+//    //goodMatchedPoints.push_back(pc4);
+//    goodMatchedPoints.push_back(pc5);
+//    goodMatchedPoints.push_back(pc6);
+
+//    goodMatchedPoints.push_back(pc12);
+//    goodMatchedPoints.push_back(pc22);
+//    goodMatchedPoints.push_back(pc32);
+//    goodMatchedPoints.push_back(pc42);
+
+//    pointSubsetStruct ps, pscalc;
+//    ps.pointCorrespondencies.push_back(pc1);
+//    ps.pointCorrespondencies.push_back(pc2);
+//    ps.pointCorrespondencies.push_back(pc3);
+//    ps.pointCorrespondencies.push_back(pc4);
+//    ps.pointCorrespondencies.push_back(pc5);
+//    ps.pointCorrespondencies.push_back(pc6);
+
+//    ps.pointCorrespondencies.push_back(pc12);
+//    ps.pointCorrespondencies.push_back(pc22);
+//    ps.pointCorrespondencies.push_back(pc32);
+//    ps.pointCorrespondencies.push_back(pc42);
+
+//    Mat* norm = normalizePoints(ps.pointCorrespondencies);
+//    pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(0)));
+//    pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(1)));
+//    pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(2)));
+//    pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(3)));
+//    pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(4)));
+//    pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(5)));
+
+//    computeHomography(pscalc);
+//    homogMat(pscalc.Hs);
+
+//    visualizeHomography(pscalc.Hs, image_1_color, image_2_color, "test H");
+//    visualizePointMatches(image_1_color, image_2_color, pscalc.pointCorrespondencies, 3, true,"test");
+
+//    pointSubsetStruct ps2;
+//    ps2.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(6)));
+//    //pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(1)));
+//    ps2.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(7)));
+//    //pscalc.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(3)));
+//    ps2.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(8)));
+//    ps2.pointCorrespondencies.push_back(getPointCorrespStruct(ps.pointCorrespondencies.at(9)));
+
+//    computeHomography(ps2);
+//    homogMat(ps2.Hs);
+
+//    visualizeHomography(ps2.Hs, image_1_color, image_2_color, "test H2");
+//    visualizePointMatches(image_1_color, image_2_color, ps2.pointCorrespondencies, 3, true,"test2");
+
+//    cvWaitKey(0);
+
+//    Mat Hh = pscalc.Hs*ps2.Hs.inv(DECOMP_SVD);
+//    Mat ee;
+//    computeUniqeEigenvector(Hh,ee);
+
+//    F = crossProductMatrix(ee)*pscalc.Hs;
+//    homogMat(F);
+//    std::cout << F << std::endl;
+//    std::cout << Fgt << std::endl;
+//    enforceRankTwoConstraint(F);
+//    std::cout << F << std::endl;
+
+
     if(LOG_DEBUG) std::cout << "-- First Estimation..."<< std::endl;
 
     pointSubsetStruct firstEstimation;
@@ -201,20 +302,10 @@ bool FEstimatorHPoints::compute() {
 }
 
 bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::vector<pointCorrespStruct> goodMatches, std::vector<pointCorrespStruct> allMatches, std::vector<pointCorrespStruct> &ransacInlier, int method, double confidence, double outliers, double threshold) {
-    double lastError = 0;
     int N;
     std::vector<pointCorrespStruct> goodPointMatches;
     //std::vector<pointCorrespStruct> lastIterLineMatches;
     bestSubset.subsetError = 0;
-    //int iteration = 0;
-    int stableSolutions = 0;
-    double dError = 0;
-    int removedMatches = 0;
-    double errThr = 0;
-
-    //threshold = 2.0;
-
-    double errorThr = threshold;//= normalizeThr(normT1, normT2, threshold);
 
     if(LOG_DEBUG) std::cout << "-- findPointHomography: confidence = " << confidence << ", relative outliers = " << outliers << std::endl;
 
@@ -224,15 +315,15 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
     }
 
     if(goodPointMatches.size() < NUM_POINT_CORRESP) {
-        if(LOG_DEBUG) std::cout << "-- To few line matches left! ";
+        if(LOG_DEBUG) std::cout << "-- To few point matches left! ";
         if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
         return false;
     }
 
     //outliers = computeRelativeOutliers(outliers, goodPointMatches.size(), goodPointMatches.size() + removedMatches);
     N = computeNumberOfEstimations(confidence, outliers, NUM_POINT_CORRESP);
-    if(!estimateHomography(bestSubset, goodPointMatches, method, N, errorThr)) {
-        if(LOG_DEBUG) std::cout << "-- Only colinear points left! ";
+    if(!estimateHomography(bestSubset, goodPointMatches, method, N, threshold)) {
+        if(LOG_DEBUG) std::cout << "-- Not enough or only colinear points left! ";
         if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
         return false;
     }
@@ -245,40 +336,61 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
     //errorThr = bestSubset.subsetError;
 
     int iterationLM = 0;
+    double lastError = 0;
+    int stableSolutions = 0;
+    double dError = 0;
+    int removedMatches = 0;
+
+    pointSubsetStruct LMSubset;
+    LMSubset.Hs = bestSubset.Hs.clone();
+
+    LMSubset.pointCorrespondencies.clear();
+    for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
+        double e = sampsonDistanceHomography_(LMSubset.Hs, *pointIter);
+        if(sqrt(e) <= threshold) {        //errorThr
+            LMSubset.pointCorrespondencies.push_back(*pointIter);
+            lastError += e;
+        }
+    }
+    lastError /= LMSubset.pointCorrespondencies.size();
 
     do {
 
-        iterationLM++;
-
-        errThr = errorThr;//(iterationLM);
-
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << errThr << std::endl;
-
-        Mat H = bestSubset.Hs;
-        Mat H_inv = H.inv(DECOMP_SVD);
-        bestSubset.pointCorrespondencies.clear();
-        for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
-            double e = sampsonDistanceHomography_(H, H_inv, *pointIter);
-            if(sqrt(e) <= errThr) {        //errorThr
-                bestSubset.pointCorrespondencies.push_back(*pointIter);
-            }
-        }
-
-        if(bestSubset.pointCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) {
-            if(bestSubset.pointCorrespondencies.size() < 4) return false;
+        if(LMSubset.pointCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) {
+            if(LMSubset.pointCorrespondencies.size() < 4) return false;
             else break;
         }
 
-        removedMatches = removedMatches - bestSubset.pointCorrespondencies.size();
+        iterationLM++;
 
-        levenbergMarquardt(bestSubset);
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << threshold << std::endl;
 
-        if(iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
+        levenbergMarquardt(LMSubset);
 
-        dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
-        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.pointCorrespondencies.size() << std::endl;
+        removedMatches = LMSubset.pointCorrespondencies.size();
 
-        lastError = bestSubset.subsetError;
+        LMSubset.subsetError = 0;
+        //Mat H_inv = H.inv(DECOMP_SVD);
+        LMSubset.pointCorrespondencies.clear();
+        for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
+            double e = sampsonDistanceHomography_(LMSubset.Hs, *pointIter);
+            if(sqrt(e) <= threshold) {        //errorThr
+                LMSubset.pointCorrespondencies.push_back(*pointIter);
+                LMSubset.subsetError += e;
+            }
+        }
+        LMSubset.subsetError /= LMSubset.pointCorrespondencies.size();
+
+        removedMatches = removedMatches - LMSubset.pointCorrespondencies.size();
+
+        dError = (lastError - LMSubset.subsetError)/LMSubset.subsetError;
+        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << LMSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << LMSubset.pointCorrespondencies.size() << std::endl;
+
+        if(dError < 0 || iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
+
+        bestSubset.Hs = LMSubset.Hs.clone();
+
+        lastError = LMSubset.subsetError;
 
         if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
         else stableSolutions = 0;
@@ -286,6 +398,17 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
     } while(stableSolutions < 3);
+
+    bestSubset.subsetError = 0;
+    bestSubset.pointCorrespondencies.clear();
+    for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
+        double error = sampsonDistanceHomography_(bestSubset.Hs, *pointIter);
+        if(sqrt(error) <= threshold) {
+            bestSubset.pointCorrespondencies.push_back(*pointIter);
+            bestSubset.subsetError += error;
+        }
+    }
+    bestSubset.subsetError /= bestSubset.pointCorrespondencies.size();
 
     if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.pointCorrespondencies.size() << ", Mean squared error: " << bestSubset.subsetError << std::endl;
 
@@ -323,15 +446,15 @@ bool FEstimatorHPoints::estimateHomography(pointSubsetStruct &result, std::vecto
 
     //if(method == RANSAC)
     result = calcRANSAC(subsets, errorThr, pointCorresp);
-    //else result = calcLMedS(subsets, pointCorresp);
-    return true;
+    if(result.pointCorrespondencies.size() >= 4) return true;
+    return false;
 }
 
 void FEstimatorHPoints::computeHomography(pointSubsetStruct &subset) {     //See hartley, Ziss p89
 
     Mat* norm = normalizePoints(subset.pointCorrespondencies);
 
-    Mat A = Mat::zeros(subset.pointCorrespondencies.size()*3, 9, CV_64FC1);
+    Mat A = Mat::zeros(subset.pointCorrespondencies.size()*2, 9, CV_64FC1);
 
     for(int i = 0; i < subset.pointCorrespondencies.size(); i++) {      //Stack point correspondencies
         pointCorrespStruct pc = subset.pointCorrespondencies.at(i);
@@ -339,36 +462,38 @@ void FEstimatorHPoints::computeHomography(pointSubsetStruct &subset) {     //See
         //0^t
 
         Mat term = -pc.x2norm.at<double>(2,0)*pc.x1norm;
-        A.at<double>(3*i, 3) = term.at<double>(0,0);
-        A.at<double>(3*i, 4) = term.at<double>(1,0);
-        A.at<double>(3*i, 5) = term.at<double>(2,0);
+        A.at<double>(2*i, 3) = term.at<double>(0,0);
+        A.at<double>(2*i, 4) = term.at<double>(1,0);
+        A.at<double>(2*i, 5) = term.at<double>(2,0);
 
         term = pc.x2norm.at<double>(1,0)*pc.x1norm;
-        A.at<double>(3*i, 6) = term.at<double>(0,0);
-        A.at<double>(3*i, 7) = term.at<double>(1,0);
-        A.at<double>(3*i, 8) = term.at<double>(2,0);
+        A.at<double>(2*i, 6) = term.at<double>(0,0);
+        A.at<double>(2*i, 7) = term.at<double>(1,0);
+        A.at<double>(2*i, 8) = term.at<double>(2,0);
 
         term = pc.x2norm.at<double>(2,0)*pc.x1norm;
-        A.at<double>(3*i+1, 0) = term.at<double>(0,0);
-        A.at<double>(3*i+1, 1) = term.at<double>(1,0);
-        A.at<double>(3*i+1, 2) = term.at<double>(2,0);
+        A.at<double>(2*i+1, 0) = term.at<double>(0,0);
+        A.at<double>(2*i+1, 1) = term.at<double>(1,0);
+        A.at<double>(2*i+1, 2) = term.at<double>(2,0);
 
         //0^t
 
         term = -pc.x2norm.at<double>(0,0)*pc.x1norm;
-        A.at<double>(3*i+1, 6) = term.at<double>(0,0);
-        A.at<double>(3*i+1, 7) = term.at<double>(1,0);
-        A.at<double>(3*i+1, 8) = term.at<double>(2,0);
+        A.at<double>(2*i+1, 6) = term.at<double>(0,0);
+        A.at<double>(2*i+1, 7) = term.at<double>(1,0);
+        A.at<double>(2*i+1, 8) = term.at<double>(2,0);
 
-        term = -pc.x2norm.at<double>(1,0)*pc.x1norm;
-        A.at<double>(3*i+2, 0) = term.at<double>(0,0);
-        A.at<double>(3*i+2, 1) = term.at<double>(1,0);
-        A.at<double>(3*i+2, 2) = term.at<double>(2,0);
+        //std::cout << A << std::endl;
 
-        term = pc.x2norm.at<double>(0,0)*pc.x1norm;
-        A.at<double>(3*i+2, 3) = term.at<double>(0,0);
-        A.at<double>(3*i+2, 4) = term.at<double>(1,0);
-        A.at<double>(3*i+2, 5) = term.at<double>(2,0);
+//        term = -pc.x2norm.at<double>(1,0)*pc.x1norm;
+//        A.at<double>(3*i+2, 0) = term.at<double>(0,0);
+//        A.at<double>(3*i+2, 1) = term.at<double>(1,0);
+//        A.at<double>(3*i+2, 2) = term.at<double>(2,0);
+
+//        term = pc.x2norm.at<double>(0,0)*pc.x1norm;
+//        A.at<double>(3*i+2, 3) = term.at<double>(0,0);
+//        A.at<double>(3*i+2, 4) = term.at<double>(1,0);
+//        A.at<double>(3*i+2, 5) = term.at<double>(2,0);
 
         //0^t
     }
@@ -390,14 +515,14 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
     for(std::vector<pointSubsetStruct>::iterator it = subsets.begin() ; it != subsets.end(); ++it) {
         it->qualityMeasure = 0;       //count inlainers
         it->subsetError = 0;
-        Mat H_inv = it->Hs.inv(DECOMP_SVD);
-        it->pointCorrespondencies.clear();
+        //Mat H_inv = it->Hs.inv(DECOMP_SVD);
+        //it->pointCorrespondencies.clear();
         for(std::vector<pointCorrespStruct>::iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-            error = sampsonDistanceHomography_(it->Hs, H_inv, *pointIter);
+            error = sampsonDistanceHomography_(it->Hs, *pointIter);
             if(sqrt(error) <= threshold) {
                 it->subsetError += error;
                 it->qualityMeasure++;
-                it->pointCorrespondencies.push_back(*pointIter);
+                //it->pointCorrespondencies.push_back(*pointIter);
             }
         }
         it->subsetError /= it->qualityMeasure;
@@ -405,16 +530,24 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
             bestSolution = *it;
     }
 
-//    Mat H_inv = bestSolution.Hs.inv(DECOMP_SVD);
-//    for(std::vector<pointCorrespStruct>::iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-//        error = sampsonDistanceHomography_(bestSolution.Hs, H_inv, *pointIter);
-//        if(sqrt(error) <= threshold) {
+    //return bestSolution;
 
-//        }
+    if(bestSolution.qualityMeasure > 4) {
 
-    computeHomography(bestSolution);
+        //Mat H_inv = bestSolution.Hs.inv(DECOMP_SVD);
+        bestSolution.pointCorrespondencies.clear();
+        for(std::vector<pointCorrespStruct>::iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
+            error = sampsonDistanceHomography_(bestSolution.Hs, *pointIter);
+            if(sqrt(error) <= threshold) {
+                bestSolution.pointCorrespondencies.push_back(getPointCorrespStruct(*pointIter));
+            }
+        }
 
-    if(LOG_DEBUG) std::cout << "-- RANSAC inlaiers: " << bestSolution.pointCorrespondencies.size() << std::endl;
+        computeHomography(bestSolution);
+
+    }
+
+    if(LOG_DEBUG) std::cout << "-- RANSAC inlaiers: " << bestSolution.pointCorrespondencies.size() << ", error: " << bestSolution.subsetError << std::endl;
     return bestSolution;
 }
 
@@ -453,16 +586,16 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
 
 double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, std::vector<pointCorrespStruct> pointCorresp) {
     double error = 0;
-    Mat H_inv = H.inv(DECOMP_SVD);
+    //Mat H_inv = H.inv(DECOMP_SVD);
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error += sampsonDistanceHomography_(H, H_inv, *pointIter);
+        error += sampsonDistanceHomography_(H, *pointIter);
     }
     if(pointCorresp.size() == 0) return 0;
     return error/pointCorresp.size();
 }
 
-double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
-    return sampsonDistanceHomography(H, H_inv, matVector(pointCorresp.x1), matVector(pointCorresp.x2));
+double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, pointCorrespStruct pointCorresp) {
+    return sampsonDistanceHomography(H, matVector(pointCorresp.x1), matVector(pointCorresp.x2));
 }
 
 //double FEstimatorHPoints::errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp) {
@@ -492,10 +625,10 @@ int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &p
 
 int FEstimatorHPoints::filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold) {
     int removed = 0;
-    Mat H_inv = subset.Hs.inv(DECOMP_SVD);
+    //Mat H_inv = subset.Hs.inv(DECOMP_SVD);
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
     while (it!=pointCorresp.end()) {
-        if(sqrt(sampsonDistanceHomography_(subset.Hs, H_inv, *it)) > threshold) {
+        if(sqrt(sampsonDistanceHomography_(subset.Hs, *it)) > threshold) {
             removed++;
             pointCorresp.erase(it);
         } else it++;
@@ -566,7 +699,7 @@ double FEstimatorHPoints::levenbergMarquardt(pointSubsetStruct &bestSubset) {
 
     homogMat(bestSubset.Hs);
 
-    bestSubset.subsetError = sampsonDistanceHomography_(bestSubset.Hs, bestSubset.pointCorrespondencies);
+    //bestSubset.subsetError = sampsonDistanceHomography_(bestSubset.Hs, bestSubset.pointCorrespondencies);
 
     return bestSubset.subsetError;
 }

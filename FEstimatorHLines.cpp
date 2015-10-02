@@ -108,6 +108,8 @@ bool FEstimatorHLines::compute() {
         //visualizeProjectedLines(H1, 8, true, name+": H21 used lines projected to image 2");
     }
 
+    cvWaitKey(0);
+
     filterUsedLineMatches(allMatchedLines, firstEstimation.lineCorrespondencies);
     int removed = filterUsedLineMatches(goodMatchedLines, firstEstimation.lineCorrespondencies);
 
@@ -224,16 +226,11 @@ bool FEstimatorHLines::compute() {
 }
 
 bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vector<lineCorrespStruct> goodMatches, std::vector<lineCorrespStruct> allMatches, std::vector<lineCorrespStruct> &ransacInlier, int method, double confidence, double outliers, double threshold) {
-    double lastError = 0;
     int N;
     //std::vector<lineCorrespStruct> lastIterLineMatches;
     std::vector<lineCorrespStruct> goodLineMatches;
     bestSubset.subsetError = 0;
     //int iteration = 0;
-    int stableSolutions = 0;
-    double dError = 0;
-    int removedMatches = 0;
-    double errThr = 0;
 
     if(LOG_DEBUG) std::cout << "-- findHomography: confidence = " << confidence << ", relative outliers = " << outliers << std::endl;
 
@@ -241,9 +238,6 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
     for(std::vector<lineCorrespStruct>::const_iterator it = goodMatches.begin() ; it != goodMatches.end(); ++it) {
         goodLineMatches.push_back(*it);
     }
-
-    //double errorThr = normalizeThr(normT1, normT2, threshold);
-    double errorThr = threshold;
 
     if(goodLineMatches.size() < NUM_LINE_CORRESP) {
         if(LOG_DEBUG) std::cout << "-- To few line matches left! ";
@@ -253,8 +247,8 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
     //outliers = computeRelativeOutliers(outliers, goodLineMatches.size(), goodLineMatches.size() + removedMatches);
     N = computeNumberOfEstimations(confidence, outliers, NUM_LINE_CORRESP);
-    if(!estimateHomography(bestSubset, goodLineMatches, method, N, errorThr)) {
-        if(LOG_DEBUG) std::cout << "-- Only colinear points left! ";
+    if(!estimateHomography(bestSubset, goodLineMatches, method, N, threshold)) {
+        if(LOG_DEBUG) std::cout << "-- To few line or only parallel lines left! ";
         if(LOG_DEBUG) std::cout << "Can't compute Homography." << std::endl;
         return false;
     }
@@ -264,6 +258,8 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         ransacInlier.push_back(getlineCorrespStruct(*it));
     }
 
+
+    return true;
 //    visualizeHomography(bestSubset.Hs, image_1, image_2, "estimateHomography result");
 //    visualizeLineMatches(image_1_color, image_2_color, bestSubset.lineCorrespondencies, 2, true, "estimateHomography line result");
 //    cvWaitKey(0);
@@ -272,44 +268,67 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
     //errorThr = bestSubset.subsetError;
 
     int iterationLM = 0;
+    double lastError = 0;
+    int stableSolutions = 0;
+    double dError = 0;
+    int removedMatches = 0;
+
+    lineSubsetStruct LMSubset;
+    LMSubset.Hs = bestSubset.Hs.clone();
+
+    LMSubset.subsetError = 0;
+//        Mat H_T = bestSubset.Hs.t();
+    Mat H_inv = LMSubset.Hs.inv(DECOMP_SVD);
+    LMSubset.lineCorrespondencies.clear();
+    for(int i = 0; i < allMatches.size(); i++) {
+        lineCorrespStruct lc = allMatches.at(i);
+        double error = sampsonDistanceHomography(LMSubset.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+        if(sqrt(error) <= threshold) {
+            LMSubset.lineCorrespondencies.push_back(lc);
+            lastError += error;
+        }
+    }
+    lastError /= LMSubset.lineCorrespondencies.size();
 
     do {
 
-        iterationLM++;
-
-        //errThr = sqrt(errorThr)/iterationLM;
-        //errThr = errorThr/(iterationLM);
-        errThr = errorThr;
-
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << errThr << std::endl;
-
-        removedMatches = bestSubset.lineCorrespondencies.size();
-
-//        Mat H_T = bestSubset.Hs.t();
-        Mat H_inv = bestSubset.Hs.inv(DECOMP_SVD);
-        bestSubset.lineCorrespondencies.clear();
-        for(int i = 0; i < allMatches.size(); i++) {
-            lineCorrespStruct lc = allMatches.at(i);
-            //if(squaredTransferLineError(H_invT, H_T, lc.line1StartNormalized, lc.line1EndNormalized, lc.line2StartNormalized, lc.line2EndNormalized) < errThr) {        //errorThr
-            if(sqrt(sampsonDistanceHomography(bestSubset.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End)) < errThr) {
-            //if(errorFunctionHLinesSqared_(H_invT, H_T, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End) < errThr) {
-                bestSubset.lineCorrespondencies.push_back(lc);
-            }
-        }
-
-        if(bestSubset.lineCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) {
-            if(bestSubset.lineCorrespondencies.size() < 4) return false;
+        if(LMSubset.lineCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) {
+            if(LMSubset.lineCorrespondencies.size() < 4) return false;
             else break;
         }
 
-        removedMatches = removedMatches - bestSubset.lineCorrespondencies.size();
+        iterationLM++;
 
-        levenbergMarquardt(bestSubset);
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << threshold << std::endl;
 
-        dError = (lastError - bestSubset.subsetError)/bestSubset.subsetError;
-        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << bestSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << bestSubset.lineCorrespondencies.size() << ", removed: " << removedMatches << std::endl;
+        removedMatches = LMSubset.lineCorrespondencies.size();
 
-        lastError = bestSubset.subsetError;
+        levenbergMarquardt(LMSubset);
+
+        LMSubset.subsetError = 0;
+//        Mat H_T = bestSubset.Hs.t();
+        H_inv = LMSubset.Hs.inv(DECOMP_SVD);
+        LMSubset.lineCorrespondencies.clear();
+        for(int i = 0; i < allMatches.size(); i++) {
+            lineCorrespStruct lc = allMatches.at(i);
+            double error = sampsonDistanceHomography(LMSubset.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+            if(sqrt(error) <= threshold) {
+                LMSubset.lineCorrespondencies.push_back(lc);
+                LMSubset.subsetError += error;
+            }
+        }
+        LMSubset.subsetError /= LMSubset.lineCorrespondencies.size();
+
+        removedMatches = removedMatches - LMSubset.lineCorrespondencies.size();
+
+        dError = (lastError - LMSubset.subsetError)/LMSubset.subsetError;
+        if(LOG_DEBUG) std::cout << "-- Mean squared error: " << LMSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << LMSubset.lineCorrespondencies.size() << ", removed: " << removedMatches << std::endl;
+
+        if(dError < 0 || iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
+
+        bestSubset.Hs = LMSubset.Hs.clone();
+
+        lastError = LMSubset.subsetError;
 
         //if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
         if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
@@ -317,9 +336,22 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
-        if(bestSubset.lineCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) break;
+        //if(LMSubset.lineCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) break;
 
     } while(stableSolutions < 3);
+
+    H_inv = bestSubset.Hs.inv(DECOMP_SVD);
+    bestSubset.subsetError = 0;
+    bestSubset.lineCorrespondencies.clear();
+    for(int i = 0; i < allMatches.size(); i++) {
+        lineCorrespStruct lc = allMatches.at(i);
+        double error = sampsonDistanceHomography(bestSubset.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
+        if(sqrt(error) <= threshold) {
+            bestSubset.lineCorrespondencies.push_back(lc);
+            bestSubset.subsetError += error;
+        }
+    }
+    bestSubset.subsetError /= bestSubset.lineCorrespondencies.size();
 
     if(LOG_DEBUG) std::cout << "-- Final number of used matches: " << bestSubset.lineCorrespondencies.size() << ", Mean squared error: " << bestSubset.subsetError << std::endl;
 
@@ -373,14 +405,14 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
 
     double error = 0;
 
-//    Mat H_T = bestSubset.Hs.t();
-    Mat H_inv = bestSubset.Hs.inv(DECOMP_SVD);
-    for(std::vector<lineCorrespStruct>::const_iterator it = bestSubset.lineCorrespondencies.begin(); it != bestSubset.lineCorrespondencies.end(); ++it) {
-        //error += errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
-        error += sampsonDistanceHomography(bestSubset.Hs, H_inv, it->line1Start, it->line1End, it->line2Start, it->line2End);
-    }
+////    Mat H_T = bestSubset.Hs.t();
+//    Mat H_inv = bestSubset.Hs.inv(DECOMP_SVD);
+//    for(std::vector<lineCorrespStruct>::const_iterator it = bestSubset.lineCorrespondencies.begin(); it != bestSubset.lineCorrespondencies.end(); ++it) {
+//        //error += errorFunctionHLinesSqared_(H_invT, H_T, it->line1StartNormalized, it->line1EndNormalized, it->line2StartNormalized, it->line2EndNormalized);
+//        error += sampsonDistanceHomography(bestSubset.Hs, H_inv, it->line1Start, it->line1End, it->line2Start, it->line2End);
+//    }
 
-    if(bestSubset.lineCorrespondencies.size() > 0) bestSubset.subsetError = error/bestSubset.lineCorrespondencies.size();
+//    if(bestSubset.lineCorrespondencies.size() > 0) bestSubset.subsetError = error/bestSubset.lineCorrespondencies.size();
 
     return error;
 }
@@ -411,8 +443,9 @@ bool FEstimatorHLines::estimateHomography(lineSubsetStruct &result, std::vector<
 
     //if(method == RANSAC)
     result = calcRANSAC(subsets, ransacThr, lineCorrespondencies);
+    if(result.lineCorrespondencies.size() >= 4) return true;
     //else result = calcLMedS(subsets, lineCorrespondencies);
-    return true;
+    return false;
 }
 
 bool FEstimatorHLines::computeHomography(lineSubsetStruct &subset) {
@@ -515,14 +548,14 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
     for(std::vector<lineSubsetStruct>::iterator subset = subsets.begin() ; subset != subsets.end(); ++subset) {
         subset->qualityMeasure = 0;       //count inlainers
         subset->subsetError = 0;
-        subset->lineCorrespondencies.clear();
+        //subset->lineCorrespondencies.clear();
         Mat H_inv = subset->Hs.inv(DECOMP_SVD);
         for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
             error = sampsonDistanceHomography(subset->Hs, H_inv, it->line1Start, it->line1End, it->line2Start, it->line2End);
             if(sqrt(error) <= threshold) {
                 subset->subsetError += error;
                 subset->qualityMeasure++;
-                subset->lineCorrespondencies.push_back(*it);
+                //subset->lineCorrespondencies.push_back(*it);
             }
         }
         subset->subsetError /= subset->qualityMeasure;
@@ -530,9 +563,21 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
             bestSolution = *subset;
     }
 
-    computeHomography(bestSolution);
+    if(bestSolution.qualityMeasure > 4) {
 
-    if(LOG_DEBUG) std::cout << "-- RANSAC inlaiers: " << bestSolution.qualityMeasure << std::endl;
+        Mat H_inv = bestSolution.Hs.inv(DECOMP_SVD);
+        bestSolution.lineCorrespondencies.clear();
+        for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
+            error = sampsonDistanceHomography(bestSolution.Hs, H_inv, it->line1Start, it->line1End, it->line2Start, it->line2End);
+            if(sqrt(error) <= threshold) {
+                bestSolution.lineCorrespondencies.push_back(getlineCorrespStruct(*it));
+            }
+        }
+
+        computeHomography(bestSolution);
+
+    }
+    if(LOG_DEBUG) std::cout << "-- RANSAC inlaiers: " << bestSolution.qualityMeasure << ", error: " << bestSolution.subsetError << std::endl;
     return bestSolution;
 }
 

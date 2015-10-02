@@ -28,7 +28,7 @@ private:
     bool isUniqe(std::vector<pointCorrespStruct> existingCorresp, pointCorrespStruct newCorresp);
 //    double errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp);
     double sampsonDistanceHomography_(Mat H, std::vector<pointCorrespStruct> pointCorresp);
-    double sampsonDistanceHomography_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp);
+    double sampsonDistanceHomography_(Mat H, pointCorrespStruct pointCorresp);
 
     std::vector<pointCorrespStruct> goodMatchedPoints;  //Vector of (good) corresponing points
     std::vector<pointCorrespStruct> allMatchedPoints;  //Vector of (all) corresponing points

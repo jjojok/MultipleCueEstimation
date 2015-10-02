@@ -388,21 +388,25 @@ pointCorrespStruct getPointCorrespStruct(pointCorrespStruct pcCopy) {
 
 lineCorrespStruct getlineCorrespStruct(cv::line_descriptor::KeyLine l1, cv::line_descriptor::KeyLine l2, int id) {
     lineCorrespStruct* lc = new lineCorrespStruct;
-    double scaling = 1;
-    if(l1.octave > 0) { //TODO: OpenCV bug: coordinates are from downscaled versions of image pyramid
-        scaling = l1.octave*SCALING;
+    double scaling1 = 1;
+    double scaling2 = 1;
+    if(l1.octave > 0) { //OpenCV: coordinates are from downscaled versions of image pyramid
+        scaling1 = l1.octave*SCALING;
+    }
+    if(l2.octave > 0) {
+        scaling2 = l2.octave*SCALING;
     }
 
     lc->line1Angle = l1.angle;
     lc->line2Angle = l2.angle;
 
-    lc->line1Length = l1.lineLength*scaling;
-    lc->line2Length = l1.lineLength*scaling;
+    lc->line1Length = l1.lineLength*scaling1;
+    lc->line2Length = l2.lineLength*scaling2;
 
-    lc->line1Start = matVector(l1.startPointX*scaling, l1.startPointY*scaling, 1);
-    lc->line2Start = matVector(l2.startPointX*scaling, l2.startPointY*scaling, 1);
-    lc->line1End = matVector(l1.endPointX*scaling, l1.endPointY*scaling, 1);
-    lc->line2End = matVector(l2.endPointX*scaling, l2.endPointY*scaling, 1);
+    lc->line1Start = matVector(l1.startPointX*scaling1, l1.startPointY*scaling1, 1);
+    lc->line2Start = matVector(l2.startPointX*scaling2, l2.startPointY*scaling2, 1);
+    lc->line1End = matVector(l1.endPointX*scaling1, l1.endPointY*scaling1, 1);
+    lc->line2End = matVector(l2.endPointX*scaling2, l2.endPointY*scaling2, 1);
 
     lc->id = id;
 
@@ -494,12 +498,12 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat
 bool isUnity(Mat m) {       //Check main diagonal for being close to 1
     Mat diff = abs(m - Mat::eye(m.rows, m.cols, CV_64FC1));
     for(int i = 0; i < m.cols; i++) {
-        for(int j = 0; j < m.rows; j++) {
-            if(fabs(diff.at<double>(i,j)) > 0.5) {
+        //for(int j = 0; j < m.rows; j++) {
+            if(fabs(diff.at<double>(i,i)) > 0.1) {
                 if(LOG_DEBUG) std::cout << "-- Is Unity matrix: false" << std::endl;
                 return false;
             }
-        }
+        //}
     }
     if(LOG_DEBUG) std::cout << "-- Is Unity matrix: true" << std::endl;
     return true;
@@ -531,6 +535,10 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     int col = 0;
     for(int i = 0; i < eigenvalues.rows; i ++) {        //find non-unary eigenvalue & its eigenvector
         Mat eig = eigenvalues.row(i);
+        if(eig.at<double>(0,0) < MARGIN) {
+            if(LOG_DEBUG) std::cout << "-- Eigenvalue to small: " << eig.at<double>(0,0) << std::endl;
+            return false;
+        }
         dist[i] = 0;
         for(int j = 0; j < eigenvalues.rows; j ++) {
             dist[i] += fabs(eig.at<double>(0,0) - eigenvalues.row(j).at<double>(0,0));
@@ -553,7 +561,7 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     if(col == 1) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(2).at<double>(0,0);
     if(col == 2) eigenValDiff = eigenvalues.row(0).at<double>(0,0) - eigenvalues.row(1).at<double>(0,0);
 
-    if(fabs(eigenValDiff) > 0.005) {
+    if(fabs(eigenValDiff) > 0.2) {
         if(LOG_DEBUG) std::cout << "-- Other eigenvalues are not equal!" << std::endl;
         return false;
     }
@@ -844,7 +852,7 @@ void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout) {
 //Fundamental matrix
 
 double sampsonDistanceFundamentalMat(Mat F, Mat x1, Mat x2) {
-    return sampsonDistanceFundamentalMatSingle(F, x1, x2) + sampsonDistanceFundamentalMatSingle(F.t(), x2, x1);
+    return sampsonDistanceFundamentalMatSingle(F, x1, x2);
 }
 
 double sampsonDistanceFundamentalMatSingle(Mat F, Mat x1, Mat x2) {      //See: Hartley Ziss, p287
@@ -873,46 +881,124 @@ double sampsonDistanceFundamentalMat(Mat F, std::vector<Mat> points1, std::vecto
 //error point homogrpahy
 
 double sampsonDistanceHomographySingle(Mat H, Mat x1, Mat x2) {
-    Mat E = crossProductMatrix(x2)*H*x1;
-    Mat J = Mat::zeros(3,4,CV_64FC1);
 
-    Mat H1 = H.row(0).t();
-    Mat H2 = H.row(1).t();
-    Mat H3 = H.row(2).t();
+    Mat E = Mat::zeros(2,1,CV_64FC1);
+    Mat J = Mat::zeros(2,4,CV_64FC1);
+
+    Mat h1 = H.row(0);
+    Mat h2 = H.row(1);
+    Mat h3 = H.row(2);
+
+    //std::cout << Mat(x1*h2) << std::endl;
+
+    E.at<double>(0,0) = Mat(-x2.at<double>(2,0)*x1.t()*h2.t() + x2.at<double>(1,0)*x1.t()*h3.t()).at<double>(0,0);
+    E.at<double>(1,0) = Mat(x2.at<double>(2,0)*x1.t()*h1.t() - x2.at<double>(0,0)*x1.t()*h3.t()).at<double>(0,0);
+
+    //std::cout << E << std::endl;
 
     //dE/dx
-    J.col(0) = x2.cross(H1);
+    J.at<double>(0,0) = -x2.at<double>(2,0)*h2.at<double>(0,0) + x2.at<double>(1,0)*h3.at<double>(0,0);
+    J.at<double>(1,0) = x2.at<double>(2,0)*h1.at<double>(0,0) + x2.at<double>(0,0)*h3.at<double>(0,0);
     //dE/dy
-    J.col(1) = x2.cross(H2);
+    J.at<double>(0,1) = -x2.at<double>(2,0)*h2.at<double>(0,1) + x2.at<double>(1,0)*h3.at<double>(0,1);
+    J.at<double>(1,1) = x2.at<double>(2,0)*h1.at<double>(0,1) + x2.at<double>(0,0)*h3.at<double>(0,1);
     //dE/dx'
-    J.col(2).at<double>(1,0) = Mat(-H3.t()*x1).at<double>(0,0);
-    J.col(2).at<double>(2,0) = Mat(H2.t()*x1).at<double>(0,0);
+    J.at<double>(0,2) = 0;
+    J.at<double>(1,2) = -x1.at<double>(0,0)*h3.at<double>(0,0) - x1.at<double>(1,0)*h3.at<double>(0,1) - x1.at<double>(2,0)*h3.at<double>(0,2);
     //dE/dy'
-    J.col(3).at<double>(0,0) = Mat(H3.t()*x1).at<double>(0,0);
-    J.col(3).at<double>(2,0) = Mat(-H1.t()*x1).at<double>(0,0);
+    J.at<double>(0,3) = x1.at<double>(0,0)*h3.at<double>(0,0) + x1.at<double>(1,0)*h3.at<double>(0,1) + x1.at<double>(2,0)*h3.at<double>(0,2);
+    J.at<double>(1,3) = 0;
 
     Mat error = E.t()*(J*J.t()).inv(DECOMP_SVD)*E;
 
     return error.at<double>(0,0);
 }
 
-double sampsonDistanceHomography(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
-    return sampsonDistanceHomographySingle(H, x1, x2) + sampsonDistanceHomographySingle(H_inv, x2, x1);
+double sampsonDistanceHomography(Mat H, Mat x1, Mat x2) {
+//double sampsonDistanceHomography(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
+    //return sampsonDistanceHomographySingle(H, x1, x2) + sampsonDistanceHomographySingle(H_inv, x2, x1);
+//    double e1 = sampsonDistanceHomographySingle(H, x1, x2);
+//    double e2 = sampsonDistanceHomographySingle(H_inv, x2, x1);
+    return sampsonDistanceHomographySingle(H, x1, x2);
 }
 
 //error line homography
 
 double sampsonDistanceHomographySingle(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    Mat A = H.t()*crossProductMatrix(line2Start)*line2End;
-    Mat start = line1Start.t()*A;
-    Mat end = line1End.t()*A;
-    double Ax = std::pow(A.at<double>(0,0), 2);
-    double Ay = std::pow(A.at<double>(1,0), 2);
-    Mat result = (start*start + end*end)/(Ax + Ay);
 
-    return result.at<double>(0,0);
+    double x1sx = line1Start.at<double>(0,0);
+    double x1sy = line1Start.at<double>(1,0);
+    double x1ex = line1End.at<double>(0,0);
+    double x1ey = line1End.at<double>(1,0);
+    double x2sx = line2Start.at<double>(0,0);
+    double x2sy = line2Start.at<double>(1,0);
+    double x2ex = line2End.at<double>(0,0);
+    double x2ey = line2End.at<double>(1,0);
+
+    double h11 = H.at<double>(0,0);
+    double h12 = H.at<double>(0,1);
+    double h13 = H.at<double>(0,2);
+    double h21 = H.at<double>(1,0);
+    double h22 = H.at<double>(1,1);
+    double h23 = H.at<double>(1,2);
+    double h31 = H.at<double>(2,0);
+    double h32 = H.at<double>(2,1);
+    double h33 = H.at<double>(2,2);
+
+    double A = x2sy - x2ey;
+    double B = x2ex - x2sx;
+    double C = x2sx * x2ey - x2ex * x2sy;
+    double D = A*h13 + B*h23 + C*h33;
+
+    //std::cout << "H" << std::endl << H << std::endl;
+
+    Mat J = Mat::zeros(2, 8, CV_64FC1);
+    Mat E = Mat::zeros(2, 1, CV_64FC1);
+
+    E.at<double>(0,0) = A*x1sx*h11 + A*x1sy*h12
+                        + B*x1sx*h21 + B*x1sy*h22
+                        + C*x1sx*h31 + C*x1sy*h32 + D;
+
+    E.at<double>(1,0) = A*x1ex*h11 + A*x1ey*h12
+                        + B*x1ex*h23 + B*x1ey*h22
+                        + C*x1ex*h31 + C*x1ey*h31 + D;
+
+    //dE/dx1sx
+    J.at<double>(0,0) = A*h11 + B*h21 + C*h31;
+    //dE/dx1sy
+    J.at<double>(0,1) = A*h12 + B*h22 + C*h32;
+    //dE/dx1ex
+    J.at<double>(1,2) = J.at<double>(0,0);//A*h11 + B*h21 + C*h31;
+    //dE/dx1ey
+    J.at<double>(1,3) = J.at<double>(0,1);//A*h12 + B*h22 + C*h32;
+    //dE/dx2sx
+    J.at<double>(0,4) = -x1sx*h21 - x1sy*h22 - h23 + x1sx*x2ey*h31 + x1sy*x2ey*h32 + x2ey*h33;
+    J.at<double>(1,4) = -x1ex*h21 - x1ey*h22 - h23 + x1ex*x2ey*h31 + x1ey*x2ey*h32 + x2ey*h33;
+    //dE/dx2sy
+    J.at<double>(0,5) = x1sx*h11 + x1sy*h12 + h13 - x1sx*x2ex*h31 - x1sy*x2ex*h32 - x2ex*h33;
+    J.at<double>(1,5) = x1ex*h11 + x1ey*h12 + h13 - x1ex*x2ex*h31 - x1ey*x2ex*h32 - x2ex*h33;
+    //dE/dx2ex
+    J.at<double>(0,6) = x1sx*h21 + x1sy*h22 + h23 - x1sx*x2sy*h31 - x1sy*x2sy*h32 - x2sy*h33;
+    J.at<double>(1,6) = x1ex*h21 + x1ey*h22 + h23 - x1ex*x2sy*h31 - x1ey*x2sy*h32 - x2sy*h33;
+    //dE/dx2ey
+    J.at<double>(0,7) = -x1sx*h11 - x1sy*h12 - h13 + x1sx*x2sx*h31 + x1sy*x2sx*h32 + x2sx*h33;
+    J.at<double>(1,7) = -x1ex*h11 - x1ey*h12 - h13 + x1ex*x2sx*h31 + x1ey*x2sx*h32 + x2sx*h33;
+
+    Mat error = E.t()*(J*J.t()).inv(DECOMP_SVD)*E;
+
+    return error.at<double>(0,0);
+
+//    Mat A = H.t()*crossProductMatrix(line2Start)*line2End;
+//    Mat start = line1Start.t()*A;
+//    Mat end = line1End.t()*A;
+//    double Ax = std::pow(A.at<double>(0,0), 2);
+//    double Ay = std::pow(A.at<double>(1,0), 2);
+//    Mat result = (start*start + end*end)/(Ax + Ay);
+
+//    return result.at<double>(0,0);
 }
 
 double sampsonDistanceHomography(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-    return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End) + sampsonDistanceHomographySingle(H_inv, line2Start, line2End, line1Start, line1End);
+    //return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End) + sampsonDistanceHomographySingle(H_inv, line2Start, line2End, line1Start, line1End);
+    return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End);
 }
