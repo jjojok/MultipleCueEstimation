@@ -29,6 +29,8 @@ MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat
     refinedFSampsonErrStdDevCombined = -1;
 
     groundTruthSampsonDistCombined = -1;
+
+    groundTruthSampsonStdDev = -1;
 }
 
 Mat MultipleCueEstimation::compute() {
@@ -216,6 +218,10 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             if(compareWithGroundTruth) {
                 findGoodCombinedMatches(x1Combined, x2Combined, estimationInlierX1, estimationInlierX2, estimationIter->getF(), INLIER_THRESHOLD);
                 estimationIter->trueInlierCountCombined = goodMatchesCount(Fgt, estimationInlierX1, estimationInlierX2, INLIER_THRESHOLD);
+
+//                for(int i = 0; i < x1Combined.size(); i++) {
+//                    trueRootSampsonErr += sqrt(sampsonDistanceFundamentalMat())
+//                }
             }
             //if(bestMethod->sampsonErrCombined > estimationIter->sampsonErrCombined) {
 

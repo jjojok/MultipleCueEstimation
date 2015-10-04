@@ -97,7 +97,7 @@ double sampsonDistanceHomographySingle(Mat H, Mat x1, Mat x2);
 //double sampsonDistanceHomographySymmetric(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double sampsonDistanceHomographySingle(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 double sampsonDistanceHomography(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
-
+//double sampsonDistanceHomography(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);
 void meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std::vector<Mat> x2, double &error, int &used);
 
 #endif // UTILITY_H

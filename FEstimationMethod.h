@@ -61,17 +61,21 @@ public:
     //Solution inlier of combined feature sets from all estimations which are described by the ground truth (error < INLIER_THRESHOLD)
     int trueInlierCountCombined;
 
-    //Mean sampson distance in both images from "good" features
+    //Mean sampson distance from "good" features
     double sampsonErrOwn;
-    //Mean sampson distance in both images from complete set of extraced features
+    //Mean sampson distance from complete set of extraced features
     double sampsonErrComplete;
-    //Mean sampson distance in both images from combined feature sets from all estimations
+    //Mean sampson distance from combined feature sets from all estimations
     double sampsonErrCombined;
-    //Mean sampson distance in both images from combined feature sets which are described by the ground truth (error < INLIER_THRESHOLD)
+    //Mean sampson distance from combined feature sets which are described by the ground truth (error < INLIER_THRESHOLD)
     double trueSampsonErr;
+    //Mean root sampson distance from combined feature sets which are described by the ground truth (error < INLIER_THRESHOLD)
+    double trueRootSampsonErr;
 
-    //Standarddeviation of mean sampson distance in both images from combined feature sets from all estimations
+    //Standarddeviation of mean sampson distance from combined feature sets from all estimations
     double sampsonErrStdDevCombined;
+    //Standarddeviation of mean sampson distance from combined feature sets which are described by the ground truth (error < INLIER_THRESHOLD)
+    double trueSampsonErrStdDev;
 
     //Quality measure for best estimation selection
     double quality;

@@ -17,7 +17,7 @@
 
 //General:
 //Threshold to determine "inlier", compared with square root of sampson distance, e.g. by RANSAC
-#define INLIER_THRESHOLD 3.0
+#define INLIER_THRESHOLD 3
 //Initial threshold to determine "inlier" by LM in refinement step
 #define INLIER_LM_THRESHOLD 100.0
 //Weights for fundamental matrix quality function

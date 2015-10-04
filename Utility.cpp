@@ -835,7 +835,11 @@ bool compareFundMatSetsInlinerError(fundamentalMatrix* f1, fundamentalMatrix* f2
 }
 
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {
-    return (x11.at<double>(0,0) == x21.at<double>(0,0)) && (x11.at<double>(1,0) == x21.at<double>(1,0)) && (x12.at<double>(0,0) == x22.at<double>(0,0)) && (x12.at<double>(1,0) == x22.at<double>(1,0));
+    if(x11.at<double>(0,0) != x21.at<double>(0,0)) return false;
+    if(x11.at<double>(1,0) != x21.at<double>(1,0)) return false;
+    if(x12.at<double>(0,0) != x22.at<double>(0,0)) return false;
+    if(x12.at<double>(1,0) != x22.at<double>(1,0)) return false;
+    return true;
 }
 
 void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout) {
@@ -926,13 +930,47 @@ double sampsonDistanceHomography(Mat H, Mat x1, Mat x2) {
 
 double sampsonDistanceHomographySingle(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
 
-    //Geometric error
+//    //Geometric error
     Mat AA = H.t()*crossProductMatrix(line2Start)*line2End;
     Mat start = line1Start.t()*AA;
     Mat end = line1End.t()*AA;
-    double Ax = std::pow(AA.at<double>(0,0), 2);
-    double Ay = std::pow(AA.at<double>(1,0), 2);
-    Mat error = (start*start + end*end)/(Ax + Ay);
+//    double Ax = std::pow(AA.at<double>(0,0), 2);
+//    double Ay = std::pow(AA.at<double>(1,0), 2);
+//    double error = Mat((start*start + end*end)/(Ax + Ay)).at<double>(0,0);
+
+    //    //Sampson error
+    Mat BB = H*line1Start;
+    Mat CC = H*line1End;
+
+    Mat EE = Mat::zeros(2, 1, CV_64FC1);
+    Mat J = Mat::zeros(2, 4, CV_64FC1);
+
+    EE.at<double>(0,0) = start.at<double>(0,0);
+    EE.at<double>(1,0) = end.at<double>(0,0);
+
+    J.at<double>(0,0) = AA.at<double>(0,0);
+    J.at<double>(1,0) = AA.at<double>(1,0);
+    J.at<double>(0,1) = AA.at<double>(0,0);
+    J.at<double>(1,1) = AA.at<double>(1,0);
+
+    J.at<double>(0,2) = BB.at<double>(0,0);
+    J.at<double>(1,2) = BB.at<double>(1,0);
+    J.at<double>(0,3) = CC.at<double>(0,0);
+    J.at<double>(1,3) = CC.at<double>(1,0);
+
+//    std::cout << std::endl << "EE" << std::endl << EE << std::endl;
+//    std::cout << std::endl << "J" << std::endl << J << std::endl;
+
+    double e = Mat(EE.t()*(J*J.t()).inv(DECOMP_SVD)*EE).at<double>(0,0);
+
+    return e;
+//    double e1 = Mat(start.t()*(Js*Js.t()).inv(DECOMP_SVD)*start).at<double>(0,0);
+//    double e2 = Mat(end.t()*(Je*Je.t()).inv(DECOMP_SVD)*end).at<double>(0,0);
+
+//    double e1 = (start.at<double>(0,0) * start.at<double>(0,0))/(AA.at<double>(0,0)*AA.at<double>(0,0) + AA.at<double>(1,0)*AA.at<double>(1,0) + BB.at<double>(0,0)*BB.at<double>(0,0) + BB.at<double>(1,0)*BB.at<double>(1,0));
+//    double e2 = (start.at<double>(0,0) * start.at<double>(0,0))/(AA.at<double>(0,0)*AA.at<double>(0,0) + AA.at<double>(1,0)*AA.at<double>(1,0) + CC.at<double>(0,0)*CC.at<double>(0,0) + CC.at<double>(1,0)*CC.at<double>(1,0));
+
+    //return e1+e2;
 
     //return result.at<double>(0,0);
 
@@ -1103,14 +1141,11 @@ double sampsonDistanceHomographySingle(Mat H, Mat line1Start, Mat line1End, Mat 
 
     //std::cout << "Sampson/Geometric: " << error.at<double>(0,0) << "/" << result.at<double>(0,0) << std::endl;
 
-    return error.at<double>(0,0);
+    //return error.at<double>(0,0);
 }
 
+//double sampsonDistanceHomography(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
 double sampsonDistanceHomography(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
     return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End) + sampsonDistanceHomographySingle(H_inv, line2Start, line2End, line1Start, line1End);
-    //double e1 = sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End);
-    //homogMat(H_inv);
-    //double e2 = sampsonDistanceHomographySingle(H_inv, line2Start, line2End, line1Start, line1End);
-    //return (e1+e2)/2.0;
     //return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End);
 }

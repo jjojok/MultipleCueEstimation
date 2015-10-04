@@ -44,6 +44,7 @@ public:
     double refinedFSampsonErrStdDevCombined;
 
     double groundTruthSampsonDistCombined;
+    double groundTruthSampsonStdDev;
 
     Mat compute();
     std::vector<FEstimationMethod> getEstimations();
