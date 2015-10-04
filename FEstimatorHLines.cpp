@@ -61,22 +61,68 @@ int FEstimatorHLines::extractMatches() {
 
 bool FEstimatorHLines::compute() {
 
+//      //hard coded lines for entry 8+9
+//    lineCorrespStruct lc1, lc2, lc3, lc4, lc5, lc6, lc7, lc8, lc9, lc10, lc11;
+//    lc1 = getlineCorrespStruct(1092, 617, 1069, 1225, 1510, 608, 1514, 1216, 0);
+//    lc2 = getlineCorrespStruct(910, 1526, 1096, 1512, 1405, 1530, 1546, 1511, 1);
+//    lc3 = getlineCorrespStruct(1121, 897, 1209, 1149, 1542, 884, 1619, 1134, 2);
+//    lc4 = getlineCorrespStruct(1096, 1673, 1202, 1360, 1552, 1671, 1622, 1353, 3);
+//    lc5 = getlineCorrespStruct(2046, 962, 2256, 909, 2353, 855, 2540, 772, 4);
+//    lc6 = getlineCorrespStruct(2320, 1706, 2284, 1203, 2625, 1648, 2582, 1112, 5);
+//    lc7 = getlineCorrespStruct(2605, 1054, 2606, 1720, 2916, 902, 2952, 1716, 6);
+//    lc8 = getlineCorrespStruct(2263, 932, 2266, 964, 2547, 800, 2551, 837, 7);
+//    lc9 = getlineCorrespStruct(2486, 9, 2502, 187, 2848, 608, 2862, 714, 8);
+//    lc10 = getlineCorrespStruct(2263, 617, 2256, 1512, 2848, 608, 2862, 714, 8);
+//    lc11 = getlineCorrespStruct(2721, 1632, 1878, 1637, 3037, 1607, 2205, 1623, 8);
+
+//    lineSubsetStruct lc;
+//    std::vector<lineCorrespStruct> view;
+//    lc.lineCorrespondencies.push_back(lc1);
+//    lc.lineCorrespondencies.push_back(lc2);
+//    lc.lineCorrespondencies.push_back(lc3);
+//    lc.lineCorrespondencies.push_back(lc4);
+//    lc.lineCorrespondencies.push_back(lc5);
+//    lc.lineCorrespondencies.push_back(lc6);
+//    lc.lineCorrespondencies.push_back(lc7);
+//    lc.lineCorrespondencies.push_back(lc8);
+//    lc.lineCorrespondencies.push_back(lc9);
+//    lc.lineCorrespondencies.push_back(lc11);
+
+//    view.push_back(lc1);
+//    view.push_back(lc2);
+//    view.push_back(lc3);
+//    view.push_back(lc4);
+//    view.push_back(lc5);
+//    view.push_back(lc6);
+//    view.push_back(lc7);
+//    view.push_back(lc8);
+//    view.push_back(lc9);
+//    view.push_back(lc10);
+//    view.push_back(lc11);
+
+//    visualizeLineMatches(image_1_color, image_2_color, view, 8, true, "test");
+
+//    computeHomography(lc);
+
+//    visualizeHomography(lc.Hs, image_1_color, image_2_color, "test H");
+
+//    Mat inv = lc.Hs.inv(DECOMP_SVD);
+
+//    double err = sampsonDistanceHomography(lc.Hs, inv, lc1.line1Start, lc1.line1End, lc1.line2Start, lc1.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc2.line1Start, lc2.line1End, lc2.line2Start, lc2.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc3.line1Start, lc3.line1End, lc3.line2Start, lc3.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc4.line1Start, lc4.line1End, lc4.line2Start, lc4.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc5.line1Start, lc5.line1End, lc5.line2Start, lc5.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc6.line1Start, lc6.line1End, lc6.line2Start, lc6.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc7.line1Start, lc7.line1End, lc7.line2Start, lc7.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc8.line1Start, lc8.line1End, lc8.line2Start, lc8.line2End);
+//    err = sampsonDistanceHomography(lc.Hs, inv, lc9.line1Start, lc9.line1End, lc9.line2Start, lc9.line2End);
+//    err = sampsonDistanceHomography(lc.Hs,  inv,lc10.line1Start, lc10.line1End, lc10.line2Start, lc10.line2End);
+//    err = sampsonDistanceHomography(lc.Hs,  inv,lc11.line1Start, lc11.line1End, lc11.line2Start, lc11.line2End);
+
+//    cvWaitKey(0);
+
     extractMatches();
-//    lineCorrespondencies.clear();       //TODO: Remove hard coded lines for entry 8+9
-//    lineCorrespStruct lc1, lc2, lc3, lc4, lc5, lc6;
-//    lc1 = getlineCorrespStruct(1092, 617, 1069, 1225, 1510, 608, 1514, 1216);
-//    lc2 = getlineCorrespStruct(910, 1526, 1096, 1512, 1405, 1530, 1546, 1511);
-//    lc3 = getlineCorrespStruct(1121, 897, 1209, 1149, 1542, 884, 1619, 1134);
-//    lc4 = getlineCorrespStruct(1096, 1673, 1202, 1360, 1552, 1671, 1622, 1353);
-//    lc5 = getlineCorrespStruct(2046, 962, 2256, 909, 2353, 855, 2540, 772);
-//    lc6 = getlineCorrespStruct(2320, 1706, 2284, 1203, 2625, 1648, 2582, 1112);
-//    lineCorrespondencies.push_back(lc1);
-//    lineCorrespondencies.push_back(lc2);
-//    lineCorrespondencies.push_back(lc3);
-//    lineCorrespondencies.push_back(lc4);
-//    lineCorrespondencies.push_back(lc5);
-//    lineCorrespondencies.push_back(lc6);
-//    if(VISUAL_DEBUG) visualizeMatches(lineCorrespondencies, 8, true, "Line matches");
 
     if(goodMatchedLines.size() < 2*NUM_LINE_CORRESP) {
         if(LOG_DEBUG) std::cout << "-- Estimation failed, not enough line correspondencies!" << std::endl;
@@ -103,12 +149,12 @@ bool FEstimatorHLines::compute() {
 
     if(VISUAL_DEBUG) {
         visualizeHomography(firstEstimation.Hs, image_1, image_2, name+": H1");
-        visualizeLineMatches(image_1_color, image_2_color, firstEstimation.lineCorrespondencies, 8, true, name+": H1 used Matches");
+        visualizeLineMatches(image_1_color, image_2_color, firstEstimation.lineCorrespondencies, 6, false, name+": H1 used Matches");
         //visualizeLineMatches(image_1_color, image_2_color, goodLineMatches, 8, true, name+": H1 good Matches");
         //visualizeProjectedLines(H1, 8, true, name+": H21 used lines projected to image 2");
     }
 
-    cvWaitKey(0);
+    //cvWaitKey(0);
 
     filterUsedLineMatches(allMatchedLines, firstEstimation.lineCorrespondencies);
     int removed = filterUsedLineMatches(goodMatchedLines, firstEstimation.lineCorrespondencies);
@@ -164,7 +210,7 @@ bool FEstimatorHLines::compute() {
 
     if(VISUAL_DEBUG) {
         visualizeHomography(secondEstimation.Hs, image_1, image_2, name+" H2");
-        visualizeLineMatches(image_1_color, image_2_color, secondEstimation.lineCorrespondencies, 8, true, name+": H2 used Matches");
+        visualizeLineMatches(image_1_color, image_2_color, secondEstimation.lineCorrespondencies, 6, false, name+": H2 used Matches");
         //visualizeLineMatches(image_1_color, image_2_color, goodLineMatches, 8, true, name+": H2 good Matches");
         //visualizeProjectedLines(H2, 8, true, name+": H21_2 used lines projected to image 2");
         //visualizePointMatches(image_1_color, image_2_color, featuresImg1, featuresImg2, 3, true, name+": Line-generated Point correspondencies");
@@ -259,9 +305,9 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
     }
 
 
-    return true;
+//    return true;
 //    visualizeHomography(bestSubset.Hs, image_1, image_2, "estimateHomography result");
-//    visualizeLineMatches(image_1_color, image_2_color, bestSubset.lineCorrespondencies, 2, true, "estimateHomography line result");
+//    visualizeLineMatches(image_1_color, image_2_color, bestSubset.lineCorrespondencies, 6, true, "estimateHomography line result");
 //    cvWaitKey(0);
 
     //errorThr = errorThr;
@@ -434,7 +480,7 @@ bool FEstimatorHLines::estimateHomography(lineSubsetStruct &result, std::vector<
                 search++;
                 if(search == MAX_POINT_SEARCH) return false;    //only parallel lines remaining
             } while(!isUniqe(subset.lineCorrespondencies, lineCorrespondencies.at(subsetIdx)) || isParallel(subset.lineCorrespondencies, lineCorrespondencies.at(subsetIdx)));
-
+            //} while(!isUniqe(subset.lineCorrespondencies, lineCorrespondencies.at(subsetIdx)));
             subset.lineCorrespondencies.push_back(getlineCorrespStruct(lineCorrespondencies.at(subsetIdx)));
         }
         computeHomography(subset);
@@ -552,7 +598,7 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
         Mat H_inv = subset->Hs.inv(DECOMP_SVD);
         for(std::vector<lineCorrespStruct>::iterator it = lineCorrespondencies.begin() ; it != lineCorrespondencies.end(); ++it) {
             error = sampsonDistanceHomography(subset->Hs, H_inv, it->line1Start, it->line1End, it->line2Start, it->line2End);
-            if(sqrt(error) <= threshold) {
+            if(sqrt(error) <= threshold*3) {
                 subset->subsetError += error;
                 subset->qualityMeasure++;
                 //subset->lineCorrespondencies.push_back(*it);
@@ -562,6 +608,9 @@ lineSubsetStruct FEstimatorHLines::calcRANSAC(std::vector<lineSubsetStruct> &sub
         if(subset->qualityMeasure > bestSolution.qualityMeasure)
             bestSolution = *subset;
     }
+
+//    visualizeLineMatches(image_1_color, image_2_color, bestSolution.lineCorrespondencies, 10, true, "Ransac best line set");
+//    cvWaitKey(0);
 
     if(bestSolution.qualityMeasure > 4) {
 

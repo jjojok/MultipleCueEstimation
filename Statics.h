@@ -5,9 +5,9 @@
 #include <math.h>
 
 //Show debug messages
-#define LOG_DEBUG true
+#define LOG_DEBUG false
 //Show debug images
-#define VISUAL_DEBUG true
+#define VISUAL_DEBUG false
 
 //Program parameters for selecting computation mathods
 #define F_Reined 0
@@ -62,9 +62,9 @@
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
 #define MIN_LENGTH_FACTOR 0.002;       //0.003
 //Max angle between matched lines
-#define MAX_LINE_ANGLE M_PI/2.0       //M_PI/4.0
+#define MAX_LINE_ANGLE M_PI/4.0       //M_PI/4.0
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define HOMOGRAPHY_OUTLIERS 0.8
+#define HOMOGRAPHY_OUTLIERS 0.75
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig
@@ -78,6 +78,6 @@
 //Number of points for error measure between two fundamental matrices
 #define NUM_SAMPLES_F_COMARATION 2000
 //Max trys per draw to find a point who's epipolar line intersects the other image
-#define MAX_SAMPLE_TRYS 1000
+#define MAX_SAMPLE_TRYS 5000
 
 #endif // STATICS_H

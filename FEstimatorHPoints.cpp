@@ -172,7 +172,7 @@ bool FEstimatorHPoints::compute() {
     }
 
     if(VISUAL_DEBUG) {
-        visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 3, true, name+": H1 used Matches");
+        visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 8, false, name+": H1 used Matches");
         visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, name+": H1");
     }
 
@@ -231,7 +231,7 @@ bool FEstimatorHPoints::compute() {
     if(LOG_DEBUG) std::cout << "-- Added " << featuresImg1.size() << " point correspondencies to combined feature vector" << std::endl;
 
     if(VISUAL_DEBUG) {
-        visualizePointMatches(image_1_color, image_2_color, secondEstimation.pointCorrespondencies, 3, true, name+": H2 used Matches");
+        visualizePointMatches(image_1_color, image_2_color, secondEstimation.pointCorrespondencies, 8, false, name+": H2 used Matches");
         visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, name+": H2");
     }
 

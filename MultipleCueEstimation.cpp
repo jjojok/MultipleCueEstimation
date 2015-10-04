@@ -250,7 +250,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         return bestMethod->getF().clone();
     }
 
-    return  bestMethod->getF();
+    //return  bestMethod->getF();
 
     Mat FSPLM = bestMethod->getF().clone();
     std::vector<Mat> x1goodPointsSPLM;
