@@ -87,7 +87,7 @@ bool FEstimatorPoints::compute() {
 //        }
 //    }
 
-    if(featuresImg1.size() >= 7) successful = true;
+    if(x1_used.size() >= 7) successful = true;
 
     featureCountGood = x1.size();
     featureCountComplete = compfeaturesImg1.size();

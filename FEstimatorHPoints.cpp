@@ -343,10 +343,11 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
     pointSubsetStruct LMSubset;
     LMSubset.Hs = bestSubset.Hs.clone();
-
+    Mat H_inv = LMSubset.Hs.inv(DECOMP_SVD);
     LMSubset.pointCorrespondencies.clear();
     for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
-        double e = sampsonDistanceHomography_(LMSubset.Hs, *pointIter);
+        //double e = sampsonDistanceHomography_(LMSubset.Hs, *pointIter);
+        double e = sampsonDistanceHomography_(LMSubset.Hs, H_inv, *pointIter);
         if(sqrt(e) <= threshold) {        //errorThr
             LMSubset.pointCorrespondencies.push_back(*pointIter);
             lastError += e;
@@ -370,10 +371,11 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
         removedMatches = LMSubset.pointCorrespondencies.size();
 
         LMSubset.subsetError = 0;
-        //Mat H_inv = H.inv(DECOMP_SVD);
+        Mat H_inv = LMSubset.Hs.inv(DECOMP_SVD);
         LMSubset.pointCorrespondencies.clear();
         for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
-            double e = sampsonDistanceHomography_(LMSubset.Hs, *pointIter);
+            //double e = sampsonDistanceHomography_(LMSubset.Hs, *pointIter);
+            double e = sampsonDistanceHomography_(LMSubset.Hs, H_inv, *pointIter);
             if(sqrt(e) <= threshold) {        //errorThr
                 LMSubset.pointCorrespondencies.push_back(*pointIter);
                 LMSubset.subsetError += e;
@@ -401,8 +403,10 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
     bestSubset.subsetError = 0;
     bestSubset.pointCorrespondencies.clear();
+    H_inv = bestSubset.Hs.inv(DECOMP_SVD);
     for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
-        double error = sampsonDistanceHomography_(bestSubset.Hs, *pointIter);
+        //double error = sampsonDistanceHomography_(bestSubset.Hs, *pointIter);
+        double error = sampsonDistanceHomography_(bestSubset.Hs, H_inv, *pointIter);
         if(sqrt(error) <= threshold) {
             bestSubset.pointCorrespondencies.push_back(*pointIter);
             bestSubset.subsetError += error;
@@ -515,10 +519,11 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
     for(std::vector<pointSubsetStruct>::iterator it = subsets.begin() ; it != subsets.end(); ++it) {
         it->qualityMeasure = 0;       //count inlainers
         it->subsetError = 0;
-        //Mat H_inv = it->Hs.inv(DECOMP_SVD);
+        Mat H_inv = it->Hs.inv(DECOMP_SVD);
         //it->pointCorrespondencies.clear();
         for(std::vector<pointCorrespStruct>::iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-            error = sampsonDistanceHomography_(it->Hs, *pointIter);
+            //error = sampsonDistanceHomography_(it->Hs, *pointIter);
+            error = sampsonDistanceHomography_(it->Hs, H_inv, *pointIter);
             if(sqrt(error) <= threshold) {
                 it->subsetError += error;
                 it->qualityMeasure++;
@@ -534,10 +539,11 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
 
     if(bestSolution.qualityMeasure > 4) {
 
-        //Mat H_inv = bestSolution.Hs.inv(DECOMP_SVD);
+        Mat H_inv = bestSolution.Hs.inv(DECOMP_SVD);
         bestSolution.pointCorrespondencies.clear();
         for(std::vector<pointCorrespStruct>::iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-            error = sampsonDistanceHomography_(bestSolution.Hs, *pointIter);
+            //error = sampsonDistanceHomography_(bestSolution.Hs, *pointIter);
+            error = sampsonDistanceHomography_(bestSolution.Hs, H_inv, *pointIter);
             if(sqrt(error) <= threshold) {
                 bestSolution.pointCorrespondencies.push_back(getPointCorrespStruct(*pointIter));
             }
@@ -584,23 +590,23 @@ pointSubsetStruct FEstimatorHPoints::calcRANSAC(std::vector<pointSubsetStruct> &
 //    return errors.at(errors.size()/2);
 //}
 
+//double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, std::vector<pointCorrespStruct> pointCorresp) {
 double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, std::vector<pointCorrespStruct> pointCorresp) {
     double error = 0;
-    //Mat H_inv = H.inv(DECOMP_SVD);
+    Mat H_inv = H.inv(DECOMP_SVD);
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = pointCorresp.begin(); pointIter != pointCorresp.end(); ++pointIter) {
-        error += sampsonDistanceHomography_(H, *pointIter);
+        //error += sampsonDistanceHomography_(H, *pointIter);
+        error += sampsonDistanceHomography_(H, H_inv, *pointIter);
     }
     if(pointCorresp.size() == 0) return 0;
     return error/pointCorresp.size();
 }
 
-double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, pointCorrespStruct pointCorresp) {
-    return sampsonDistanceHomography(H, matVector(pointCorresp.x1), matVector(pointCorresp.x2));
+//double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, pointCorrespStruct pointCorresp);
+double FEstimatorHPoints::sampsonDistanceHomography_(Mat H, Mat H_inv, pointCorrespStruct pointCorresp) {
+    return sampsonDistanceHomography(H, H_inv, matVector(pointCorresp.x1), matVector(pointCorresp.x2));
+    //return sampsonDistanceHomography(H, matVector(pointCorresp.x1), matVector(pointCorresp.x2));
 }
-
-//double FEstimatorHPoints::errorFunctionHPoints_(Mat H, pointCorrespStruct pointCorresp) {
-//    return sampsonDistanceHomography(H, pointCorresp.x1, pointCorresp.x2);
-//}
 
 int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &pointCorresp, std::vector<pointCorrespStruct> usedPointCorresp) {
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
@@ -625,10 +631,11 @@ int FEstimatorHPoints::filterUsedPointMatches(std::vector<pointCorrespStruct> &p
 
 int FEstimatorHPoints::filterBadPointMatches(pointSubsetStruct subset, std::vector<pointCorrespStruct> &pointCorresp, double threshold) {
     int removed = 0;
-    //Mat H_inv = subset.Hs.inv(DECOMP_SVD);
+    Mat H_inv = subset.Hs.inv(DECOMP_SVD);
     std::vector<pointCorrespStruct>::iterator it= pointCorresp.begin();
     while (it!=pointCorresp.end()) {
-        if(sqrt(sampsonDistanceHomography_(subset.Hs, *it)) > threshold) {
+        //if(sqrt(sampsonDistanceHomography_(subset.Hs, *it)) > threshold) {
+        if(sqrt(sampsonDistanceHomography_(subset.Hs, H_inv, *it)) > threshold) {
             removed++;
             pointCorresp.erase(it);
         } else it++;

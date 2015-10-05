@@ -91,7 +91,8 @@ double sampsonDistanceFundamentalMat(Mat F, std::vector<Point2d> points1, std::v
 double sampsonDistanceFundamentalMat(Mat F, std::vector<Mat> points1, std::vector<Mat> points2);
 //error point homogrpahy
 //double sampsonDistanceHomographySymmetric(Mat H, Mat H_inv, Mat x1, Mat x2);
-double sampsonDistanceHomography(Mat H, Mat x1, Mat x2);
+//double sampsonDistanceHomography(Mat H, Mat x1, Mat x2);
+double sampsonDistanceHomography(Mat H, Mat H_inv, Mat x1, Mat x2);
 double sampsonDistanceHomographySingle(Mat H, Mat x1, Mat x2);
 //error line homography
 //double sampsonDistanceHomographySymmetric(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End);

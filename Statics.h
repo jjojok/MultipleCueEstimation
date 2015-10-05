@@ -17,7 +17,7 @@
 
 //General:
 //Threshold to determine "inlier", compared with square root of sampson distance, e.g. by RANSAC
-#define INLIER_THRESHOLD 3
+#define INLIER_THRESHOLD 2
 //Initial threshold to determine "inlier" by LM in refinement step
 #define INLIER_LM_THRESHOLD 100.0
 //Weights for fundamental matrix quality function
@@ -40,7 +40,7 @@
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 8
-//Ransac confidence
+//Rans5ac confidence
 #define RANSAC_CONFIDENCE 0.999
 
 //Points:
