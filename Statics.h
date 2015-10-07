@@ -17,13 +17,13 @@
 
 //General:
 //Threshold to determine "inlier", compared with square root of sampson distance, e.g. by RANSAC
-#define INLIER_THRESHOLD 2
+#define INLIER_THRESHOLD 3
 //Initial threshold to determine "inlier" by LM in refinement step
 #define INLIER_LM_THRESHOLD 100.0
 //Weights for fundamental matrix quality function
 #define QI 1.0
 #define QE 1.0
-#define QS 0.1
+#define QS 0.01
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
 //Max number of numerical refinement steps after a first homographie was found

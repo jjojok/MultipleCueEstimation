@@ -1,3 +1,5 @@
+% Code from: http://www.iim.ics.tut.ac.jp/~sugaya/public-e.html
+
 %
 % Normalization function
 %
