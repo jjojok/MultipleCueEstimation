@@ -685,10 +685,10 @@ double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std:
 //}
 
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {
-    if(fabs(x11.at<double>(0,0) - x21.at<double>(0,0)) > 1.5) return false;
-    if(fabs(x11.at<double>(1,0) - x21.at<double>(1,0)) > 1.5) return false;
-    if(fabs(x12.at<double>(0,0) - x22.at<double>(0,0)) > 1.5) return false;
-    if(fabs(x12.at<double>(1,0) - x22.at<double>(1,0)) > 1.5) return false;
+    if(fabs(x11.at<double>(0,0) - x21.at<double>(0,0)) > 1.0) return false;
+    if(fabs(x11.at<double>(1,0) - x21.at<double>(1,0)) > 1.0) return false;
+    if(fabs(x12.at<double>(0,0) - x22.at<double>(0,0)) > 1.0) return false;
+    if(fabs(x12.at<double>(1,0) - x22.at<double>(1,0)) > 1.0) return false;
     return true;
 }
 

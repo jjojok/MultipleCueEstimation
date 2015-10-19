@@ -5,7 +5,7 @@
 #include <math.h>
 
 //Show debug messages
-#define LOG_DEBUG true
+#define LOG_DEBUG false
 //Show debug images
 #define VISUAL_DEBUG false
 
@@ -17,12 +17,12 @@
 
 //General:
 //Threshold to determine "inlier", compared with square root of sampson distance, e.g. by RANSAC
-#define INLIER_THRESHOLD 3
+#define INLIER_THRESHOLD 3.0
 //Initial threshold to determine "inlier" by LM in refinement step
 #define INLIER_LM_THRESHOLD 100.0
 //Weights for fundamental matrix quality function
-#define QI 1.0
-#define QE 0.5
+#define QI 4.0
+#define QE 1.0
 #define QS 0.01
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
@@ -42,6 +42,8 @@
 #define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
 //Rans5ac confidence
 #define RANSAC_CONFIDENCE 0.999
+//LM iterations for homographies
+#define MAX_LM_ITER 200
 
 //Points:
 //Sift features

@@ -339,7 +339,8 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
     }
     lastError /= LMSubset.lineCorrespondencies.size();
 
-    double errTher;
+    double errTher = threshold;
+    double bestSubsetErrThr = threshold;
 
     do {
 
@@ -347,8 +348,6 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
             if(LMSubset.lineCorrespondencies.size() < 4) return false;
             else break;
         }
-
-        errTher = threshold - 0.2*iterationLM;
 
         iterationLM++;
 
@@ -358,6 +357,11 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         levenbergMarquardt(LMSubset);
 
+        errTher = threshold - 0.2*iterationLM;
+        //errTher = 1.0;
+        if(errTher < 1.0) errTher = 1.0;
+
+        bool onlyParallelCorresp = true;
         LMSubset.subsetError = 0;
 //        Mat H_T = bestSubset.Hs.t();
         H_inv = LMSubset.Hs.inv(DECOMP_SVD);
@@ -367,6 +371,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
             double error = sampsonDistanceHomography(LMSubset.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
             //double error = sampsonDistanceHomography(LMSubset.Hs, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
             if(sqrt(error) <= errTher) {
+                if(onlyParallelCorresp) onlyParallelCorresp = isParallel(LMSubset.lineCorrespondencies, lc);
                 LMSubset.lineCorrespondencies.push_back(lc);
                 LMSubset.subsetError += error;
             }
@@ -378,9 +383,10 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         dError = (lastError - LMSubset.subsetError)/LMSubset.subsetError;
         if(LOG_DEBUG) std::cout << "-- Mean squared error: " << LMSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << LMSubset.lineCorrespondencies.size() << ", removed: " << removedMatches << std::endl;
 
-        if(dError < 0 || iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
+        if(dError < 0 || iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS || onlyParallelCorresp) break;
 
         bestSubset.Hs = LMSubset.Hs.clone();
+        bestSubsetErrThr = errTher;
 
 //        visualizeLineMatches(image_1_color, image_2_color, LMSubset.lineCorrespondencies, 10, true, "Ransac best line set");
 //        visualizeHomography(LMSubset.Hs, image_1, image_2, "H");
@@ -389,14 +395,14 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         lastError = LMSubset.subsetError;
 
         //if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
-        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
-        else stableSolutions = 0;
+//        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
+//        else stableSolutions = 0;
 
-        if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
+        //if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
         //if(LMSubset.lineCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) break;
 
-    } while(stableSolutions < 3);
+    } while((dError > MAX_ERROR_CHANGE) && abs(removedMatches) > 0);
 
     H_inv = bestSubset.Hs.inv(DECOMP_SVD);
     bestSubset.subsetError = 0;
@@ -447,7 +453,7 @@ double FEstimatorHLines::levenbergMarquardt(lineSubsetStruct &bestSubset) {
     lm.parameters.ftol = 1.0e-10;
     lm.parameters.xtol = 1.0e-10;
     //lm.parameters.epsfcn = 1.0e-3;
-    lm.parameters.maxfev = 40; // Max iterations
+    lm.parameters.maxfev = MAX_LM_ITER; // Max iterations
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
 
     if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.nfev << ", Status: " << status << std::endl;

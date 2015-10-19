@@ -355,6 +355,9 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
     }
     lastError /= LMSubset.pointCorrespondencies.size();
 
+    double errTher = threshold;
+    double bestSubsetErrThr = threshold;
+
     do {
 
         if(LMSubset.pointCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) {
@@ -364,19 +367,25 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         iterationLM++;
 
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << threshold << std::endl;
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << errTher << std::endl;
 
         levenbergMarquardt(LMSubset);
 
+        errTher = threshold - 0.2*iterationLM;
+        //errTher = 1.0;
+        if(errTher < 1.0) errTher = 1.0;
+
         removedMatches = LMSubset.pointCorrespondencies.size();
 
+        bool onlyColinearCorresp = true;
         LMSubset.subsetError = 0;
         Mat H_inv = LMSubset.Hs.inv(DECOMP_SVD);
         LMSubset.pointCorrespondencies.clear();
         for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
             //double e = sampsonDistanceHomography_(LMSubset.Hs, *pointIter);
             double e = sampsonDistanceHomography_(LMSubset.Hs, H_inv, *pointIter);
-            if(sqrt(e) <= threshold) {        //errorThr
+            if(sqrt(e) <= errTher) {        //errorThr
+                if(onlyColinearCorresp) onlyColinearCorresp = isColinear(LMSubset.pointCorrespondencies, *pointIter);
                 LMSubset.pointCorrespondencies.push_back(*pointIter);
                 LMSubset.subsetError += e;
             }
@@ -388,18 +397,19 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
         dError = (lastError - LMSubset.subsetError)/LMSubset.subsetError;
         if(LOG_DEBUG) std::cout << "-- Mean squared error: " << LMSubset.subsetError << ", rel. Error change: "<< dError << ", num Matches: " << LMSubset.pointCorrespondencies.size() << std::endl;
 
-        if(dError < 0 || iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS) break;
+        if(dError < 0 || iterationLM == NUMERICAL_OPTIMIZATION_MAX_ITERATIONS || onlyColinearCorresp) break;
 
         bestSubset.Hs = LMSubset.Hs.clone();
+        bestSubsetErrThr = errTher;
 
         lastError = LMSubset.subsetError;
 
-        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
-        else stableSolutions = 0;
+//        if((dError >=0 && dError <= MAX_ERROR_CHANGE) || abs(removedMatches) <= MAX_FEATURE_CHANGE) stableSolutions++;
+//        else stableSolutions = 0;
 
-        if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
+//        if(LOG_DEBUG) std::cout << "-- Stable solutions: " << stableSolutions << std::endl;
 
-    } while(stableSolutions < 3);
+    } while((dError > MAX_ERROR_CHANGE) && abs(removedMatches) > 0);
 
     bestSubset.subsetError = 0;
     bestSubset.pointCorrespondencies.clear();
@@ -687,7 +697,7 @@ double FEstimatorHPoints::levenbergMarquardt(pointSubsetStruct &bestSubset) {
 
     lm.parameters.ftol = 1.0e-10;
     lm.parameters.xtol = 1.0e-10;
-    lm.parameters.maxfev = 40; // Max iterations
+    lm.parameters.maxfev = MAX_LM_ITER; // Max iterations
     Eigen::LevenbergMarquardtSpace::Status status = lm.minimize(x);
 
     if (LOG_DEBUG) std::cout << "-- LMA Iterations: " << lm.nfev << ", Status: " << status << std::endl;

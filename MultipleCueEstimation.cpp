@@ -292,7 +292,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
         //errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF(), errorSPLM, estimationIter->inlierCountCombined, squaredErrorThr, estimationIter->sampsonErrStdDevCombined);
         //quality = estimationIter->quality = qualitiy(errorSPLM, smallestSampsonErr, estimationIter->inlierCountCombined, largestInlier, estimationIter->sampsonErrStdDevCombined, smallestSampsonErrStdDev);
-    }while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.01 && errorSPLM > 0.1);
+    } while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.01 && errorSPLM > 0.1);
 
     if(compareWithGroundTruth) refinedFTrueInlierCombined = goodMatchesCount(Fgt, x1goodPointsSPLM, x2goodPointsSPLM, INLIER_THRESHOLD);
 
@@ -329,8 +329,8 @@ bool MultipleCueEstimation::SPLM(Mat &F, std::vector<Mat> x1m, std::vector<Mat> 
     }
 
     //3072 2048
-    double f0 = 3072.0;
-    //double f0 = 1.0;
+    //double f0 = 3072.0;
+    double f0 = 1.0;
 
     for(int i = 0; i < x1m.size(); i++) {
         x1.push_back(x1m.at(i).at<double>(0,0)/f0);
