@@ -2,7 +2,7 @@
 #define FESTIMATORPOINTS_H
 
 #include "Utility.h"
-#include "FeatureMatchers.h"
+#include "FeatureMatcher.h"
 
 class FEstimatorPoints : public FEstimationMethod {
 public:

@@ -2,7 +2,7 @@
 #define FESTIMATORHPOINTS_H
 
 #include "Utility.h"
-#include "FeatureMatchers.h"
+#include "FeatureMatcher.h"
 #include "LevenbergMarquardtPoints.h"
 
 class FEstimatorHPoints : public FEstimationMethod {

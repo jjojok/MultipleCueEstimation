@@ -292,7 +292,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
         //errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF(), errorSPLM, estimationIter->inlierCountCombined, squaredErrorThr, estimationIter->sampsonErrStdDevCombined);
         //quality = estimationIter->quality = qualitiy(errorSPLM, smallestSampsonErr, estimationIter->inlierCountCombined, largestInlier, estimationIter->sampsonErrStdDevCombined, smallestSampsonErrStdDev);
-    }while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.1 && errorSPLM > 0.5);
+    }while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.01 && errorSPLM > 0.1);
 
     if(compareWithGroundTruth) refinedFTrueInlierCombined = goodMatchesCount(Fgt, x1goodPointsSPLM, x2goodPointsSPLM, INLIER_THRESHOLD);
 
@@ -328,14 +328,18 @@ bool MultipleCueEstimation::SPLM(Mat &F, std::vector<Mat> x1m, std::vector<Mat> 
             Fvect->at(k++) = F.at<double>(i,j);
     }
 
+    //3072 2048
+    double f0 = 3072.0;
+    //double f0 = 1.0;
+
     for(int i = 0; i < x1m.size(); i++) {
-        x1.push_back(x1m.at(i).at<double>(0,0));
-        x2.push_back(x2m.at(i).at<double>(0,0));
-        y1.push_back(x1m.at(i).at<double>(1,0));
-        y2.push_back(x2m.at(i).at<double>(1,0));
+        x1.push_back(x1m.at(i).at<double>(0,0)/f0);
+        x2.push_back(x2m.at(i).at<double>(0,0)/f0);
+        y1.push_back(x1m.at(i).at<double>(1,0)/f0);
+        y2.push_back(x2m.at(i).at<double>(1,0)/f0);
     }
 
-    bool result = SevenpointLevenbergMarquardt(Fvect, x1, y1, x2, y2, 1, 20, 0.5e-12);  //2560, 3072
+    bool result = SevenpointLevenbergMarquardt(Fvect, x1, y1, x2, y2, f0, 80, 0.5e-12);  //2560, 3072
     if(!result) return false;
 
     k = 0;

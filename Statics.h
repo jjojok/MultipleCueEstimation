@@ -5,7 +5,7 @@
 #include <math.h>
 
 //Show debug messages
-#define LOG_DEBUG false
+#define LOG_DEBUG true
 //Show debug images
 #define VISUAL_DEBUG false
 
@@ -22,7 +22,7 @@
 #define INLIER_LM_THRESHOLD 100.0
 //Weights for fundamental matrix quality function
 #define QI 1.0
-#define QE 1.0
+#define QE 0.5
 #define QS 0.01
 //Hard limit on number of computations for ransac & lmeds
 #define MAX_NUM_COMPUTATIONS 15000
@@ -39,7 +39,7 @@
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
-#define NUMERICAL_OPTIMIZATION_MIN_MATCHES 8
+#define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
 //Rans5ac confidence
 #define RANSAC_CONFIDENCE 0.999
 
@@ -76,8 +76,8 @@
 
 //Error Estimation:
 //Number of points for error measure between two fundamental matrices
-#define NUM_SAMPLES_F_COMARATION 2000
+//#define NUM_SAMPLES_F_COMARATION 2000
 //Max trys per draw to find a point who's epipolar line intersects the other image
-#define MAX_SAMPLE_TRYS 5000
+//#define MAX_SAMPLE_TRYS 5000
 
 #endif // STATICS_H

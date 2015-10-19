@@ -43,7 +43,7 @@ LINK_DIRECTORIES(/usr/local/lib/octave/4.0.0)
 
 #ADD_EXECUTABLE( MultipleCueEstimation main.cpp MCE.cpp MCE.h LineMatcher.cpp LineMatcher.h)
 #TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} ${BIAS_LIBRARIES} ${CMAKE_SOURCE_DIR}/LineMatchingSourceCode/build/libLineMatching.so)
-ADD_EXECUTABLE( MultipleCueEstimation main.cpp MultipleCueEstimation.cpp MultipleCueEstimation.h FEstimatorPoints.cpp FEstimatorPoints.h FEstimatorHPoints.cpp FEstimatorHPoints.h FEstimatorHLines.cpp FEstimatorHLines.h Utility.cpp Utility.h FEstimationMethod.cpp FEstimationMethod.h Statics.h LevenbergMarquardtLines.h LevenbergMarquardtGeneral.h FeatureMatchers.cpp FeatureMatchers.h DataStructs.h LevenbergMarquardtPoints.h)
+ADD_EXECUTABLE( MultipleCueEstimation main.cpp MultipleCueEstimation.cpp MultipleCueEstimation.h FEstimatorPoints.cpp FEstimatorPoints.h FEstimatorHPoints.cpp FEstimatorHPoints.h FEstimatorHLines.cpp FEstimatorHLines.h Utility.cpp Utility.h FEstimationMethod.cpp FEstimationMethod.h Statics.h LevenbergMarquardtLines.h FeatureMatcher.cpp FeatureMatcher.h DataStructs.h LevenbergMarquardtPoints.h)
 TARGET_LINK_LIBRARIES( MultipleCueEstimation ${OpenCV_LIBS} ${CMAKE_CURRENT_SOURCE_DIR}/clm/build/libSevenpointLevenbergMarquardt.so)
 #MESSAGE(MultipleCueEstimation: ${CMAKE_CURRENT_SOURCE_DIR})
 #LevenbergMarquardtStandardDeviation.h

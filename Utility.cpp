@@ -16,29 +16,6 @@ double fnorm(double x, double y) {
     return sqrt(pow(x, 2) + pow(y, 2));
 }
 
-double normalizeThr(Mat T1, Mat T2, double thrdth) {
-
-    double a = 0.25;
-
-    double thr = sqrt(thrdth-3*a*a);
-
-    Mat thrX1 = Mat::zeros(3,1,CV_64FC1);
-    thrX1.at<double>(0,0) = thr;
-    thrX1.at<double>(1,0) = a;
-    Mat thrX2 = Mat::zeros(3,1,CV_64FC1);
-    thrX2.at<double>(0,0) = a;
-    thrX2.at<double>(1,0) = a;
-
-    thrX1 = T1*thrX1;
-    thrX2 = T2*thrX2;
-
-    double normThr = std::pow(norm(thrX1),2) + std::pow(norm(thrX2),2);
-
-    if(LOG_DEBUG) std::cout << "-- Calculated normalized threshold: " << normThr << " from " << thrdth << std::endl;
-
-    return normThr;
-}
-
 void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name) {
     Mat transformed;
     Mat result;
@@ -70,33 +47,9 @@ void showImage(std::string name, Mat image, int type, int width, int height) {
     imshow(name, resized);
 }
 
-double squaredError(Mat A, Mat B) {
-    return cv::sum((A-B).mul(A-B))[0];
-}
-
-int calcMatRank(Mat M) {
-    Mat U,V,W;
-    int rank = 0, diag;
-    SVD::compute(M,U,V,W);
-    if (W.cols < W.rows) diag = W.cols;
-    else diag = W.rows;
-    for(int i = 0; i < diag; i++) {
-        if(fabs(W.at<double>(i,i)) > 10^(-10)) {
-            rank++;
-        }
-    }
-    return rank;
-}
-
-//returns: 0 = no solution, 1 = one solution, -1 = inf solutions
-int calcNumberOfSolutions(Mat linEq) {
-    Mat coefficients = linEq.colRange(0, linEq.cols-1);
-    int coeffRank = calcMatRank(coefficients);
-    int augmentedRank = calcMatRank(linEq);
-    if (augmentedRank > coeffRank) return 0;
-    if (augmentedRank == coeffRank) return 1;
-    return -1;
-}
+//double squaredError(Mat A, Mat B) {
+//    return cv::sum((A-B).mul(A-B))[0];
+//}
 
 std::string getType(Mat m) {
     std::string type = "Type: ";
@@ -187,22 +140,6 @@ void rectify(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, Mat image1
     }
 }
 
-void PointsToFile(std::vector<Point2d>* points, std::string file) {
-
-    Point2d point;
-    std::ofstream outputStream;
-    outputStream.open(file.c_str());
-    for (int i = 0; points->size(); i++) {
-            point = points->at(i);
-            outputStream << point.x;
-            outputStream << ' ';
-            outputStream << point.y;
-            outputStream << '\n';
-    }
-    outputStream.flush();
-    outputStream.close();
-}
-
 Mat MatFromFile(std::string file, int rows) {
 
     Mat matrix = Mat::zeros(0,0,CV_64FC1);
@@ -247,85 +184,6 @@ bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
         return false;
     }
 }
-
-//double meanSquaredSymmeticTransferError(Mat F, std::vector<Point2d> points1, std::vector<Point2d> points2) {    //Reprojection error, epipolar line
-//    double error = 0;
-//    for(int i = 0; i < points1.size(); i++) {
-//        error+=std::pow(symmeticTransferError(F, matVector(points1.at(i)), matVector(points2.at(i))),2);
-//    }
-//    return error/points1.size();
-//}
-
-//double randomSampleSymmeticTransferError(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {   //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
-//    //std::srand(std::time(0));
-//    std::srand(1);  //Pseudo random: Try to use the same points for every image
-//    double err1 = randomSampleSymmeticTransferErrorSub(F1, F2, image1, image2, numOfSamples);
-//    if(err1 == -1) return -1;
-//    double err2 = randomSampleSymmeticTransferErrorSub(F2, F1, image1, image2, numOfSamples);
-//    if(err2 == -1) return -1;
-//    return (err1 + err2)/2.0;
-//}
-
-//double randomSampleSymmeticTransferErrorSub(Mat F1, Mat F2, Mat image1, Mat image2, int numOfSamples) {    //Computes an error mesure between epipolar lines using arbitrary points, see Determining the Epipolar Geometry and its Uncertainty, p24
-//    double epipolarDistSum = 0;
-//    int imgWidth = image1.cols;
-//    int imgHeight = image1.rows;
-//    for(int i = 0; i < numOfSamples; i++) {
-//        //line ax + by + c = 0 <-> ax + c = -by <-> (-a/b)x + (-c/b) = y; (-a/b) = -l1/l2, (-c/b) = -l3/l2
-//        Mat p1homog;
-//        int xMin;
-//        int xMax;
-//        double l2F1a = 0, l2F1b = 0;
-
-//        Mat l2F1homog;
-
-//        int trys = 1;
-//        do {    //Draw random point until it's epipolar line intersects image 2
-//            int x = rand()%(imgWidth-20)+10;
-//            int y = rand()%(imgHeight-20)+10;
-//            p1homog = matVector(x, y, 1);
-//            l2F1homog = F1*p1homog;
-//            l2F1a = -l2F1homog.at<double>(0,0) / l2F1homog.at<double>(1,0);
-//            l2F1b = -l2F1homog.at<double>(2,0) / l2F1homog.at<double>(1,0);
-//            if(l2F1a > 0) {
-//                xMax = std::min(imgWidth, (int)std::floor((imgHeight-l2F1b)/l2F1a));
-//                xMin = std::max(0, (int)std::ceil(-l2F1b/l2F1a));
-//            } else if(l2F1a < 0) {
-//                xMax = std::min(imgWidth, (int)std::floor(-l2F1b/l2F1a));
-//                xMin = std::max(0, (int)std::ceil((imgHeight-l2F1b)/l2F1a));
-//            } else {
-//                xMax = imgWidth;
-//                xMin = 0;
-//            }
-
-//            trys++;
-
-//        } while((xMin > xMax) && (trys < MAX_SAMPLE_TRYS));
-
-//        if(trys == MAX_SAMPLE_TRYS) return -1;      //Cant find a point that projects to an epipolar line in image 2
-
-//        double x, y;
-//        if(xMax == xMin) x = xMax;
-//        else x = (rand()%(xMax-xMin)) + xMin;
-//        y = l2F1a*x + l2F1b;
-
-//        Mat img2 = image2.clone();
-//        circle(img2, cvPoint(x,y), 5, Scalar(255,255,255), 3);
-//        circle(img2, cvPoint(x,y), 30, Scalar(255,255,255), 6);
-
-//        //Compute distance of chosen random point to epipolar line of F2
-//        Mat p2homog = matVector(x, y, 1);
-//        Mat l2F2homog = F2*p1homog;
-//        l2F2homog /= l2F2homog.at<double>(1,0);
-//        epipolarDistSum+=fabs(Mat(p2homog.t()*l2F2homog).at<double>(0,0));
-
-//        //Compute distance of point1 to epipolar line from random point using F2^T in image 1
-//        Mat l1F2homog = F2.t()*p2homog;
-//        l1F2homog /= l1F2homog.at<double>(1,0);
-//        epipolarDistSum+=fabs(Mat(p1homog.t()*l1F2homog).at<double>(0,0));
-//    }
-//    return epipolarDistSum/(2.0*numOfSamples);
-//}
 
 Mat matVector(double x, double y, double z) {
     Mat vect = Mat::zeros(3,1,CV_64FC1);
@@ -683,14 +541,6 @@ void computeEpipoles(Mat F, Mat &e1, Mat &e2) {     //See Hartley, Ziss p.246
     eigen2cv(eigenE2, e2);
 }
 
-Mat computeGeneralHomography(Mat F) {       //See Hartley, Ziss p.243
-    Mat e1, e2;
-    computeEpipoles(F, e1, e2);
-    Mat H = crossProductMatrix(e2).inv(DECOMP_SVD)*F;
-    H /= H.at<double>(2,2);
-    return H;
-}
-
 double computeRelativeOutliers(double generalOutliers, double uesdCorresp, double correspCount) {
     double outliers = generalOutliers*(uesdCorresp/correspCount);
     if(LOG_DEBUG) std::cout << "-- Filtering matches, new outlier/matches ratio: " << outliers << std::endl;
@@ -814,31 +664,31 @@ double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std:
     return error/=used;
 }
 
-bool compareCorrespErrors(correspSubsetError ls1, correspSubsetError ls2) {
-    return ls1.correspError < ls2.correspError;
-}
+//bool compareCorrespErrors(correspSubsetError ls1, correspSubsetError ls2) {
+//    return ls1.correspError < ls2.correspError;
+//}
 
-bool compareFundMatSets(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-    return f1->inlier > f2->inlier;
-}
+//bool compareFundMatSets(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+//    return f1->inlier > f2->inlier;
+//}
 
-bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-    return f1->selectedInlierCount > f2->selectedInlierCount;
-}
+//bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+//    return f1->selectedInlierCount > f2->selectedInlierCount;
+//}
 
-bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-    return f1->meanSquaredErrror < f2->meanSquaredErrror;
-}
+//bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+//    return f1->meanSquaredErrror < f2->meanSquaredErrror;
+//}
 
-bool compareFundMatSetsInlinerError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-    return f1->inlierMeanSquaredErrror < f2->inlierMeanSquaredErrror;
-}
+//bool compareFundMatSetsInlinerError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
+//    return f1->inlierMeanSquaredErrror < f2->inlierMeanSquaredErrror;
+//}
 
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {
-    if(x11.at<double>(0,0) != x21.at<double>(0,0)) return false;
-    if(x11.at<double>(1,0) != x21.at<double>(1,0)) return false;
-    if(x12.at<double>(0,0) != x22.at<double>(0,0)) return false;
-    if(x12.at<double>(1,0) != x22.at<double>(1,0)) return false;
+    if(fabs(x11.at<double>(0,0) - x21.at<double>(0,0)) > 1.5) return false;
+    if(fabs(x11.at<double>(1,0) - x21.at<double>(1,0)) > 1.5) return false;
+    if(fabs(x12.at<double>(0,0) - x22.at<double>(0,0)) > 1.5) return false;
+    if(fabs(x12.at<double>(1,0) - x22.at<double>(1,0)) > 1.5) return false;
     return true;
 }
 

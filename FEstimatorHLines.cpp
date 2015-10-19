@@ -1,6 +1,6 @@
 #include "FEstimatorHLines.h"
 #include "LevenbergMarquardtLines.h"
-#include "FeatureMatchers.h"
+#include "FeatureMatcher.h"
 
 FEstimatorHLines::FEstimatorHLines(Mat img1, Mat img2, Mat img1_c, Mat img2_c, std::string name) {
     image_1 = img1.clone();
@@ -339,6 +339,8 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
     }
     lastError /= LMSubset.lineCorrespondencies.size();
 
+    double errTher;
+
     do {
 
         if(LMSubset.lineCorrespondencies.size() <= NUMERICAL_OPTIMIZATION_MIN_MATCHES) {
@@ -346,9 +348,11 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
             else break;
         }
 
+        errTher = threshold - 0.2*iterationLM;
+
         iterationLM++;
 
-        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << threshold << std::endl;
+        if(LOG_DEBUG)  std::cout << "-- Numeric optimization iteration: " << iterationLM << "/" << NUMERICAL_OPTIMIZATION_MAX_ITERATIONS << ", error threshold for inliers: " << errTher << std::endl;
 
         removedMatches = LMSubset.lineCorrespondencies.size();
 
@@ -362,7 +366,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
             lineCorrespStruct lc = allMatches.at(i);
             double error = sampsonDistanceHomography(LMSubset.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
             //double error = sampsonDistanceHomography(LMSubset.Hs, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
-            if(sqrt(error) <= threshold) {
+            if(sqrt(error) <= errTher) {
                 LMSubset.lineCorrespondencies.push_back(lc);
                 LMSubset.subsetError += error;
             }
