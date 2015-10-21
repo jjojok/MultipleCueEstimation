@@ -76,6 +76,8 @@ public:
     double sampsonErrStdDevCombined;
     //Standarddeviation of mean sampson distance from combined feature sets which are described by the ground truth (error < INLIER_THRESHOLD)
     double trueSampsonErrStdDev;
+    //Standarddeviation of mean root sampson distance from combined feature sets which are described by the ground truth (error < INLIER_THRESHOLD)
+    double trueRootSampsonErrStdDev;
 
     //Quality measure for best estimation selection
     double quality;

@@ -40,16 +40,36 @@ void showImage(std::string name, Mat image, int type, int width, int height) {
         if (height > 0) ty= (double)height/image.rows;
         else ty= tx;
     }
-    namedWindow(name, type);
-    int method = INTER_LINEAR;
-    if(tx < 1) method = INTER_AREA;
-    resize(image, resized, Size(0,0), tx, ty, method);
-    imshow(name, resized);
+
+    if(SHOW_DEBUG_IMG) {
+        namedWindow(name, type);
+        int method = INTER_LINEAR;
+        if(tx < 1) method = INTER_AREA;
+        resize(image, resized, Size(0,0), tx, ty, method);
+        imshow(name, resized);
+    }
+
+
+    if(SAVE_DEBUG_IMG) writeImage(name, image);
+
+
 }
 
-//double squaredError(Mat A, Mat B) {
-//    return cv::sum((A-B).mul(A-B))[0];
-//}
+void writeImage(std::string file, Mat img) {
+    std::vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(3);
+
+    std::replace(file.begin(), file.end(), ':', '_');
+    std::replace(file.begin(), file.end(), ' ', '_');
+
+    try {
+        imwrite(file+".png", img, compression_params);
+    } catch(...) {}
+//    catch (std::runtime_error& ex) {
+//        if(LOG_DEBUG) fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+//    }
+}
 
 std::string getType(Mat m) {
     std::string type = "Type: ";
@@ -70,6 +90,8 @@ void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, 
 
     if(p1.size() == 0 || p2.size() == 0) return;
 
+    double maxLines = std::min(100, (int)p1.size());
+
     Mat image1 = img1.clone();
     Mat image2 = img2.clone();
 
@@ -79,17 +101,20 @@ void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, 
 
     std::vector<cv::Vec3d> lines1, lines2;
     cv::computeCorrespondEpilines(p1, 1, F, lines1);
-    for (std::vector<cv::Vec3d>::const_iterator it= lines1.begin();
-         it!=lines1.end(); ++it) {
-
+//    for (std::vector<cv::Vec3d>::const_iterator it= lines1.begin();
+//         it!=lines1.end(); ++it) {
+    for(int i = 0; i < maxLines; i++) {
+        cv::Vec3d* it = &lines1.at(i);
              cv::line(image2,cv::Point(0,-(*it)[2]/(*it)[1]),
                              cv::Point(image2.cols,-((*it)[2]+(*it)[0]*image2.cols)/(*it)[1]),
                              cv::Scalar(255,255,255));
     }
 
     cv::computeCorrespondEpilines(p2,2,F,lines2);
-    for (std::vector<cv::Vec3d>::const_iterator it= lines2.begin();
-         it!=lines2.end(); ++it) {
+//    for (std::vector<cv::Vec3d>::const_iterator it= lines2.begin();
+//         it!=lines2.end(); ++it) {
+    for(int i = 0; i < maxLines; i++) {
+            cv::Vec3d* it = &lines2.at(i);
 
              cv::line(image1,cv::Point(0,-(*it)[2]/(*it)[1]),
                              cv::Point(image1.cols,-((*it)[2]+(*it)[0]*image1.cols)/(*it)[1]),
@@ -97,16 +122,18 @@ void drawEpipolarLines(std::vector<Point2d> p1, std::vector<Point2d> p2, Mat F, 
     }
 
     // Draw points
-    std::vector<cv::Point2d>::const_iterator itPts= p1.begin();
-    while (itPts!=p1.end()) {
-            cv::circle(image1,*itPts,3,cv::Scalar(255,255,255),2);
-        ++itPts;
+//    std::vector<cv::Point2d>::const_iterator itPts= p1.begin();
+//    while (itPts!=p1.end()) {
+    for(int i = 0; i < maxLines; i++) {
+            cv::circle(image1,p1.at(i),3,cv::Scalar(255,255,255),2);
+        //++itPts;
     }
 
-    itPts= p2.begin();
-    while (itPts!=p2.end()) {
-            cv::circle(image2,*itPts,3,cv::Scalar(255,255,255),2);
-        ++itPts;
+    //itPts= p2.begin();
+    //while (itPts!=p2.end()) {
+    for(int i = 0; i < maxLines; i++) {
+            cv::circle(image2,p2.at(i),3,cv::Scalar(255,255,255),2);
+        //++itPts;
     }
 
     // Display the images with points
@@ -304,13 +331,13 @@ void visualizeLineMatches(Mat image_1_color, Mat image_2_color, std::vector<line
     showImage(name, img, WINDOW_NORMAL, 1600);
 }
 
-void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int lineWidth, bool drawConnections, std::string name) {
+void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Point2d> p1, std::vector<Point2d> p2, int radius, int lineWidth, bool drawConnections, std::string name) {
     Mat img;
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
     for(int i = 0; i < p1.size(); i++) {
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
-        cv::circle(img, p1.at(i), 2, color, lineWidth);
-        cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), 2, color, lineWidth);
+        cv::circle(img, p1.at(i), radius, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), radius, color, lineWidth);
         if(drawConnections) {
             cv::line(img, p1.at(i), cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), color, lineWidth);
         }
@@ -318,7 +345,7 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Poi
     showImage(name, img, WINDOW_NORMAL, 1600);
 }
 
-void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<pointCorrespStruct> pointCorresp, int lineWidth, bool drawConnections, std::string name) {
+void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<pointCorrespStruct> pointCorresp, int radius, int lineWidth, bool drawConnections, std::string name) {
     Mat img;
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
     for(int i = 0; i < pointCorresp.size(); i++) {
@@ -327,8 +354,8 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<poi
         p2 = pointCorresp.at(i).x2;
 
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
-        cv::circle(img, p1, 2, color, lineWidth);
-        cv::circle(img, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), 2, color, lineWidth);
+        cv::circle(img, p1, radius, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), radius, color, lineWidth);
         if(drawConnections) {
             cv::line(img, p1, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), color, lineWidth);
         }
@@ -336,7 +363,7 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<poi
     showImage(name, img, WINDOW_NORMAL, 1600);
 }
 
-void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat> x1, std::vector<Mat> x2, int lineWidth, bool drawConnections, std::string name) {
+void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat> x1, std::vector<Mat> x2, int radius, int lineWidth, bool drawConnections, std::string name) {
     Mat img;
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
     for(int i = 0; i < x1.size(); i++) {
@@ -344,8 +371,8 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat
         Mat p2 = x2.at(i);
 
         Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
-        cv::circle(img, cvPoint2D32f(p1.at<double>(0,0), p1.at<double>(1,0)), 2, color, lineWidth);
-        cv::circle(img, cvPoint2D32f(p2.at<double>(0,0) + image_1_color.cols, p2.at<double>(1,0)), 2, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p1.at<double>(0,0), p1.at<double>(1,0)), radius, color, lineWidth);
+        cv::circle(img, cvPoint2D32f(p2.at<double>(0,0) + image_1_color.cols, p2.at<double>(1,0)), radius, color, lineWidth);
         if(drawConnections) {
             cv::line(img, cvPoint2D32f(p1.at<double>(0,0), p1.at<double>(1,0)), cvPoint2D32f(p2.at<double>(0,0) + image_1_color.cols, p2.at<double>(1,0)), color, lineWidth);
         }
@@ -438,18 +465,6 @@ bool computeUniqeEigenvector(Mat H, Mat &e) {
     return eigenvalueOK;
 }
 
-std::vector<double> computeCombinedErrorVect(std::vector<Mat> x1, std::vector<Mat> x2, Mat F) {
-
-    std::vector<double> *errorVect = new std::vector<double>();
-
-    for(int i = 0; i < x1.size(); i++) {
-        Mat p1 = x1.at(i);
-        Mat p2 = x2.at(i);
-        errorVect->push_back(sampsonDistanceFundamentalMat(F, p1, p2));
-    }
-    return *errorVect;
-}
-
 std::vector<double> computeCombinedSquaredErrorVect(std::vector<Mat> x1, std::vector<Mat> x2, Mat F) {
 
     std::vector<double> *errorVect = new std::vector<double>();
@@ -480,13 +495,13 @@ void errorFunctionCombinedMeanSquared(std::vector<Mat> x1, std::vector<Mat> x2, 
 }
 
 void errorFunctionCombinedMean(std::vector<Mat> x1, std::vector<Mat> x2, Mat impF, double &error, int &inliers, double inlierThr, double &standardDeviation) {
-    std::vector<double> errorVect = computeCombinedErrorVect(x1, x2, impF);
+    std::vector<double> errorVect = computeCombinedSquaredErrorVect(x1, x2, impF);
     error = 0;
     inliers = 0;
     standardDeviation = 0;
     for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {
-        error += fabs(*errorIter);
-        if(fabs(*errorIter) <= inlierThr) inliers++;
+        error += sqrt(*errorIter);
+        if(sqrt(*errorIter) <= inlierThr) inliers++;
     }
     error = error/((double)errorVect.size());
     for(std::vector<double>::const_iterator errorIter = errorVect.begin(); errorIter != errorVect.end(); ++errorIter) {

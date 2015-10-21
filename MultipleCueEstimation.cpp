@@ -28,7 +28,7 @@ MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat
 
     refinedFSampsonErrStdDevCombined = -1;
 
-    groundTruthSampsonDistCombined = -1;
+    groundTruthSampsonDistCorrect = -1;
 
     groundTruthSampsonStdDev = -1;
 }
@@ -53,8 +53,8 @@ Mat MultipleCueEstimation::compute() {
         //combineAllPointCorrespondecies();
         F = refineF(estimations);
 
-        double error, stdDev;
-        int inlier;
+//        double error, stdDev;
+//        int inlier;
 
         std::vector<Mat> x1goodPointsMat;
         std::vector<Mat> x2goodPointsMat;
@@ -66,7 +66,7 @@ Mat MultipleCueEstimation::compute() {
             matToPoint(x1goodPointsMat, x1goodPoints);
             matToPoint(x2goodPointsMat, x2goodPoints);
 
-            if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsMat, x2goodPointsMat, 2, true, "True Combined Matches");
+            if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsMat, x2goodPointsMat, 6, 2, false, "True Combined Matches");
         }
 
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
@@ -74,12 +74,16 @@ Mat MultipleCueEstimation::compute() {
                 if(LOG_DEBUG) std::cout << "Estimation: " << it->name << " = " << std::endl << it->getF() << std::endl;
                 if (LOG_DEBUG) std::cout << "Mean squared error: " << it->sampsonErrCombined << " Std. dev: " << it->sampsonErrStdDevCombined << ", inlier: " << it->inlierCountCombined  << ", true inlier: " << it->trueInlierCountCombined << std::endl;
                 if (compareWithGroundTruth) {
-                    it->trueSampsonErr = meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1Combined, x2Combined);
-                    if(VISUAL_DEBUG) drawEpipolarLines(x1goodPoints, x2goodPoints, it->getF(), image_1, image_2, it->name);
+                    errorFunctionCombinedMean(x1goodPointsMat, x2goodPointsMat, it->getF(), it->trueRootSampsonErr, it->trueInlierCountCombined, INLIER_THRESHOLD, it->trueRootSampsonErrStdDev);
+                    errorFunctionCombinedMeanSquared(x1goodPointsMat, x2goodPointsMat, it->getF(), it->trueSampsonErr, it->trueInlierCountCombined, INLIER_THRESHOLD, it->trueSampsonErrStdDev);
+                    if (LOG_DEBUG) std::cout << "Mean squared ground truth error: " << it->trueSampsonErr << " Std. dev: " << it->trueSampsonErrStdDev << ", true inlier: " << it->trueInlierCountCombined << std::endl;
+                    if (LOG_DEBUG) std::cout << "Mean ground truth error: " << it->trueRootSampsonErr << " Std. dev: " << it->trueRootSampsonErrStdDev << ", true inlier: " << it->trueInlierCountCombined << std::endl;
+                    //it->trueSampsonErr = meanSampsonFDistanceGoodMatches(Fgt, it->getF(), x1Combined, x2Combined);
+                    if(CREATE_DEBUG_IMG) drawEpipolarLines(x1goodPoints, x2goodPoints, it->getF(), image_1_color, image_2_color, it->name);
                 } else {
-                    if(VISUAL_DEBUG) {
+                    if(CREATE_DEBUG_IMG) {
                         //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
-                        drawEpipolarLines(x1,x2, it->getF(), image_1, image_2, it->name);
+                        drawEpipolarLines(x1,x2, it->getF(), image_1_color, image_2_color, it->name);
                     }
                 }
             }
@@ -87,27 +91,34 @@ Mat MultipleCueEstimation::compute() {
 
         if(F.data) {
             if(LOG_DEBUG) std::cout << "Refined F = " << std::endl << F << std::endl;
-            errorFunctionCombinedMeanSquared(x1Combined, x2Combined, F, refinedFSampsonDistCombined, refinedFInlierCombined, 3.0, refinedFSampsonErrStdDevCombined);
+            errorFunctionCombinedMeanSquared(x1Combined, x2Combined, F, refinedFSampsonDistCombined, refinedFInlierCombined, INLIER_THRESHOLD, refinedFSampsonErrStdDevCombined);
             if (LOG_DEBUG) std::cout << "Mean squared error: " << refinedFSampsonDistCombined << " Std. dev: " << refinedFSampsonErrStdDevCombined << ", inlier: " << refinedFInlierCombined << ", true inlier: " << refinedFInlierCombined << std::endl;
             if (compareWithGroundTruth) {
-                refinedFSampsonDistCorrect = meanSampsonFDistanceGoodMatches(Fgt, F, x1Combined, x2Combined);
-                if(VISUAL_DEBUG) drawEpipolarLines(x1goodPoints, x2goodPoints, F, image_1, image_2, "Refined F");
+                //refinedFSampsonDistCorrect = meanSampsonFDistanceGoodMatches(Fgt, F, x1Combined, x2Combined);
+                errorFunctionCombinedMean(x1goodPointsMat, x2goodPointsMat, F, refinedFRootDistCorrect, refinedFTrueInlierCombined, INLIER_THRESHOLD, refinedFRootErrStdDevCorrect);
+                errorFunctionCombinedMeanSquared(x1goodPointsMat, x2goodPointsMat, F, refinedFSampsonDistCorrect, refinedFTrueInlierCombined, INLIER_THRESHOLD, refinedFSampsonErrStdDevCorrect);
+                if (LOG_DEBUG) std::cout << "Mean squared ground truth error: " << refinedFSampsonDistCorrect << " Std. dev: " << refinedFSampsonErrStdDevCorrect << ", true inlier: " << refinedFTrueInlierCombined << std::endl;
+                if (LOG_DEBUG) std::cout << "Mean ground truth error: " << refinedFRootDistCorrect << " Std. dev: " << refinedFRootErrStdDevCorrect << ", true inlier: " << refinedFTrueInlierCombined << std::endl;
+                if(CREATE_DEBUG_IMG) drawEpipolarLines(x1goodPoints, x2goodPoints, F, image_1_color, image_2_color, "Refined F");
             } else {
-                if(VISUAL_DEBUG) {
+                if(CREATE_DEBUG_IMG) {
                     //rectify(x1, x2, it->getF(), image_1, image_2, "Rectified "+it->name);
-                    drawEpipolarLines(x1,x2, F, image_1, image_2, "Refined F");
+                    drawEpipolarLines(x1,x2, F, image_1_color, image_2_color, "Refined F");
                 }
             }
         }
 
         if (compareWithGroundTruth) {
             if (LOG_DEBUG) std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
-            errorFunctionCombinedMeanSquared(x1Combined, x2Combined, Fgt, error, inlier, INLIER_THRESHOLD, stdDev);
-            if (LOG_DEBUG) std::cout << "Mean squared error: " << error << " Std. dev: " << stdDev << ", inlier: " << inlier << std::endl;
-            meanSampsonFDistanceGoodMatches(Fgt, Fgt, x1Combined, x2Combined, groundTruthSampsonDistCombined, combinedFeaturesCorrect);
-            if(VISUAL_DEBUG) {
+            errorFunctionCombinedMean(x1goodPointsMat, x2goodPointsMat, Fgt, groundTruthRootDistCorrect, combinedFeaturesCorrect, INLIER_THRESHOLD, groundTruthRootStdDev);
+            errorFunctionCombinedMeanSquared(x1goodPointsMat, x2goodPointsMat, Fgt, groundTruthSampsonDistCorrect, combinedFeaturesCorrect, INLIER_THRESHOLD, groundTruthSampsonStdDev);
+            //errorFunctionCombinedMeanSquared(x1Combined, x2Combined, Fgt, error, inlier, INLIER_THRESHOLD, stdDev);
+            if (LOG_DEBUG) std::cout << "Mean squared error: " << groundTruthSampsonDistCorrect << " Std. dev: " << groundTruthSampsonStdDev << ", inlier: " << combinedFeaturesCorrect << std::endl;
+            if (LOG_DEBUG) std::cout << "Mean error: " << groundTruthRootDistCorrect << " Std. dev: " << groundTruthRootStdDev << ", inlier: " << combinedFeaturesCorrect << std::endl;
+            //meanSampsonFDistanceGoodMatches(Fgt, Fgt, x1Combined, x2Combined, groundTruthSampsonDistCombined, combinedFeaturesCorrect);
+            if(CREATE_DEBUG_IMG) {
                 //rectify(x1, x2, Fgt, image_1, image_2, "Rectified ground truth");
-                drawEpipolarLines(x1goodPoints,x2goodPoints, Fgt, image_1, image_2, "F_groundtruth");
+                drawEpipolarLines(x1goodPoints,x2goodPoints, Fgt, image_1_color, image_2_color, "F_groundtruth");
             }
         }
 
@@ -142,7 +153,7 @@ int MultipleCueEstimation::checkData() {
         image_2 = image_2_color;
     }
 
-    if(VISUAL_DEBUG) {
+    if(CREATE_DEBUG_IMG) {
         showImage("Image 1 original", image_1_color);
         showImage("Image 2 original", image_2_color);
     }
@@ -218,10 +229,6 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
             if(compareWithGroundTruth) {
                 findGoodCombinedMatches(x1Combined, x2Combined, estimationInlierX1, estimationInlierX2, estimationIter->getF(), INLIER_THRESHOLD);
                 estimationIter->trueInlierCountCombined = goodMatchesCount(Fgt, estimationInlierX1, estimationInlierX2, INLIER_THRESHOLD);
-
-//                for(int i = 0; i < x1Combined.size(); i++) {
-//                    trueRootSampsonErr += sqrt(sampsonDistanceFundamentalMat())
-//                }
             }
             //if(bestMethod->sampsonErrCombined > estimationIter->sampsonErrCombined) {
 
@@ -259,6 +266,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     //return  bestMethod->getF();
 
     Mat FSPLM = bestMethod->getF().clone();
+    Mat result = bestMethod->getF().clone();
     std::vector<Mat> x1goodPointsSPLM;
     std::vector<Mat> x2goodPointsSPLM;
     int lastFeatureCnt = 0, featureCnt = 0;
@@ -281,7 +289,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
     {
         SPLM(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
         if (LOG_DEBUG) std::cout << "SPLM iter: " << iter << " error thr: " << errorThrSPLM/iter << " ground truth error: " << meanSampsonFDistanceGoodMatches(Fgt, FSPLM, x1Combined, x2Combined) << std::endl;
-        findGoodCombinedMatches(x1Combined, x2Combined, x1goodPointsSPLM, x2goodPointsSPLM, FSPLM, errorThrSPLM/iter++);
+        findGoodCombinedMatches(x1Combined, x2Combined, x1goodPointsSPLM, x2goodPointsSPLM, FSPLM, errorThrSPLM/++iter);
         lastFeatureCnt = featureCnt;
         featureCnt = x1goodPointsSPLM.size();
         lastErrorSPLM = errorSPLM;
@@ -289,18 +297,19 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         errorSPLM = sampsonDistanceFundamentalMat(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
         errorSPLMCombined = sampsonDistanceFundamentalMat(FSPLM, x1Combined, x2Combined);
         if (LOG_DEBUG) std::cout << "Features: " << featureCnt << ", Change: " << (lastFeatureCnt - featureCnt) << ", Error: " << errorSPLM << ", Error Change: " << (lastErrorSPLM - errorSPLM)/errorSPLM << ", Error combined: " << errorSPLMCombined << std::endl;
-
+        if((lastErrorSPLM - errorSPLM)/errorSPLM < 0) break;
+        result = FSPLM.clone();
         //errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF(), errorSPLM, estimationIter->inlierCountCombined, squaredErrorThr, estimationIter->sampsonErrStdDevCombined);
         //quality = estimationIter->quality = qualitiy(errorSPLM, smallestSampsonErr, estimationIter->inlierCountCombined, largestInlier, estimationIter->sampsonErrStdDevCombined, smallestSampsonErrStdDev);
-    } while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.01 && errorSPLM > 0.1);
+    } while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.01 && errorSPLM > 0.3);
 
     if(compareWithGroundTruth) refinedFTrueInlierCombined = goodMatchesCount(Fgt, x1goodPointsSPLM, x2goodPointsSPLM, INLIER_THRESHOLD);
 
     //if((lastErrorSPLM - errorSPLM)/errorSPLM > 0.02) SPLM(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
 
-    if (VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsSPLM, x2goodPointsSPLM, 2, true, "FSPLM used point matches");
+    if (CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsSPLM, x2goodPointsSPLM, 6, 2, false, "FSPLM used point matches");
 
-    return FSPLM;
+    return result;
 }
 
 //double MultipleCueEstimation::qualitiy(double sampsonErrCombined, int inlierCountCombined, int combinedMatches, double sampsonErrStdDevCombined) {
@@ -333,13 +342,13 @@ bool MultipleCueEstimation::SPLM(Mat &F, std::vector<Mat> x1m, std::vector<Mat> 
     double f0 = 1.0;
 
     for(int i = 0; i < x1m.size(); i++) {
-        x1.push_back(x1m.at(i).at<double>(0,0)/f0);
-        x2.push_back(x2m.at(i).at<double>(0,0)/f0);
-        y1.push_back(x1m.at(i).at<double>(1,0)/f0);
-        y2.push_back(x2m.at(i).at<double>(1,0)/f0);
+        x1.push_back(x1m.at(i).at<double>(0,0));
+        x2.push_back(x2m.at(i).at<double>(0,0));
+        y1.push_back(x1m.at(i).at<double>(1,0));
+        y2.push_back(x2m.at(i).at<double>(1,0));
     }
 
-    bool result = SevenpointLevenbergMarquardt(Fvect, x1, y1, x2, y2, f0, 80, 0.5e-12);  //2560, 3072
+    bool result = SevenpointLevenbergMarquardt(Fvect, x1, y1, x2, y2, f0, 50, 1e-10);  //0.5e-12
     if(!result) return false;
 
     k = 0;

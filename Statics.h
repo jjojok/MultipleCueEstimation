@@ -6,8 +6,12 @@
 
 //Show debug messages
 #define LOG_DEBUG false
+//Create debug images
+#define CREATE_DEBUG_IMG true
 //Show debug images
-#define VISUAL_DEBUG false
+#define SHOW_DEBUG_IMG false
+//Save debug images
+#define SAVE_DEBUG_IMG true
 
 //Program parameters for selecting computation mathods
 #define F_Reined 0
@@ -66,7 +70,7 @@
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0       //M_PI/4.0
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define HOMOGRAPHY_OUTLIERS 0.75
+#define HOMOGRAPHY_OUTLIERS 0.8
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig

@@ -104,7 +104,7 @@ int main(int argc, char** argv )
 
         //Output results
         if(argc == 6) {
-//            std::cout << "first image, second image, featureCountCombined, trueFeatureCountCombined, Fgt: trueSampsonErr, refined F: inlierCountCombined, refined F: trueInlierCountCombined, refined F: sampsonErrCombined, refined F: trueSampsonErr,";
+//            std::cout << "first image, second image, featureCountCombined, trueFeatureCountCombined, Fgt: trueSampsonErr, Fgt: trueErrorStdDev, , Fgt: trueRootSampsonErr, Fgt: trueRootErrorStdDev, refined F: inlierCountCombined, refined F: trueInlierCountCombined, refined F: sampsonErrCombined, refined F: trueSampsonErr, refined F: trueSampsonErrStdDev, refined F: trueRootSampsonErr, refined F: trueRootSampsonErrStdDev,";
 
 //            for(int i = 0; i < mce->getEstimations().size(); i++){
 //                FEstimationMethod estimation = mce->getEstimations().at(i);
@@ -119,10 +119,15 @@ int main(int argc, char** argv )
 
             //std::cout << "Time (min)" << std::endl;
 
-            std::cout << argv[1] << "," << argv[2] << "," << mce->combinedFeatures << "," << mce->combinedFeaturesCorrect << "," << mce->groundTruthSampsonDistCombined << "," << mce->refinedFInlierCombined << "," << mce->refinedFTrueInlierCombined << "," << mce->refinedFSampsonDistCombined << "," << mce->refinedFSampsonDistCorrect << ",";
+            std::cout << argv[1] << "," << argv[2] << "," << mce->combinedFeatures << "," << mce->combinedFeaturesCorrect << ","
+                                 << mce->groundTruthSampsonDistCorrect << "," << mce->groundTruthSampsonDistCorrect << "," << mce->groundTruthRootDistCorrect << "," << mce->groundTruthRootDistCorrect << "," << mce->refinedFInlierCombined << ","
+                                 << mce->refinedFTrueInlierCombined << "," << mce->refinedFSampsonDistCombined << ","
+                                 << mce->refinedFSampsonDistCorrect << "," << mce->refinedFSampsonErrStdDevCorrect << "," << mce->refinedFRootDistCorrect << "," << mce->refinedFRootErrStdDevCorrect << ",";
+
+
             for(int i = 0; i < mce->getEstimations().size(); i++){
                 FEstimationMethod estimation = mce->getEstimations().at(i);
-                if(!estimation.isSuccessful()) std::cout << ",,,,,,,,,,,,,,,,";
+                if(!estimation.isSuccessful()) std::cout << ",,,,,,,,,,,,,,,,,,,";
                 else {
                     std::cout << estimation.featureCountGood << "," << estimation.trueFeatureCountGood << ","
                               << estimation.featureCountComplete << "," << estimation.trueFeatureCountComplete << ","
@@ -131,12 +136,14 @@ int main(int argc, char** argv )
                               << estimation.inlierCountCombined << "," << estimation.trueInlierCountCombined << ","
                               << estimation.sampsonErrOwn << "," << estimation.sampsonErrComplete << ","
                               << estimation.sampsonErrCombined << "," << estimation.sampsonErrStdDevCombined << ","
-                              << estimation.trueSampsonErr << "," << estimation.quality << ",";
+                              << estimation.trueSampsonErr << "," << estimation.trueSampsonErrStdDev << ","
+                              << estimation.trueRootSampsonErr << "," << estimation.trueRootSampsonErrStdDev << ","
+                              << estimation.quality << ",";
                 }
             }
             std::cout << (time(0) - startTime)/60.0 << std::endl;
         }
     }
-    if(VISUAL_DEBUG) waitKey(0);
+    if(SHOW_DEBUG_IMG) waitKey(0);
     SevenpointLevenbergMarquardtExit();        //prevent octave from crashing
 }

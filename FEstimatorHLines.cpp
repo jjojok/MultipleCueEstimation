@@ -55,8 +55,8 @@ int FEstimatorHLines::extractMatches() {
         allMatchedLinesConst.push_back(getlineCorrespStruct(*it));
     }
 
-    if(VISUAL_DEBUG) visualizeLineMatches(image_1, image_2, allMatchedLines, 3, false, "All line matches");
-    if(VISUAL_DEBUG) visualizeLineMatches(image_1, image_2, goodMatchedLines, 2, true, "Good line matches");
+    if(CREATE_DEBUG_IMG) visualizeLineMatches(image_1_color, image_2_color, allMatchedLines, 3, false, "All line matches");
+    if(CREATE_DEBUG_IMG) visualizeLineMatches(image_1_color, image_2_color, goodMatchedLines, 3, false, "Good line matches");
 }
 
 bool FEstimatorHLines::compute() {
@@ -147,8 +147,8 @@ bool FEstimatorHLines::compute() {
         return false;
     }
 
-    if(VISUAL_DEBUG) {
-        visualizeHomography(firstEstimation.Hs, image_1, image_2, name+": H1");
+    if(CREATE_DEBUG_IMG) {
+        visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, name+": H1");
         visualizeLineMatches(image_1_color, image_2_color, firstEstimation.lineCorrespondencies, 6, false, name+": H1 used Matches");
         //visualizeLineMatches(image_1_color, image_2_color, goodLineMatches, 8, true, name+": H1 good Matches");
         //visualizeProjectedLines(H1, 8, true, name+": H21 used lines projected to image 2");
@@ -159,7 +159,7 @@ bool FEstimatorHLines::compute() {
     filterUsedLineMatches(allMatchedLines, firstEstimation.lineCorrespondencies);
     int removed = filterUsedLineMatches(goodMatchedLines, firstEstimation.lineCorrespondencies);
 
-    if(VISUAL_DEBUG) {
+    if(CREATE_DEBUG_IMG) {
         //visualizeLineMatches(image_1_color, image_2_color, goodMatchedLines, 8, true, name+": Remaining matches for 2ed estimation");
     }
 
@@ -208,8 +208,8 @@ bool FEstimatorHLines::compute() {
     compfeaturesImg1 = featuresImg1;
     compfeaturesImg2 = featuresImg2;
 
-    if(VISUAL_DEBUG) {
-        visualizeHomography(secondEstimation.Hs, image_1, image_2, name+" H2");
+    if(CREATE_DEBUG_IMG) {
+        visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, name+" H2");
         visualizeLineMatches(image_1_color, image_2_color, secondEstimation.lineCorrespondencies, 6, false, name+": H2 used Matches");
         //visualizeLineMatches(image_1_color, image_2_color, goodLineMatches, 8, true, name+": H2 good Matches");
         //visualizeProjectedLines(H2, 8, true, name+": H21_2 used lines projected to image 2");

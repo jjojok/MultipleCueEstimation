@@ -51,7 +51,7 @@ int FEstimatorHPoints::extractMatches() {
 
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << goodMatchedPoints.size() << std::endl;
 
-    if(VISUAL_DEBUG) visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 3, true, name+": good point matches");
+    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 6 , 2, false, name+": good point matches");
 }
 
 bool FEstimatorHPoints::compute() {
@@ -171,14 +171,14 @@ bool FEstimatorHPoints::compute() {
         return false;
     }
 
-    if(VISUAL_DEBUG) {
-        visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 8, false, name+": H1 used Matches");
+    if(CREATE_DEBUG_IMG) {
+        visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 6, 2, false, name+": H1 used Matches");
         visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, name+": H1");
     }
 
     if(LOG_DEBUG) std::cout << "-- Used matches: " << firstEstimation.pointCorrespondencies.size() << std::endl;
 
-    if(VISUAL_DEBUG) {
+    if(CREATE_DEBUG_IMG) {
         //visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 8, true, name+": Remaining matches for 2ed estimation");
     }
 
@@ -230,8 +230,8 @@ bool FEstimatorHPoints::compute() {
 
     if(LOG_DEBUG) std::cout << "-- Added " << featuresImg1.size() << " point correspondencies to combined feature vector" << std::endl;
 
-    if(VISUAL_DEBUG) {
-        visualizePointMatches(image_1_color, image_2_color, secondEstimation.pointCorrespondencies, 8, false, name+": H2 used Matches");
+    if(CREATE_DEBUG_IMG) {
+        visualizePointMatches(image_1_color, image_2_color, secondEstimation.pointCorrespondencies, 6, 2, false, name+": H2 used Matches");
         visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, name+": H2");
     }
 

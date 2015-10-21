@@ -40,10 +40,15 @@ public:
 
     double refinedFSampsonDistCombined;
     double refinedFSampsonDistCorrect;
+    double refinedFRootDistCorrect;
 
     double refinedFSampsonErrStdDevCombined;
+    double refinedFSampsonErrStdDevCorrect;
+    double refinedFRootErrStdDevCorrect;
 
-    double groundTruthSampsonDistCombined;
+    double groundTruthRootDistCorrect;
+    double groundTruthRootStdDev;
+    double groundTruthSampsonDistCorrect;
     double groundTruthSampsonStdDev;
 
     Mat compute();
