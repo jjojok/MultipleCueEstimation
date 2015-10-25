@@ -29,7 +29,7 @@ echo -n "Computation: "
 for i in 1 2 3 4 5 6 7 8 9 10 
 do
 echo -n "$i..."
-#nice -n 19 ./build/MultipleCueEstimation $path1 $path2 7 $cam1 $cam2 >> $3
+nice -n 19 ./build/MultipleCueEstimation $path1 $path2 7 $cam1 $cam2 >> $3
 
 subdir="$imgdir/$i"
 

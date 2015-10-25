@@ -13,9 +13,9 @@ echo "first image, second image, featureCountCombined, trueFeatureCountCombined,
 
 ####################### Castle ################################################## 
 #"should work" examples
-sh MultipleCueEstimationList.sh "castle-P30/0000.png" "castle-P30/0003.png" $OUT
-sh MultipleCueEstimationList.sh "castle-P30/0002.png" "castle-P30/0003.png" $OUT
-sh MultipleCueEstimationList.sh "castle-P30/0001.png" "castle-P30/0002.png" $OUT
+#sh MultipleCueEstimationList.sh "castle-P30/0000.png" "castle-P30/0003.png" $OUT
+#sh MultipleCueEstimationList.sh "castle-P30/0002.png" "castle-P30/0003.png" $OUT
+#sh MultipleCueEstimationList.sh "castle-P30/0001.png" "castle-P30/0002.png" $OUT
 sh MultipleCueEstimationList.sh "castle-P30/0003.png" "castle-P30/0004.png" $OUT
 sh MultipleCueEstimationList.sh "castle-P30/0004.png" "castle-P30/0005.png" $OUT
 sh MultipleCueEstimationList.sh "castle-P30/0005.png" "castle-P30/0006.png" $OUT

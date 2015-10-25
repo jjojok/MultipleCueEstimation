@@ -53,7 +53,7 @@ int FEstimatorPoints::extractMatches() {
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << x1.size() << std::endl;
 
     if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, compfeaturesImg1, compfeaturesImg2, 6, 2, false, "All point matches");
-    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1, x2, 3, 2, false, "Good point matches");
+    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1, x2, 6, 2, false, "Good point matches");
 }
 
 bool FEstimatorPoints::compute() {
