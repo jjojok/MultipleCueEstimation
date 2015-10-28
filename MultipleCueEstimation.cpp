@@ -66,7 +66,7 @@ Mat MultipleCueEstimation::compute() {
             matToPoint(x1goodPointsMat, x1goodPoints);
             matToPoint(x2goodPointsMat, x2goodPoints);
 
-            if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsMat, x2goodPointsMat, 6, 2, false, "True Combined Matches");
+            if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsMat, x2goodPointsMat, 20, 2, false, "True Combined Matches");
         }
 
         for (std::vector<FEstimationMethod>::iterator it = estimations.begin() ; it != estimations.end(); ++it) {
@@ -90,6 +90,8 @@ Mat MultipleCueEstimation::compute() {
         }
 
         if(F.data) {
+            matToFile("F_result.csv", F);
+
             if(LOG_DEBUG) std::cout << "Refined F = " << std::endl << F << std::endl;
             errorFunctionCombinedMeanSquared(x1Combined, x2Combined, F, refinedFSampsonDistCombined, refinedFInlierCombined, INLIER_THRESHOLD, refinedFSampsonErrStdDevCombined);
             if (LOG_DEBUG) std::cout << "Mean squared error: " << refinedFSampsonDistCombined << " Std. dev: " << refinedFSampsonErrStdDevCombined << ", inlier: " << refinedFInlierCombined << ", true inlier: " << refinedFInlierCombined << std::endl;
@@ -109,6 +111,7 @@ Mat MultipleCueEstimation::compute() {
         }
 
         if (compareWithGroundTruth) {
+            matToFile("F_gt.csv", Fgt);
             if (LOG_DEBUG) std::cout << "Ground truth = " << std::endl << Fgt << std::endl;
             errorFunctionCombinedMean(x1goodPointsMat, x2goodPointsMat, Fgt, groundTruthRootDistCorrect, combinedFeaturesCorrect, INLIER_THRESHOLD, groundTruthRootStdDev);
             errorFunctionCombinedMeanSquared(x1goodPointsMat, x2goodPointsMat, Fgt, groundTruthSampsonDistCorrect, combinedFeaturesCorrect, INLIER_THRESHOLD, groundTruthSampsonStdDev);
@@ -154,8 +157,8 @@ int MultipleCueEstimation::checkData() {
     }
 
     if(CREATE_DEBUG_IMG) {
-        showImage("Image 1 original", image_1_color);
-        showImage("Image 2 original", image_2_color);
+        //showImage("Image 1 original", image_1_color);
+        //showImage("Image 2 original", image_2_color);
     }
 
     return 1;
@@ -307,7 +310,7 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
 
     //if((lastErrorSPLM - errorSPLM)/errorSPLM > 0.02) SPLM(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
 
-    if (CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsSPLM, x2goodPointsSPLM, 6, 2, false, "FSPLM used point matches");
+    if (CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsSPLM, x2goodPointsSPLM, 20, 2, false, "FSPLM used point matches");
 
     return result;
 }

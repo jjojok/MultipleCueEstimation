@@ -43,7 +43,7 @@
 //Max trys to find non linear point in remaining matches
 #define MAX_POINT_SEARCH 1000
 //Minimal number of matches to stop numerical optimization
-#define NUMERICAL_OPTIMIZATION_MIN_MATCHES 16
+#define NUMERICAL_OPTIMIZATION_MIN_MATCHES 8
 //Rans5ac confidence
 #define RANSAC_CONFIDENCE 0.999
 //LM iterations for homographies
@@ -66,15 +66,15 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.002;       //0.003
+#define MIN_LENGTH_FACTOR 0.004;       //0.003
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0       //M_PI/4.0
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define HOMOGRAPHY_OUTLIERS 0.8
+#define HOMOGRAPHY_OUTLIERS 0.80
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig
-#define MAX_HEMMING_DIST 15
+#define MAX_HEMMING_DIST 12
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
 //Angle difference blow lines being parallel

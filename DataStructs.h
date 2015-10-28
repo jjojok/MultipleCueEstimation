@@ -55,6 +55,7 @@ struct fundamentalMatrix {
 
 struct lineSubsetStruct {
     std::vector<lineCorrespStruct> lineCorrespondencies;
+    std::vector<lineCorrespStruct> removeLineCorrespondencies;
     double qualityMeasure;
     double subsetError;
     Mat Hs, Hs_normalized;
@@ -72,6 +73,7 @@ struct fundamentalMatrixCluster {
 
 struct pointSubsetStruct {
     std::vector<pointCorrespStruct> pointCorrespondencies;
+    std::vector<pointCorrespStruct> removePointCorrespondencies;
     double qualityMeasure;
     double subsetError;
     Mat Hs, Hs_normalized;

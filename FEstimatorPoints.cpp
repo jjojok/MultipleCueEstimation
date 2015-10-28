@@ -52,8 +52,8 @@ int FEstimatorPoints::extractMatches() {
 
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << x1.size() << std::endl;
 
-    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, compfeaturesImg1, compfeaturesImg2, 6, 2, false, "All point matches");
-    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1, x2, 6, 2, false, "Good point matches");
+    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, compfeaturesImg1, compfeaturesImg2, 20, 2, false, "All point matches");
+    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1, x2, 20, 2, false, "Good point matches");
 }
 
 bool FEstimatorPoints::compute() {
@@ -110,7 +110,9 @@ bool FEstimatorPoints::compute() {
 
 //    sampsonErrStdDevCombined = -1;
 
-    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 6, 2, false, name+": Used point matches");
+    matToFile("F_points.csv", F);
+
+    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1_used, x2_used, 20, 2, false, name+": Used point matches");
 
     if(LOG_DEBUG) std::cout << std::endl << std::endl;
 

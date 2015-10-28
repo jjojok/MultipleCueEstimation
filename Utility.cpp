@@ -16,6 +16,15 @@ double fnorm(double x, double y) {
     return sqrt(pow(x, 2) + pow(y, 2));
 }
 
+double computeCamCenterDist(Mat F, Mat F_gt, Mat K1_gt, Mat K2_gt) {
+    Mat R1, R2, R1_gt, R2_gt, t, t_gt;
+    Mat E = K2_gt.t()*F*K1_gt;
+    Mat E_gt = K2_gt.t()*F*K1_gt;
+
+    decomposeEssentialMat(E, R1, R2, t);
+    decomposeEssentialMat(E_gt, R1_gt, R2_gt, t_gt);
+}
+
 void visualizeHomography(Mat H21, Mat img1, Mat img2, std::string name) {
     Mat transformed;
     Mat result;
@@ -185,6 +194,17 @@ Mat MatFromFile(std::string file, int rows) {
     return matrix;
 }
 
+void matToFile(std::string file, Mat m) {
+    std::ofstream outputStream;
+    outputStream.open(file.c_str());
+    if (outputStream.is_open()) {
+        outputStream << m;
+        outputStream.close();
+    } else {
+        std::cerr << "Unable to open file: " << file;
+    }
+}
+
 bool ImgParamsFromFile(std::string file, Mat &K, Mat &R, Mat &t) {
     int values = 1;
     std::ifstream inputStream;
@@ -321,7 +341,8 @@ void visualizeLineMatches(Mat image_1_color, Mat image_2_color, std::vector<line
     Mat img;
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
     for(std::vector<lineCorrespStruct>::iterator it = correspondencies.begin() ; it != correspondencies.end(); ++it) {
-        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        //Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        Scalar color = Scalar(0, 0, 255);
         cv::line(img, cvPoint2D32f(it->line1Start.at<double>(0,0), it->line1Start.at<double>(1,0)), cvPoint2D32f(it->line1End.at<double>(0,0), it->line1End.at<double>(1,0)), color, lineWidth);
         cv::line(img, cvPoint2D32f(it->line2Start.at<double>(0,0) + image_1_color.cols, it->line2Start.at<double>(1,0)), cvPoint2D32f(it->line2End.at<double>(0,0) + image_1_color.cols, it->line2End.at<double>(1,0)), color, lineWidth);
         if(drawConnections) {
@@ -335,7 +356,8 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Poi
     Mat img;
     hconcat(image_1_color.clone(), image_2_color.clone(), img);
     for(int i = 0; i < p1.size(); i++) {
-        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        //Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        Scalar color = Scalar(0, 0, 255);
         cv::circle(img, p1.at(i), radius, color, lineWidth);
         cv::circle(img, cvPoint2D32f(p2.at(i).x + image_1_color.cols, p2.at(i).y), radius, color, lineWidth);
         if(drawConnections) {
@@ -353,7 +375,8 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<poi
         p1 = pointCorresp.at(i).x1;
         p2 = pointCorresp.at(i).x2;
 
-        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        //Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        Scalar color = Scalar(0, 0, 255);
         cv::circle(img, p1, radius, color, lineWidth);
         cv::circle(img, cvPoint2D32f(p2.x + image_1_color.cols, p2.y), radius, color, lineWidth);
         if(drawConnections) {
@@ -370,7 +393,8 @@ void visualizePointMatches(Mat image_1_color, Mat image_2_color, std::vector<Mat
         Mat p1 = x1.at(i);
         Mat p2 = x2.at(i);
 
-        Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        //Scalar color = Scalar(rand()%255, rand()%255, rand()%255);
+        Scalar color = Scalar(0, 0, 255);
         cv::circle(img, cvPoint2D32f(p1.at<double>(0,0), p1.at<double>(1,0)), radius, color, lineWidth);
         cv::circle(img, cvPoint2D32f(p2.at<double>(0,0) + image_1_color.cols, p2.at<double>(1,0)), radius, color, lineWidth);
         if(drawConnections) {
@@ -676,7 +700,7 @@ double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std:
             used++;
         }
     }
-    return error/=used;
+    return error/used;
 }
 
 //bool compareCorrespErrors(correspSubsetError ls1, correspSubsetError ls2) {

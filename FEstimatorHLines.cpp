@@ -55,8 +55,8 @@ int FEstimatorHLines::extractMatches() {
         allMatchedLinesConst.push_back(getlineCorrespStruct(*it));
     }
 
-    if(CREATE_DEBUG_IMG) visualizeLineMatches(image_1_color, image_2_color, allMatchedLines, 3, false, "All line matches");
-    if(CREATE_DEBUG_IMG) visualizeLineMatches(image_1_color, image_2_color, goodMatchedLines, 3, false, "Good line matches");
+    if(CREATE_DEBUG_IMG) visualizeLineMatches(image_1_color, image_2_color, allMatchedLines, 6, false, "All line matches");
+    if(CREATE_DEBUG_IMG) visualizeLineMatches(image_1_color, image_2_color, goodMatchedLines, 6, false, "Good line matches");
 }
 
 bool FEstimatorHLines::compute() {
@@ -156,8 +156,8 @@ bool FEstimatorHLines::compute() {
 
     //cvWaitKey(0);
 
-    filterUsedLineMatches(allMatchedLines, firstEstimation.lineCorrespondencies);
-    int removed = filterUsedLineMatches(goodMatchedLines, firstEstimation.lineCorrespondencies);
+    filterUsedLineMatches(allMatchedLines, firstEstimation.removeLineCorrespondencies);
+    int removed = filterUsedLineMatches(goodMatchedLines, firstEstimation.removeLineCorrespondencies);
 
     if(CREATE_DEBUG_IMG) {
         //visualizeLineMatches(image_1_color, image_2_color, goodMatchedLines, 8, true, name+": Remaining matches for 2ed estimation");
@@ -185,8 +185,8 @@ bool FEstimatorHLines::compute() {
         homographies_equal = (!computeUniqeEigenvector(H, e2));
         if(homographies_equal) {
             if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
-            filterUsedLineMatches(allMatchedLines, secondEstimation.lineCorrespondencies);
-            removed = filterUsedLineMatches(goodMatchedLines, secondEstimation.lineCorrespondencies);
+            filterUsedLineMatches(allMatchedLines, secondEstimation.removeLineCorrespondencies);
+            removed = filterUsedLineMatches(goodMatchedLines, secondEstimation.removeLineCorrespondencies);
             outliers = computeRelativeOutliers(outliers, goodMatchedLines.size(), goodMatchedLines.size() + removed);
         }
         estCnt++;
@@ -218,6 +218,10 @@ bool FEstimatorHLines::compute() {
 
     F = crossProductMatrix(e2)*firstEstimation.Hs;
     enforceRankTwoConstraint(F);
+
+    matToFile("H1_lines.csv", firstEstimation.Hs);
+    matToFile("H2_lines.csv", secondEstimation.Hs);
+    matToFile("F_H_lines.csv", F);
 
     featureCountGood = goodMatchedLinesConst.size();
     featureCountComplete = allMatchedLinesConst.size();
@@ -359,7 +363,7 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
 
         errTher = threshold - 0.2*iterationLM;
         //errTher = 1.0;
-        if(errTher < 1.0) errTher = 1.0;
+        if(errTher < 2.0) errTher = 2.0;
 
         bool onlyParallelCorresp = true;
         LMSubset.subsetError = 0;
@@ -411,9 +415,12 @@ bool FEstimatorHLines::findLineHomography(lineSubsetStruct &bestSubset, std::vec
         lineCorrespStruct lc = allMatches.at(i);
         double error = sampsonDistanceHomography(bestSubset.Hs, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
         //double error = sampsonDistanceHomography(bestSubset.Hs, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
-        if(sqrt(error) <= threshold) {
+        if(sqrt(error) <= bestSubsetErrThr) {
             bestSubset.lineCorrespondencies.push_back(lc);
             bestSubset.subsetError += error;
+        }
+        if(sqrt(error) <= 2*threshold) {
+            bestSubset.removeLineCorrespondencies.push_back(lc);
         }
     }
     bestSubset.subsetError /= bestSubset.lineCorrespondencies.size();
@@ -491,11 +498,6 @@ bool FEstimatorHLines::estimateHomography(lineSubsetStruct &result, std::vector<
     std::vector<lineSubsetStruct> subsets;
     if(LOG_DEBUG) std::cout << "-- Computing "<< sets << " Homographies, using " << NUM_LINE_CORRESP << " point correspondencies each" << std::endl;
     //Compute H_21 from line correspondencies
-
-    //Mat* T = normalizeLines(lineCorrespondencies);
-
-//    normT1 = T[0];
-//    normT2 = T[1];
 
     srand(time(NULL));  //Init random generator
     for(int i = 0; i < sets; i++) {

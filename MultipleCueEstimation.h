@@ -6,9 +6,7 @@
 #include "FEstimatorPoints.h"
 #include "FEstimatorHLines.h"
 #include "FEstimatorHPoints.h"
-#include "LevenbergMarquardtGeneral.h"
 #include "clm/SevenpointLevenbergMarquardt.h"
-//#include "LevenbergMarquardtStandardDeviation.h"
 
 //SYSTEM
 #include <string>
@@ -50,6 +48,8 @@ public:
     double groundTruthRootStdDev;
     double groundTruthSampsonDistCorrect;
     double groundTruthSampsonStdDev;
+
+    Mat K1_gt, K2_gt;
 
     Mat compute();
     std::vector<FEstimationMethod> getEstimations();

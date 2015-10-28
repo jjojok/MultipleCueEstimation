@@ -41,6 +41,17 @@ for file in $(find "/home/johannes/MultipleCueEstimation" -maxdepth 1 -type f -n
 do	
 	mv -f $file $subdir
 done
+
+mv -f "F_result.csv" $subdir
+mv -f "F_points.csv" $subdir
+mv -f "F_H_points.csv" $subdir
+mv -f "F_H_lines.csv" $subdir
+mv -f "H1_points.csv" $subdir
+mv -f "H1_lines.csv" $subdir
+mv -f "H2_points.csv" $subdir
+mv -f "H2_lines.csv" $subdir
+mv -f "F_gt.csv" $subdir
+
 done
 
 echo ""

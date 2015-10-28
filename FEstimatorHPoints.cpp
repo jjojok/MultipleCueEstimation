@@ -51,7 +51,7 @@ int FEstimatorHPoints::extractMatches() {
 
     if(LOG_DEBUG) std::cout << "-- Number of good matches: " << goodMatchedPoints.size() << std::endl;
 
-    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 6 , 2, false, name+": good point matches");
+    if(CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 20 , 2, false, name+": good point matches");
 }
 
 bool FEstimatorHPoints::compute() {
@@ -172,19 +172,13 @@ bool FEstimatorHPoints::compute() {
     }
 
     if(CREATE_DEBUG_IMG) {
-        visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 6, 2, false, name+": H1 used Matches");
+        visualizePointMatches(image_1_color, image_2_color, firstEstimation.pointCorrespondencies, 20, 2, false, name+": H1 used Matches");
         visualizeHomography(firstEstimation.Hs, image_1_color, image_2_color, name+": H1");
     }
 
-    if(LOG_DEBUG) std::cout << "-- Used matches: " << firstEstimation.pointCorrespondencies.size() << std::endl;
-
-    if(CREATE_DEBUG_IMG) {
-        //visualizePointMatches(image_1_color, image_2_color, goodMatchedPoints, 8, true, name+": Remaining matches for 2ed estimation");
-    }
-
     bool homographies_equal = true;
-    int removed = filterUsedPointMatches(goodMatchedPoints, firstEstimation.pointCorrespondencies);
-    filterUsedPointMatches(allMatchedPoints, firstEstimation.pointCorrespondencies);
+    int removed = filterUsedPointMatches(goodMatchedPoints, firstEstimation.removePointCorrespondencies);
+    filterUsedPointMatches(allMatchedPoints, firstEstimation.removePointCorrespondencies);
     double outliers = computeRelativeOutliers(HOMOGRAPHY_OUTLIERS, goodMatchedPoints.size(), goodMatchedPoints.size() + removed);
     Mat H;
     Mat e2;
@@ -205,8 +199,8 @@ bool FEstimatorHPoints::compute() {
         homographies_equal = (!computeUniqeEigenvector(H, e2));
         if(homographies_equal) {
             if(LOG_DEBUG) std::cout << "-- Homographies equal, repeating estimation..." << std::endl << "-- H = " << std::endl << H << std::endl;
-            removed = filterUsedPointMatches(goodMatchedPoints, secondEstimation.pointCorrespondencies);
-            filterUsedPointMatches(allMatchedPoints, secondEstimation.pointCorrespondencies);
+            removed = filterUsedPointMatches(goodMatchedPoints, secondEstimation.removePointCorrespondencies);
+            filterUsedPointMatches(allMatchedPoints, secondEstimation.removePointCorrespondencies);
             outliers = computeRelativeOutliers(outliers, goodMatchedPoints.size(), goodMatchedPoints.size() + removed);
         }
 
@@ -217,6 +211,14 @@ bool FEstimatorHPoints::compute() {
         if(LOG_DEBUG) std::cout << "-- Estimation failed!" << std::endl;
         return false;
     }
+
+    if(CREATE_DEBUG_IMG) {
+        visualizePointMatches(image_1_color, image_2_color, secondEstimation.pointCorrespondencies, 20, 2, false, name+": H2 used Matches");
+        visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, name+": H2");
+    }
+
+    if(LOG_DEBUG) std::cout << "-- Used matches: " << firstEstimation.pointCorrespondencies.size() << std::endl;
+
 
     for(std::vector<pointCorrespStruct>::const_iterator pointIter = firstEstimation.pointCorrespondencies.begin(); pointIter != firstEstimation.pointCorrespondencies.end(); ++pointIter) {
         featuresImg1.push_back(matVector(pointIter->x1));
@@ -230,13 +232,12 @@ bool FEstimatorHPoints::compute() {
 
     if(LOG_DEBUG) std::cout << "-- Added " << featuresImg1.size() << " point correspondencies to combined feature vector" << std::endl;
 
-    if(CREATE_DEBUG_IMG) {
-        visualizePointMatches(image_1_color, image_2_color, secondEstimation.pointCorrespondencies, 6, 2, false, name+": H2 used Matches");
-        visualizeHomography(secondEstimation.Hs, image_1_color, image_2_color, name+": H2");
-    }
-
     F = crossProductMatrix(e2)*firstEstimation.Hs;
     enforceRankTwoConstraint(F);
+
+    matToFile("H1_points.csv", firstEstimation.Hs);
+    matToFile("H2_points.csv", secondEstimation.Hs);
+    matToFile("F_H_points.csv", F);
 
     if(LOG_DEBUG) std::cout << "-- Used matches: " << secondEstimation.pointCorrespondencies.size() << std::endl;
 
@@ -373,7 +374,7 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
 
         errTher = threshold - 0.2*iterationLM;
         //errTher = 1.0;
-        if(errTher < 1.0) errTher = 1.0;
+        if(errTher < 2.0) errTher = 2.0;
 
         removedMatches = LMSubset.pointCorrespondencies.size();
 
@@ -417,9 +418,12 @@ bool FEstimatorHPoints::findPointHomography(pointSubsetStruct &bestSubset, std::
     for(std::vector<pointCorrespStruct>::iterator pointIter = allMatches.begin(); pointIter != allMatches.end(); ++pointIter) {
         //double error = sampsonDistanceHomography_(bestSubset.Hs, *pointIter);
         double error = sampsonDistanceHomography_(bestSubset.Hs, H_inv, *pointIter);
-        if(sqrt(error) <= threshold) {
+        if(sqrt(error) <= bestSubsetErrThr) {
             bestSubset.pointCorrespondencies.push_back(*pointIter);
             bestSubset.subsetError += error;
+        }
+        if(sqrt(error) <= 2*threshold) {
+            bestSubset.removePointCorrespondencies.push_back(*pointIter);
         }
     }
     bestSubset.subsetError /= bestSubset.pointCorrespondencies.size();

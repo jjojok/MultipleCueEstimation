@@ -90,6 +90,8 @@ int main(int argc, char** argv )
         Mat K1, K2, R1w, R2w, t1w, t2w;
         if(ImgParamsFromFile(argv[4], K1, R1w, t1w) && ImgParamsFromFile(argv[5], K2, R2w, t2w)) {
             mce = new MultipleCueEstimation(&image_1_color, &image_2_color, computations, getGroundTruthKRt(K1, K2, R1w, R2w, t1w, t2w));
+            mce->K1_gt = K1.clone();
+            mce->K2_gt = K2.clone();
         }
     }
 
