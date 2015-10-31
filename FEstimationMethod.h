@@ -39,6 +39,7 @@ public:
 
     void setGroundTruth(Mat Fgt);
 
+    //Evaluation data:
     //Features which are thought to be "good" after extraction, used for ransac
     int featureCountGood;
     //Complete set of extracted features

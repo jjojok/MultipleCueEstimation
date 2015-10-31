@@ -8,23 +8,6 @@
 #include <fstream>
 #include "clm/SevenpointLevenbergMarquardt.h"
 
-//TODO:
-//- Fro refinement: select best F based on inlaiers not genral error
-//- Find a good starting value for ransac thr according to noralization
-//- Debug output: number of correct matches for each estimation
-//- Use sampson error for HPoints (Hartley, Ziss: p98 (Homography), p287 (Fundamental)
-//- Discard global optimization if result is worse then one of the intermediate results
-//- Look at http://users.ics.forth.gr/~lourakis/fundest/ and levmar and http://users.ics.forth.gr/~lourakis/homest/
-//- Refine F: Compute Projection matrices and take mean of rotations/translations (P1 = [I|0]; P2 = [[e2]xF12 | e2])
-
-//MAYBE:
-//- F from curves: FindContours -> compute slope for every point on contour, match slopes (include in matching: slope, point distance, color, intensety...)
-
-//General Info:
-//- Sampson/Reprojection error X = (x1, y1, x2, y2) in homogenen korrds
-//- LM: Optimize all 9 matrix elements
-
-
 Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat Rw1, Mat Rw2, Mat Tw1, Mat Tw2) {      //Compute F from K,R,t in world coords
 
     Mat R12 = Rw2.t()*Rw1;                  //Rotation from camera 1 to camera 2
@@ -40,23 +23,6 @@ Mat *getGroundTruthKRt(Mat K1, Mat K2, Mat Rw1, Mat Rw2, Mat Tw1, Mat Tw2) {    
 
     Mat * F = new Mat(crossProductMatrix(P2*C)*P2*P1p);     //F = [P'*C]x*P'*P^+(See Hartley, Zisserman: p. 244)
     *F = *F / F->at<double>(2,2);
-
-//    if (LOG_DEBUG) {
-//        std::cout << "Computation of ground truth: " << std::endl;
-//        std::cout << "-- K1 = " << std::endl << K1 << std::endl;
-//        std::cout << "-- K2 = " << std::endl << K2 << std::endl;
-//        std::cout << "-- T1w = " << std::endl << T1w << std::endl;
-//        std::cout << "-- T2w = " << std::endl << T2w << std::endl;
-//        std::cout << "-- R1w = " << std::endl << R1w << std::endl;
-//        std::cout << "-- R2w = " << std::endl << R2w << std::endl;
-//        std::cout << "-- R12 = " << std::endl << R12 << std::endl;
-//        std::cout << "-- T12 = " << std::endl << T12 << std::endl;
-//        std::cout << "-- P1p = " << std::endl << P1p << std::endl;
-//        std::cout << "-- P2 = " << std::endl << P2 << std::endl;
-//        std::cout << "-- F = " << std::endl << *F << std::endl;
-//        std::cout << std::endl;
-//    }
-
     return F;
 
 }

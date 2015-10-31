@@ -6,18 +6,18 @@ fi
 
 PREFIX="/home/johannes/MultipleCueEstimation/Datasets/"
 
-OUT="Results/resultList.csv"
+OUT="Results/resultList_points_only.csv"
 
 #table header
 echo "first image, second image, featureCountCombined, trueFeatureCountCombined, Fgt: trueSampsonErr, Fgt: trueErrorStdDev, Fgt: trueRootSampsonErr, Fgt: trueRootErrorStdDev, refined F: inlierCountCombined, refined F: trueInlierCountCombined, refined F: sampsonErrCombined, refined F: trueSampsonErr, refined F: trueSampsonErrStdDev, refined F: trueRootSampsonErr, refined F: trueRootSampsonErrStdDev, F_Points: featureCountGood, F_Points: trueFeatureCountGood, F_Points: featureCountComplete, F_Points: trueFeatureCountComplete, F_Points: inlierCountOwnGood, F_Points: trueInlierCountOwnGood, F_Points: inlierCountOwnComplete, F_Points: trueInlierCountOwnComplete, F_Points: inlierCountCombined, F_Points: trueInlierCountCombined, F_Points: sampsonErrOwn, F_Points: sampsonErrComplete, F_Points: sampsonErrCombined, F_Points: sampsonErrStdDevCombined, F_Points: trueSampsonErr, F_Points: trueSampsonErrStdDev, F_Points: trueRootSampsonErr, F_Points: trueRootSampsonErrStdDev, F_Points: quality, H_Lines: featureCountGood, H_Lines: trueFeatureCountGood, H_Lines: featureCountComplete, H_Lines: trueFeatureCountComplete, H_Lines: inlierCountOwnGood, H_Lines: trueInlierCountOwnGood, H_Lines: inlierCountOwnComplete, H_Lines: trueInlierCountOwnComplete, H_Lines: inlierCountCombined, H_Lines: trueInlierCountCombined, H_Lines: sampsonErrOwn, H_Lines: sampsonErrComplete, H_Lines: sampsonErrCombined, H_Lines: sampsonErrStdDevCombined, H_Lines: trueSampsonErr, H_Lines: trueSampsonErrStdDev, H_Lines: trueRootSampsonErr, H_Lines: trueRootSampsonErrStdDev, H_Lines: quality, H_Points: featureCountGood, H_Points: trueFeatureCountGood, H_Points: featureCountComplete, H_Points: trueFeatureCountComplete, H_Points: inlierCountOwnGood, H_Points: trueInlierCountOwnGood, H_Points: inlierCountOwnComplete, H_Points: trueInlierCountOwnComplete, H_Points: inlierCountCombined, H_Points: trueInlierCountCombined, H_Points: sampsonErrOwn, H_Points: sampsonErrComplete, H_Points: sampsonErrCombined, H_Points: sampsonErrStdDevCombined, H_Points: trueSampsonErr, H_Points: trueSampsonErrStdDev, H_Points: trueRootSampsonErr, H_Points: trueRootSampsonErrStdDev, H_Points: quality, time (min)" >> $OUT
 
 ####################### Castle ################################################## 
 #"should work" examples
-#sh MultipleCueEstimationList.sh "castle-P30/0000.png" "castle-P30/0003.png" $OUT
-#sh MultipleCueEstimationList.sh "castle-P30/0002.png" "castle-P30/0003.png" $OUT
-#sh MultipleCueEstimationList.sh "castle-P30/0001.png" "castle-P30/0002.png" $OUT
-#sh MultipleCueEstimationList.sh "castle-P30/0003.png" "castle-P30/0004.png" $OUT
-#sh MultipleCueEstimationList.sh "castle-P30/0004.png" "castle-P30/0005.png" $OUT
+sh MultipleCueEstimationList.sh "castle-P30/0000.png" "castle-P30/0003.png" $OUT
+sh MultipleCueEstimationList.sh "castle-P30/0002.png" "castle-P30/0003.png" $OUT
+sh MultipleCueEstimationList.sh "castle-P30/0001.png" "castle-P30/0002.png" $OUT
+sh MultipleCueEstimationList.sh "castle-P30/0003.png" "castle-P30/0004.png" $OUT
+sh MultipleCueEstimationList.sh "castle-P30/0004.png" "castle-P30/0005.png" $OUT
 
 ###################### HerzJesu ####################################################
 
@@ -27,7 +27,7 @@ sh MultipleCueEstimationList.sh "herz-jesu-P8/0002.png" "herz-jesu-P8/0003.png" 
 sh MultipleCueEstimationList.sh "herz-jesu-P8/0004.png" "herz-jesu-P8/0005.png" $OUT
 sh MultipleCueEstimationList.sh "herz-jesu-P8/0006.png" "herz-jesu-P8/0007.png" $OUT
 #"should not work" examples
-#sh MultipleCueEstimationList.sh "herz-jesu-P8/0000.png" "herz-jesu-P8/0002.png" $OUT
+sh MultipleCueEstimationList.sh "herz-jesu-P8/0000.png" "herz-jesu-P8/0002.png" $OUT
 
 sh MultipleCueEstimationList.sh "castle-P30/0005.png" "castle-P30/0006.png" $OUT
 sh MultipleCueEstimationList.sh "castle-P30/0008.png" "castle-P30/0009.png" $OUT

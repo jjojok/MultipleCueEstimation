@@ -18,6 +18,7 @@ MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat
     compareWithGroundTruth = true;
     Fgt = F_groudtruth->clone();
 
+    //Evaluation data
     combinedFeatures = -1;
     combinedFeaturesCorrect = -1;
     refinedFInlierCombined = -1;
@@ -36,15 +37,15 @@ MultipleCueEstimation::MultipleCueEstimation(Mat *img1, Mat *img2, int comp, Mat
 Mat MultipleCueEstimation::compute() {
 
     if (checkData()) {
-        if(computations & F_FROM_POINTS) {
+        if(computations & F_FROM_POINTS) {      //Calculate F from poiint in general pos.
             FEstimationMethod* points = calcFfromPoints();
             estimations.push_back(*points);
         }
-        if(computations & F_FROM_LINES_VIA_H) {
+        if(computations & F_FROM_LINES_VIA_H) { //Calculate F from lines via homographies
             FEstimationMethod* lines = calcFfromHLines();
             estimations.push_back(*lines);
         }
-        if(computations & F_FROM_POINTS_VIA_H) {
+        if(computations & F_FROM_POINTS_VIA_H) {//Calculate F from points via homographies
             FEstimationMethod* Hpoints = calcFfromHPoints();
             estimations.push_back(*Hpoints);
         }
@@ -302,26 +303,14 @@ Mat MultipleCueEstimation::refineF(std::vector<FEstimationMethod> &estimations) 
         if (LOG_DEBUG) std::cout << "Features: " << featureCnt << ", Change: " << (lastFeatureCnt - featureCnt) << ", Error: " << errorSPLM << ", Error Change: " << (lastErrorSPLM - errorSPLM)/errorSPLM << ", Error combined: " << errorSPLMCombined << std::endl;
         if((lastErrorSPLM - errorSPLM)/errorSPLM < 0) break;
         result = FSPLM.clone();
-        //errorFunctionCombinedMeanSquared(x1Combined, x2Combined, estimationIter->getF(), errorSPLM, estimationIter->inlierCountCombined, squaredErrorThr, estimationIter->sampsonErrStdDevCombined);
-        //quality = estimationIter->quality = qualitiy(errorSPLM, smallestSampsonErr, estimationIter->inlierCountCombined, largestInlier, estimationIter->sampsonErrStdDevCombined, smallestSampsonErrStdDev);
     } while(abs(lastFeatureCnt - featureCnt) > 5 && (lastErrorSPLM - errorSPLM)/errorSPLM > 0.01 && errorSPLM > 0.3);
 
     if(compareWithGroundTruth) refinedFTrueInlierCombined = goodMatchesCount(Fgt, x1goodPointsSPLM, x2goodPointsSPLM, INLIER_THRESHOLD);
-
-    //if((lastErrorSPLM - errorSPLM)/errorSPLM > 0.02) SPLM(FSPLM, x1goodPointsSPLM, x2goodPointsSPLM);
 
     if (CREATE_DEBUG_IMG) visualizePointMatches(image_1_color, image_2_color, x1goodPointsSPLM, x2goodPointsSPLM, 20, 2, false, "FSPLM used point matches");
 
     return result;
 }
-
-//double MultipleCueEstimation::qualitiy(double sampsonErrCombined, int inlierCountCombined, int combinedMatches, double sampsonErrStdDevCombined) {
-//    double qInlier = QI*inlierCountCombined/combinedMatches;
-//    double qError = QE/(QE + sampsonErrCombined);
-//    double qStdDev = QS/(QS + sampsonErrStdDevCombined);
-//    return (qInlier + qError + qStdDev) / 3.0;
-//    //return (QI*inlierCountCombined/combinedMatches + QE/(QE + sampsonErrCombined) + QS/(QS + sampsonErrStdDevCombined)) / (QI*QE*QS*3.0);
-//}
 
 double MultipleCueEstimation::qualitiy(double sampsonErrCombined, double smallestSampsonErr, int inlierCountCombined, int largestInlier, double sampsonErrStdDevCombined, double smallestSampsonErrStdDev) {
     double qInlier = QI*inlierCountCombined/largestInlier;
@@ -340,8 +329,6 @@ bool MultipleCueEstimation::SPLM(Mat &F, std::vector<Mat> x1m, std::vector<Mat> 
             Fvect->at(k++) = F.at<double>(i,j);
     }
 
-    //3072 2048
-    //double f0 = 3072.0;
     double f0 = 1.0;
 
     for(int i = 0; i < x1m.size(); i++) {

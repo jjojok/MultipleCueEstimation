@@ -33,15 +33,12 @@ struct LineFunctor : Functor<double>
 
         Mat H_inv = newH.inv(DECOMP_SVD);
 
-        //Mat H_inv = newH.inv(DECOMP_SVD);
-
         lineCorrespStruct lc;
 
         for(unsigned int i = 0; i < this->lines->lineCorrespondencies.size(); ++i)
         {
             lc = this->lines->lineCorrespondencies.at(i);
             fvec(i) = sampsonDistanceHomography(newH, H_inv, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
-            //fvec(i) = sampsonDistanceHomography(newH, lc.line1Start, lc.line1End, lc.line2Start, lc.line2End);
         }
 
         return 0;

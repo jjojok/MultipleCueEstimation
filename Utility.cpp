@@ -703,26 +703,6 @@ double meanSampsonFDistanceGoodMatches(Mat Fgt, Mat F, std::vector<Mat> x1, std:
     return error/used;
 }
 
-//bool compareCorrespErrors(correspSubsetError ls1, correspSubsetError ls2) {
-//    return ls1.correspError < ls2.correspError;
-//}
-
-//bool compareFundMatSets(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-//    return f1->inlier > f2->inlier;
-//}
-
-//bool compareFundMatSetsSelectedInliers(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-//    return f1->selectedInlierCount > f2->selectedInlierCount;
-//}
-
-//bool compareFundMatSetsError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-//    return f1->meanSquaredErrror < f2->meanSquaredErrror;
-//}
-
-//bool compareFundMatSetsInlinerError(fundamentalMatrix* f1, fundamentalMatrix* f2) {
-//    return f1->inlierMeanSquaredErrror < f2->inlierMeanSquaredErrror;
-//}
-
 bool isEqualPointCorresp(Mat x11, Mat x12, Mat x21, Mat x22) {
     if(fabs(x11.at<double>(0,0) - x21.at<double>(0,0)) > 1.0) return false;
     if(fabs(x11.at<double>(1,0) - x21.at<double>(1,0)) > 1.0) return false;
@@ -745,10 +725,6 @@ void matToPoint(std::vector<Mat> xin, std::vector<Point2d> &xout) {
 //Fundamental matrix
 
 double sampsonDistanceFundamentalMat(Mat F, Mat x1, Mat x2) {
-//    double e1 = sampsonDistanceFundamentalMatSingle(F, x1, x2);
-//    double e2 = sampsonDistanceFundamentalMatSingle(F.t(), x2, x1);
-//    return e1 + e2;
-    //return sampsonDistanceFundamentalMatSingle(F, x1, x2) + sampsonDistanceFundamentalMatSingle(F.t(), x2, x1);
     return sampsonDistanceFundamentalMatSingle(F, x1, x2);
 }
 
@@ -812,13 +788,7 @@ double sampsonDistanceHomographySingle(Mat H, Mat x1, Mat x2) {
 }
 
 double sampsonDistanceHomography(Mat H, Mat H_inv, Mat x1, Mat x2) {
-//double sampsonDistanceHomography(Mat H, Mat x1, Mat x2) {
-//double sampsonDistanceHomography(Mat H, Mat H_inv, Mat x1, Mat x2) {      //See: Hartley Ziss, p98
-    //return sampsonDistanceHomographySingle(H, x1, x2) + sampsonDistanceHomographySingle(H_inv, x2, x1);
-//    double e1 = sampsonDistanceHomographySingle(H, x1, x2);
-//    double e2 = sampsonDistanceHomographySingle(H_inv, x2, x1);
-//    return e1 + e2;
-        return sampsonDistanceHomographySingle(H, x1, x2);
+    return sampsonDistanceHomographySingle(H, x1, x2);
 }
 
 //error line homography
@@ -831,254 +801,9 @@ double sampsonDistanceHomographySingle(Mat H, Mat line1Start, Mat line1End, Mat 
     double end = Mat(line1End.t()*AA).at<double>(0,0);
     double Ax = AA.at<double>(0,0);
     double Ay = AA.at<double>(1,0);
-    //double error = (start*start + end*end)/(Ax*Ax + Ay*Ay);
-
-    //return error;
-
-    //    //Sampson error
-//    Mat BB = H*line1Start;
-//    Mat CC = H*line1End;
-
-//    double Asx = Mat(H*line1Start).at<double>(0,0);
-//    double Asy = Mat(H*line1Start).at<double>(1,0);
-
-//    double Aex = Mat(H*line1End).at<double>(0,0);
-//    double Aey = Mat(H*line1End).at<double>(1,0);
-
-//    double e1 = (start*start)/(Ax*Ax + Ay*Ay + Asx*Asx + Asy*Asy);
-//    double e2 = (end*end)/(Ax*Ax + Ay*Ay + Aex*Aex + Aey*Aey);
-
     return (start*start + end*end)/(Ax*Ax + Ay*Ay);
-
-    //std::cout << "BB" << std::endl << BB << std::endl;
-
-//    homogMat(BB);
-//    homogMat(CC);
-
-    //std::cout << "BB" << std::endl << BB << std::endl;
-
-//    Mat EE = Mat::zeros(2, 1, CV_64FC1);
-//    Mat J = Mat::zeros(2, 6, CV_64FC1);
-
-//    EE.at<double>(0,0) = start;
-//    EE.at<double>(1,0) = end;
-
-//    J.at<double>(0,0) = AA.at<double>(0,0);
-//    J.at<double>(1,0) = 0;
-//    J.at<double>(0,1) = AA.at<double>(1,0);
-//    J.at<double>(1,1) = 0;
-
-//    J.at<double>(0,2) = 0;
-//    J.at<double>(1,2) = AA.at<double>(0,0);
-//    J.at<double>(0,3) = 0;
-//    J.at<double>(1,3) = AA.at<double>(1,0);
-
-//    J.at<double>(0,4) = BB.at<double>(0,0);
-//    J.at<double>(1,4) = CC.at<double>(0,0);
-//    J.at<double>(0,5) = BB.at<double>(1,0);
-//    J.at<double>(1,5) = CC.at<double>(1,0);
-
-//    std::cout << "AA" << std::endl << AA << std::endl;
-//    std::cout << "BB" << std::endl << BB << std::endl;
-//    std::cout << "CC" << std::endl << CC << std::endl;
-//    std::cout << "J" << std::endl << J << std::endl;
-//    std::cout << "(J*J.t()).inv(DECOMP_SVD)" << std::endl << (J*J.t()).inv(DECOMP_SVD) << std::endl;
-//    J.at<double>(0,2) = BB.at<double>(0,0);
-//    J.at<double>(1,2) = BB.at<double>(1,0);
-//    J.at<double>(0,3) = CC.at<double>(0,0);
-//    J.at<double>(1,3) = CC.at<double>(1,0);
-
-//    std::cout << std::endl << "EE" << std::endl << EE << std::endl;
-//    std::cout << std::endl << "J" << std::endl << J << std::endl;
-
-//    double e = Mat(EE.t()*(J*J.t()).inv(DECOMP_SVD)*EE).at<double>(0,0);
-
-    //return e;
-//    double e1 = Mat(start.t()*(Js*Js.t()).inv(DECOMP_SVD)*start).at<double>(0,0);
-//    double e2 = Mat(end.t()*(Je*Je.t()).inv(DECOMP_SVD)*end).at<double>(0,0);
-
-//    double e1 = (start.at<double>(0,0) * start.at<double>(0,0))/(AA.at<double>(0,0)*AA.at<double>(0,0) + AA.at<double>(1,0)*AA.at<double>(1,0) + BB.at<double>(0,0)*BB.at<double>(0,0) + BB.at<double>(1,0)*BB.at<double>(1,0));
-//    double e2 = (start.at<double>(0,0) * start.at<double>(0,0))/(AA.at<double>(0,0)*AA.at<double>(0,0) + AA.at<double>(1,0)*AA.at<double>(1,0) + CC.at<double>(0,0)*CC.at<double>(0,0) + CC.at<double>(1,0)*CC.at<double>(1,0));
-
-    //return e1+e2;
-
-    //return result.at<double>(0,0);
-
-//    //Sampson error
-//    double x1sx = line1Start.at<double>(0,0);
-//    double x1sy = line1Start.at<double>(1,0);
-//    double x1ex = line1End.at<double>(0,0);
-//    double x1ey = line1End.at<double>(1,0);
-//    double x2sx = line2Start.at<double>(0,0);
-//    double x2sy = line2Start.at<double>(1,0);
-//    double x2ex = line2End.at<double>(0,0);
-//    double x2ey = line2End.at<double>(1,0);
-
-//    Mat Hs = H;
-
-//    double h11 = Hs.at<double>(0,0);
-//    double h12 = Hs.at<double>(0,1);
-//    double h13 = Hs.at<double>(0,2);
-//    double h21 = Hs.at<double>(1,0);
-//    double h22 = Hs.at<double>(1,1);
-//    double h23 = Hs.at<double>(1,2);
-//    double h31 = Hs.at<double>(2,0);
-//    double h32 = Hs.at<double>(2,1);
-//    double h33 = Hs.at<double>(2,2);
-
-//    double A = x2sy - x2ey;
-//    double B = x2ex - x2sx;
-//    double C = x2sx * x2ey - x2ex * x2sy;
-//    double D = A*h13 + B*h23 + C*h33;
-
-//    Mat J = Mat::zeros(2, 8, CV_64FC1);
-//    Mat E = Mat::zeros(2, 1, CV_64FC1);
-
-//    E.at<double>(0,0) = A*x1sx*h11 + A*x1sy*h12
-//                        + B*x1sx*h21 + B*x1sy*h22
-//                        + C*x1sx*h31 + C*x1sy*h32 + D;
-
-//    E.at<double>(1,0) = A*x1ex*h11 + A*x1ey*h12
-//                        + B*x1ex*h21 + B*x1ey*h22
-//                        + C*x1ex*h31 + C*x1ey*h32 + D;
-
-//    //dE/dx1sx
-//    J.at<double>(0,0) = A*h11 + B*h21 + C*h31;
-//    //dE/dx1sy
-//    J.at<double>(0,1) = A*h12 + B*h22 + C*h32;
-
-//    //dE/dx1ex
-//    J.at<double>(1,2) = A*h11 + B*h21 + C*h31;
-//    //dE/dx1ey
-//    J.at<double>(1,3) = A*h12 + B*h22 + C*h32;
-
-//    //dE/dx2sx
-//    J.at<double>(0,4) = -x1sx*h21 - x1sy*h22 - h23 + x1sx*x2ey*h31 + x1sy*x2ey*h32 + x2ey*h33;
-//    J.at<double>(1,4) = -x1ex*h21 - x1ey*h22 - h23 + x1ex*x2ey*h31 + x1ey*x2ey*h32 + x2ey*h33;
-//    //dE/dx2sy
-//    J.at<double>(0,5) = x1sx*h11 + x1sy*h12 + h13 - x1sx*x2ex*h31 - x1sy*x2ex*h32 - x2ex*h33;
-//    J.at<double>(1,5) = x1ex*h11 + x1ey*h12 + h13 - x1ex*x2ex*h31 - x1ey*x2ex*h32 - x2ex*h33;
-
-//    //dE/dx2ex
-//    J.at<double>(0,6) = x1sx*h21 + x1sy*h22 + h23 - x1sx*x2sy*h31 - x1sy*x2sy*h32 - x2sy*h33;
-//    J.at<double>(1,6) = x1ex*h21 + x1ey*h22 + h23 - x1ex*x2sy*h31 - x1ey*x2sy*h32 - x2sy*h33;
-//    //dE/dx2ey
-//    J.at<double>(0,7) = -x1sx*h11 - x1sy*h12 - h13 + x1sx*x2sx*h31 + x1sy*x2sx*h32 + x2sx*h33;
-//    J.at<double>(1,7) = -x1ex*h11 - x1ey*h12 - h13 + x1ex*x2sx*h31 + x1ey*x2sx*h32 + x2sx*h33;
-
-//    //dE/dx1sx
-//    J.at<double>(0,0) = A*h11 + B*h21 + C*h31;
-//    //dE/dx1sy
-//    J.at<double>(0,1) = A*h12 + B*h22 + C*h32;
-
-//    //dE/dx1ex
-//    J.at<double>(1,2) = J.at<double>(0,0);//A*h11 + B*h21 + C*h31;
-//    //dE/dx1ey
-//    J.at<double>(1,3) = J.at<double>(0,1);//A*h12 + B*h22 + C*h32;
-
-//    //dE/dl2a
-//    J.at<double>(0,4) = x1sx*h11 + x1sy*h12 + h13;
-//    J.at<double>(1,4) = x1ex*h11 + x1ey*h12 + h13;
-//    //dE/dl2b
-//    J.at<double>(0,5) = x1sx*h21 + x1sy*h22 + h23;
-//    J.at<double>(1,5) = x1ex*h21 + x1ey*h22 + h23;
-
-//    //dE/dl2c
-//    J.at<double>(0,6) = x1sx*h31 + x1sy*h32 + h33;
-//    J.at<double>(1,6) = x1ex*h31 + x1ey*h32 + h33;
-
-//    Mat J1 = Mat::zeros(1, 5, CV_64FC1);
-//    double E1 = E.at<double>(0,0);
-//    Mat J2 = Mat::zeros(1, 5, CV_64FC1);
-//    double E2 = E.at<double>(0,0);
-
-//    //dE/dx1sx
-//    J1.at<double>(0,0) = A*h11 + B*h21 + C*h31;
-//    //dE/dx1sy
-//    J1.at<double>(0,1) = A*h12 + B*h22 + C*h32;
-
-//    //dE/dx1ex
-//    J2.at<double>(0,0) = J.at<double>(0,0);//A*h11 + B*h21 + C*h31;
-//    //dE/dx1ey
-//    J2.at<double>(0,1) = J.at<double>(0,1);//A*h12 + B*h22 + C*h32;
-
-//    //dE/dl2a
-//    J1.at<double>(0,2) = x1sx*h11 + x1sy*h12 + h13;
-//    J2.at<double>(0,2) = x1ex*h11 + x1ey*h12 + h13;
-//    //dE/dl2b
-//    J1.at<double>(0,3) = x1sx*h21 + x1sy*h22 + h23;
-//    J2.at<double>(0,3) = x1ex*h21 + x1ey*h22 + h23;
-
-//    //dE/dl2c
-//    J1.at<double>(0,4) = x1sx*h31 + x1sy*h32 + h33;
-//    J2.at<double>(0,4) = x1ex*h31 + x1ey*h32 + h33;
-
-
-//    std::cout << std::endl << "E" << std::endl << E << std::endl;
-//    std::cout << "J" << std::endl << J << std::endl;
-//    std::cout << "J^T" << std::endl << J.t() << std::endl;
-//    std::cout << "(J*J.t()).inv(DECOMP_SVD)" << std::endl << Mat((J*J.t()).inv(DECOMP_SVD)) << std::endl;
-//    std::cout << "E.t()*(J*J.t()).inv(DECOMP_SVD)" << std::endl << Mat(E.t()*(J*J.t()).inv(DECOMP_SVD)) << std::endl;
-
-//      Mat error = E.t()*(J*J.t()).inv(DECOMP_SVD)*E;
-//    Mat error1 = E1*(J1*J1.t()).inv(DECOMP_SVD)*E1;
-//    Mat error2 = E2*(J2*J2.t()).inv(DECOMP_SVD)*E2;
-
-
-//    Mat J1 = Mat::zeros(1, 6, CV_64FC1);
-//    Mat E1 = Mat::zeros(1, 1, CV_64FC1);
-
-//    Mat J2 = Mat::zeros(1, 6, CV_64FC1);
-//    Mat E2 = Mat::zeros(1, 1, CV_64FC1);
-
-//    E1.at<double>(0,0) = A*x1sx*h11 + A*x1sy*h12
-//                        + B*x1sx*h21 + B*x1sy*h22
-//                        + C*x1sx*h31 + C*x1sy*h32 + D;
-
-//    E2.at<double>(0,0) = A*x1ex*h11 + A*x1ey*h12
-//                        + B*x1ex*h21 + B*x1ey*h22
-//                        + C*x1ex*h31 + C*x1ey*h32 + D;
-
-//    //dE/dx1sx
-//    J1.at<double>(0,0) = A*h11 + B*h21 + C*h31;
-//    //dE/dx1sy
-//    J1.at<double>(0,1) = A*h12 + B*h22 + C*h32;
-
-//    //dE/dx1ex
-//    J2.at<double>(0,0) = J1.at<double>(0,0);//A*h11 + B*h21 + C*h31;
-//    //dE/dx1ey
-//    J2.at<double>(0,1) = J1.at<double>(0,1);//A*h12 + B*h22 + C*h32;
-
-//    //dE/dx2sx
-//    J1.at<double>(0,2) = -x1sx*h21 - x1sy*h22 - h23 + x1sx*x2ey*h31 + x1sy*x2ey*h32 + x2ey*h33;
-//    J1.at<double>(0,3) = -x1ex*h21 - x1ey*h22 - h23 + x1ex*x2ey*h31 + x1ey*x2ey*h32 + x2ey*h33;
-//    //dE/dx2sy
-//    J1.at<double>(0,4) = x1sx*h11 + x1sy*h12 + h13 - x1sx*x2ex*h31 - x1sy*x2ex*h32 - x2ex*h33;
-//    J1.at<double>(0,5) = x1ex*h11 + x1ey*h12 + h13 - x1ex*x2ex*h31 - x1ey*x2ex*h32 - x2ex*h33;
-
-//    //dE/dx2ex
-//    J2.at<double>(0,2) = x1sx*h21 + x1sy*h22 + h23 - x1sx*x2sy*h31 - x1sy*x2sy*h32 - x2sy*h33;
-//    J2.at<double>(0,3) = x1ex*h21 + x1ey*h22 + h23 - x1ex*x2sy*h31 - x1ey*x2sy*h32 - x2sy*h33;
-//    //dE/dx2ey
-//    J2.at<double>(0,4) = -x1sx*h11 - x1sy*h12 - h13 + x1sx*x2sx*h31 + x1sy*x2sx*h32 + x2sx*h33;
-//    J2.at<double>(0,5) = -x1ex*h11 - x1ey*h12 - h13 + x1ex*x2sx*h31 + x1ey*x2sx*h32 + x2sx*h33;
-
-//    Mat error1 = E1.t()*(J1*J1.t()).inv(DECOMP_SVD)*E1;
-//    Mat error2 = E2.t()*(J2*J2.t()).inv(DECOMP_SVD)*E2;
-
-    //std::cout << "Sampson1,Sampson2/Geometric: " << error1.at<double>(0,0) << "," << error2.at<double>(0,0) << "/" << result.at<double>(0,0) << std::endl;
-
-
-    //std::cout << "Sampson/Geometric: " << error.at<double>(0,0) << "/" << result.at<double>(0,0) << std::endl;
-
-    //return error.at<double>(0,0);
 }
 
-//double sampsonDistanceHomography(Mat H, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
 double sampsonDistanceHomography(Mat H, Mat H_inv, Mat line1Start, Mat line1End, Mat line2Start, Mat line2End) {
-//    double e1 = sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End);
-//    double e2 = sampsonDistanceHomographySingle(H_inv, line2Start, line2End, line1Start, line1End);
-//    return e1 + e2;
     return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End) + sampsonDistanceHomographySingle(H_inv, line2Start, line2End, line1Start, line1End);
-    //return sampsonDistanceHomographySingle(H, line1Start, line1End, line2Start, line2End);
 }

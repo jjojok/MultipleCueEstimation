@@ -36,7 +36,6 @@ struct PointFunctor : Functor<double>
         for(unsigned int i = 0; i < this->points->pointCorrespondencies.size(); ++i)
         {
             pc = this->points->pointCorrespondencies.at(i);
-            //fvec(i) = sampsonDistanceHomography(newH, matVector(pc.x1), matVector(pc.x2));
             fvec(i) = sampsonDistanceHomography(newH, newH_inv, matVector(pc.x1), matVector(pc.x2));
         }
 

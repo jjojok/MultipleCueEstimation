@@ -29,28 +29,28 @@ echo -n "Computation: "
 for i in 1 2 3 4 5 6 7 8 9 10 
 do
 echo -n "$i..."
-nice -n 19 ./build/MultipleCueEstimation $path1 $path2 7 $cam1 $cam2 >> $3
+nice -n 19 ./build/MultipleCueEstimation $path1 $path2 1 $cam1 $cam2 >> $3
 
-subdir="$imgdir/$i"
+#subdir="$imgdir/$i"
 
-if [ ! -d "$imgdir/$i" ]; then
-  mkdir $subdir
-fi
+#if [ ! -d "$imgdir/$i" ]; then
+#  mkdir $subdir
+#fi
 
-for file in $(find "/home/johannes/MultipleCueEstimation" -maxdepth 1 -type f -name "*.png")
-do	
-	mv -f $file $subdir
-done
+#for file in $(find "/home/johannes/MultipleCueEstimation" -maxdepth 1 -type f -name "*.png")
+#do	
+#	mv -f $file $subdir
+#done
 
-mv -f "F_result.csv" $subdir
-mv -f "F_points.csv" $subdir
-mv -f "F_H_points.csv" $subdir
-mv -f "F_H_lines.csv" $subdir
-mv -f "H1_points.csv" $subdir
-mv -f "H1_lines.csv" $subdir
-mv -f "H2_points.csv" $subdir
-mv -f "H2_lines.csv" $subdir
-mv -f "F_gt.csv" $subdir
+#mv -f "F_result.csv" $subdir
+#mv -f "F_points.csv" $subdir
+#mv -f "F_H_points.csv" $subdir
+#mv -f "F_H_lines.csv" $subdir
+#mv -f "H1_points.csv" $subdir
+#mv -f "H1_lines.csv" $subdir
+#mv -f "H2_points.csv" $subdir
+#mv -f "H2_lines.csv" $subdir
+#mv -f "F_gt.csv" $subdir
 
 done
 

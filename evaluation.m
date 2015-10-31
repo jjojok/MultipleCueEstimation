@@ -82,6 +82,15 @@
 data = csvread("Results/resultList_raw_data.csv");
 result = zeros(rows(data)/10, 2*columns(data));
 result_small = zeros(rows(data)/10, 10);
+F_point_sel=0;
+F_hpoint_sel=0;
+F_hline_sel=0;
+
+F_point_good_results=0;
+F_hpoint_good_results=0;
+F_hline_good_results=0;
+F_final_good_results=0;
+
 evaluation_small = zeros(100, 10);
 k = 1;
 for i = 1:10:rows(data) 
@@ -102,7 +111,7 @@ for i = 1:10:rows(data)
 			result(k, 2*j) = std(col);
 		
 
-			if (j == 3)
+			if (j == 3)				
 				result_small(k,1) = result(k, 2*j-1);
 				result_small(k,2) = result(k, 2*j);
 			elseif (j == 10)
@@ -120,15 +129,46 @@ for i = 1:10:rows(data)
 			endif
 
 		endif
-	
 	endfor
 	k++;	
 endfor
 
+for i = 1:rows(data) 
+	if (data(i,32) > data(i,51) && data(i,32) > data(i,70))
+			F_point_sel++;
+	elseif (data(i,51) > data(i,32) && data(i,51) > data(i,70))
+			F_hpoint_sel++;
+	elseif (data(i,70) > data(i,51) && data(i,70) > data(i,32))
+			F_hline_sel++;
+	endif
+
+	if (data(i,28) < 10)
+		F_point_good_results++;
+	endif
+	if (data(i,47) < 10)
+		F_hpoint_good_results++;
+	endif
+	if (data(i,66) < 10)
+		F_hline_good_results++;
+	endif
+	if (data(i,10) < 10)
+		F_final_good_results++;
+	endif
+endfor
+
+F_point_sel
+F_hpoint_sel
+F_hline_sel
+
+F_point_good_results
+F_hpoint_good_results
+F_hline_good_results
+F_final_good_results
+
 k=1;
 for t = 0.1:0.1:10
 	evaluation_small(k, 2) = t;
-	for j = 3:2:columns(result_small)
+	for j = 3:2:10
 		for i = 1:rows(result_small) 
 			if(result_small(i,j) > 0.01 && result_small(i,j) < t)
 				evaluation_small(k, j) += result_small(i,j);
@@ -142,24 +182,31 @@ for t = 0.1:0.1:10
 	k++;
 endfor 
 
-%Fgt: trueSampsonErr,,
-msize=6;
-lwidth=1.5;
 
-h1=figure;#("Position",[10,10,1200,800]);
-plot (evaluation_small([1:100],2), evaluation_small([1:100],3), "-ko", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],5), "-go", "markersize", msize, "linewidth", lwidth,  evaluation_small([1:100],2), evaluation_small([1:100],7), "-bo", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],9), "-ro", "markersize", msize, "linewidth", lwidth);
+%Fgt: trueSampsonErr,,
+msize=8;
+lwidth=1.5;
+fontsize=20;
+
+h1=figure("Position",[0,0,800,600]);
+plot (evaluation_small([1:100],2), evaluation_small([1:100],3), ":ko", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],5), ":go", "markersize", msize, "linewidth", lwidth,  evaluation_small([1:100],2), evaluation_small([1:100],7), ":bo", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],9), ":ro", "markersize", msize, "linewidth", lwidth);
 
 #title ("");
-xlabel ("Error threshold");
-ylabel ("Example mean RMS error");
-legend ("final result", "from points", "from line homog.", "from point homog.", "location", "northwest");
+xlabel ("Error threshold", "fontsize", fontsize);
+ylabel ("Img. pair mean RMS error", "fontsize", fontsize);
+l = legend ("final result", "from points", "from line homog.", "from point homog.", "location", "northwest");
+set (l, "fontsize", fontsize);
+set(gca, "fontsize", fontsize)
 
-h2=figure;#("Position",[10,10,1200,800]);
-plot (evaluation_small([1:100],2), evaluation_small([1:100],4), "--ko", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],6), "--go", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],8), "--bo", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],10), "--ro", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
 
-xlabel ("Error threshold");
-ylabel ("Number of examples with mean RMS error below threshold");
-legend ("final result", "from points", "from line homog.", "from point homog.", "location", "east");
+h2=figure("Position",[0,0,800,600]);
+plot (evaluation_small([1:100],2), evaluation_small([1:100],4), ":ko", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],6), ":go", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],8), ":bo", "markersize", msize, "linewidth", lwidth, evaluation_small([1:100],2), evaluation_small([1:100],10), ":ro", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
+
+xlabel ("Error threshold", "fontsize", fontsize);
+ylabel ("Img. pairs with mean RMS error below threshold", "fontsize", fontsize);
+l = legend ("final result", "from points", "from line homog.", "from point homog.", "location", "east");
+set (l, "fontsize", fontsize);
+set(gca, "fontsize", fontsize)
 
 max_error = 20;
 
@@ -173,18 +220,21 @@ endfor
 
 %plot_data_u
 
-[plot_data, idx] = sortrows(plot_data_u, 1);
+%[plot_data, idx] = sortrows(plot_data_u, 1);
 
 %plot_data
 
-h3=figure;#("Position",[10,10,1200,800]);
+h3=figure("Position",[0,0,800,600]);
 
-plot (plot_data(:,1), plot_data(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
+plot (plot_data_u(:,1), plot_data_u(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data_u(:,1), plot_data_u(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data_u(:,1), plot_data_u(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data_u(:,1), plot_data_u(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
 
 
-xlabel ("RMS error");
-ylabel ("Number of inlier");
-legend ("combined inlier", "thereof ground truth inlier", "thereof result inlier", "thereof ground truth inlier", "location", "northeast");
+xlabel ("RMS error", "fontsize", fontsize);
+ylabel ("Number of inlier", "fontsize", fontsize);
+l = legend ("joint feature inlier", "thereof \"true\" inlier", "thereof result inlier", "thereof \"true\" inlier", "location", "northeast");
+set (l, "fontsize", fontsize);
+set(gca, "fontsize", fontsize)
+
 
 k=1;
 for i = 1:rows(data) 
@@ -194,58 +244,73 @@ for i = 1:rows(data)
 	endif
 endfor
 
-[plot_data, idx] = sortrows(plot_data_p_u, 1);
+%[plot_data, idx] = sortrows(plot_data_p_u, 1);
 
-h4=figure;#("Position",[10,10,1200,800]);
+%plot_data
 
-plot (plot_data(:,1), plot_data(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
+h4=figure("Position",[0,0,800,600]);
+
+plot (plot_data_p_u(:,1), plot_data_p_u(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data_p_u(:,1), plot_data_p_u(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data_p_u(:,1), plot_data_p_u(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data_p_u(:,1), plot_data_p_u(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
 
 
-xlabel ("RMS error");
-ylabel ("Number of inlier");
-legend ("RANSAC inlier", "thereof ground truth inlier", "overall estimation inlier", "thereof ground truth inlier", "location", "northeast");
+xlabel ("RMS error", "fontsize", fontsize);
+ylabel ("Number of inlier", "fontsize", fontsize);
+l = legend ("RANSAC inlier", "thereof \"true\" inlier", "overall estimation inlier", "thereof \"true\" inlier", "location", "northeast");
+set (l, "fontsize", fontsize);
+set(gca, "fontsize", fontsize)
+
 
 k=1;
 for i = 1:rows(data) 
 	if(data(i,43) > 0 && data(i,43) < max_error)
-		plot_data_p_u(k, :) = [data(i,43), data(i,37), data(i,38), data(i,39), data(i,40)];
+		plot_data_lh_u(k, :) = [data(i,43), data(i,37), data(i,38), data(i,39), data(i,40)];
 		k++;
 	endif
 endfor
 
-[plot_data, idx] = sortrows(plot_data_p_u, 1);
+%[plot_data, idx] = sortrows(plot_data_lh_u, 1);
 
-h5=figure;#("Position",[10,10,1200,800]);
+%plot_data
 
-plot (plot_data(:,1), plot_data(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
+%plot_data_lh_u
+
+h5=figure("Position",[0,0,800,600]);
+
+plot (plot_data_lh_u(:,1), plot_data_lh_u(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data_lh_u(:,1), plot_data_lh_u(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data_lh_u(:,1), plot_data_lh_u(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data_lh_u(:,1), plot_data_lh_u(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
 
 
-xlabel ("RMS error");
-ylabel ("Number of inlier");
-legend ("RANSAC inlier", "thereof ground truth inlier", "overall estimation inlier", "thereof ground truth inlier", "location", "northeast");
+xlabel ("RMS error", "fontsize", fontsize);
+ylabel ("Number of inlier", "fontsize", fontsize);
+l = legend ("RANSAC inlier", "thereof \"true\" inlier", "overall estimation inlier", "thereof \"true\" inlier", "location", "northeast");
+set (l, "fontsize", fontsize);
+set(gca, "fontsize", fontsize)
+
 
 k=1;
 for i = 1:rows(data) 
 	if(data(i,62) > 0 && data(i,62) < max_error)
-		plot_data_p_u(k, :) = [data(i,62), data(i,56), data(i,57), data(i,58), data(i,59)];
+		plot_data_ph_u(k, :) = [data(i,62), data(i,56), data(i,57), data(i,58), data(i,59)];
 		k++;
 	endif
 endfor
 
-[plot_data, idx] = sortrows(plot_data_p_u, 1);
+%[plot_data, idx] = sortrows(plot_data_ph_u, 1);
 
-h4=figure;#("Position",[10,10,1200,800]);
+h6=figure("Position",[0,0,800,600]);
 
-plot (plot_data(:,1), plot_data(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data(:,1), plot_data(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
+plot (plot_data_ph_u(:,1), plot_data_ph_u(:,2), "ko", "markersize", msize, "linewidth", lwidth, plot_data_ph_u(:,1), plot_data_ph_u(:,3), "rx", "markersize", msize, "linewidth", lwidth, plot_data_ph_u(:,1), plot_data_ph_u(:,4), "bo", "markersize", msize, "linewidth", lwidth, plot_data_ph_u(:,1), plot_data_ph_u(:,5), "mx", "markersize", msize, "linewidth", lwidth, "markersize", msize, "linewidth", lwidth); 
 
 
-xlabel ("RMS error");
-ylabel ("Number of inlier");
-legend ("RANSAC inlier", "thereof ground truth inlier", "overall estimation inlier", "thereof ground truth inlier", "location", "northeast");
-
+xlabel ("RMS error", "fontsize", fontsize);
+ylabel ("Number of inlier", "fontsize", fontsize);
+l = legend ("RANSAC inlier", "thereof \"true\" inlier", "overall estimation inlier", "thereof \"true\" inlier", "location", "northeast");
+set (l, "fontsize", fontsize);
+set(gca, "fontsize", fontsize)
 
 #saveas (h1, "evaluation_small1.png");
 #saveas (h2, "evaluation_small2.png");
+
+%result_small
 
 csvwrite("es_inlier_error_graph.csv", evaluation_small);
 csvwrite("evaluation_small.csv", result_small);

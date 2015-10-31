@@ -31,11 +31,6 @@ struct correspSubsetError {
     double correspError;
 };
 
-//struct combinedPointMatch {
-//    int pointMatchIdx;
-//    std::vector<fundamentalMatrix*> fundMatrices;
-//};
-
 struct fundamentalMatrix {
     Mat F;
     int inlier;
@@ -44,13 +39,8 @@ struct fundamentalMatrix {
     double stdDeviation;
     double inlierMeanSquaredErrror;
     double inlierStdDeviation;
-//    double leastInlierMeanSquaredErrror;
-//    double leastInlierStdDeviation;
     std::string name;
     int selectedInlierCount;
-//    std::vector<int> pointIdx;
-//    int containedInCluserCnt;
-//    double errorConsensusMatches;
 };
 
 struct lineSubsetStruct {

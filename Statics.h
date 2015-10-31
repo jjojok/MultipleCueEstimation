@@ -66,9 +66,9 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.004;       //0.003
+#define MIN_LENGTH_FACTOR 0.004;
 //Max angle between matched lines
-#define MAX_LINE_ANGLE M_PI/4.0       //M_PI/4.0
+#define MAX_LINE_ANGLE M_PI/4.0
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
 #define HOMOGRAPHY_OUTLIERS 0.80
 //Number of correspondencies per homography estimation
@@ -78,12 +78,6 @@
 //Min hemming distance of binary matchig
 #define MIN_HEMMING_DIST 5
 //Angle difference blow lines being parallel
-#define MAX_ANGLE_DIFF M_PI/20.0        //M_PI/20.0
-
-//Error Estimation:
-//Number of points for error measure between two fundamental matrices
-//#define NUM_SAMPLES_F_COMARATION 2000
-//Max trys per draw to find a point who's epipolar line intersects the other image
-//#define MAX_SAMPLE_TRYS 5000
+#define MAX_ANGLE_DIFF M_PI/20.0
 
 #endif // STATICS_H
