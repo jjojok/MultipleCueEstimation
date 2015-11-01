@@ -5,7 +5,7 @@
 #include <math.h>
 
 //Show debug messages
-#define LOG_DEBUG false
+#define LOG_DEBUG true
 //Create debug images
 #define CREATE_DEBUG_IMG true
 //Show debug images
@@ -29,7 +29,7 @@
 #define QE 1.0
 #define QS 0.01
 //Hard limit on number of computations for ransac & lmeds
-#define MAX_NUM_COMPUTATIONS 15000
+#define MAX_NUM_COMPUTATIONS 20000
 //Max number of numerical refinement steps after a first homographie was found
 #define NUMERICAL_OPTIMIZATION_MAX_ITERATIONS 100
 //max Percentage of error changing for error to be considered as stable
@@ -66,11 +66,11 @@
 //Scaling factor per segement
 #define SCALING 2
 //minimal line lenght = sqrt(width²+height²)*MIN_LENGTH_FACTOR
-#define MIN_LENGTH_FACTOR 0.004;
+#define MIN_LENGTH_FACTOR 0.01;    //0.004
 //Max angle between matched lines
 #define MAX_LINE_ANGLE M_PI/4.0
 //Percentage of lines thought to be outlaiers (outliers are also lines which lie on another plane in 3D)
-#define HOMOGRAPHY_OUTLIERS 0.80
+#define HOMOGRAPHY_OUTLIERS 0.90
 //Number of correspondencies per homography estimation
 #define NUM_LINE_CORRESP 4//6
 //Max hemming distance of binary matchig
